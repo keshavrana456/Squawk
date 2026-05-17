@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { Plus } from "lucide-react";
-import { useGetActiveStories, type StoryGroup } from "@workspace/api-client-react";
+import { useGetActiveStories, useGetMe, type StoryGroup } from "@workspace/api-client-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { motion, AnimatePresence } from "framer-motion";
 
 export default function StoriesRow() {
   const { data: storyGroups, isLoading } = useGetActiveStories();
+  const { data: me } = useGetMe();
   const [viewingGroup, setViewingGroup] = useState<StoryGroup | null>(null);
 
   if (isLoading) {
@@ -30,9 +31,11 @@ export default function StoriesRow() {
         <div className="flex flex-col items-center gap-1 shrink-0 cursor-pointer group" data-testid="story-add">
           <div className="relative w-16 h-16 rounded-full p-[2px] bg-border transition-transform group-hover:scale-105">
             <div className="w-full h-full rounded-full border-2 border-background overflow-hidden bg-muted flex items-center justify-center relative">
-              {/* Fallback to generic user if not logged in context, or would use current user */}
               <Avatar className="w-full h-full rounded-none">
-                <AvatarFallback className="bg-muted">Me</AvatarFallback>
+                <AvatarImage src={me?.avatarUrl || ''} className="object-cover" />
+                <AvatarFallback className="bg-muted text-muted-foreground font-semibold">
+                  {me?.displayName?.charAt(0)?.toUpperCase() ?? 'Me'}
+                </AvatarFallback>
               </Avatar>
               <div className="absolute bottom-0 right-0 w-5 h-5 bg-primary rounded-full border-2 border-background flex items-center justify-center text-primary-foreground">
                 <Plus className="w-3 h-3" />

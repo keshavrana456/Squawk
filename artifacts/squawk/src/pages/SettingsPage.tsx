@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
-import { useGetMe, useUpdateMyProfile, useRequestUploadUrl } from "@workspace/api-client-react";
+import { useGetMe, useUpdateMyProfile, getGetMeQueryKey } from "@workspace/api-client-react";
 import { useClerk } from "@clerk/react";
-import { useLocation } from "wouter";
+import { useQueryClient } from "@tanstack/react-query";
 import { Camera, LogOut, Check } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -12,16 +12,16 @@ import { motion } from "framer-motion";
 export default function SettingsPage() {
   const { data: me, isLoading } = useGetMe();
   const updateMutation = useUpdateMyProfile();
-  const requestUrlMutation = useRequestUploadUrl();
+  const queryClient = useQueryClient();
   const { signOut } = useClerk();
-  const [, setLocation] = useLocation();
 
   const [displayName, setDisplayName] = useState("");
   const [bio, setBio] = useState("");
   const [website, setWebsite] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  
+  const [saveError, setSaveError] = useState<string | null>(null);
+
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const avatarInputRef = useRef<HTMLInputElement>(null);
@@ -30,10 +30,15 @@ export default function SettingsPage() {
     if (me) {
       setDisplayName(me.displayName || "");
       setBio(me.bio || "");
+      setWebsite(me.website || "");
     }
   }, [me]);
 
-  if (isLoading) return <div className="min-h-screen flex items-center justify-center dark"><div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" /></div>;
+  if (isLoading) return (
+    <div className="min-h-screen flex items-center justify-center dark">
+      <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+    </div>
+  );
 
   const handleAvatarSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -44,31 +49,37 @@ export default function SettingsPage() {
 
   const handleSave = async () => {
     setIsSaving(true);
+    setSaveError(null);
     try {
-      let finalAvatarUrl = me?.avatarUrl;
+      let finalAvatarUrl = me?.avatarUrl ?? null;
 
-      // Upload new avatar if selected
       if (avatarFile) {
-        const { uploadURL, objectPath } = await requestUrlMutation.mutateAsync({
-          data: { name: avatarFile.name, size: avatarFile.size, contentType: avatarFile.type }
+        const formData = new FormData();
+        formData.append("file", avatarFile);
+        const res = await fetch("/api/storage/upload", {
+          method: "POST",
+          body: formData,
         });
-        await fetch(uploadURL, { method: "PUT", headers: { "Content-Type": avatarFile.type }, body: avatarFile });
-        finalAvatarUrl = `/api/storage${objectPath}`;
+        if (!res.ok) throw new Error("Avatar upload failed");
+        const { mediaUrl } = await res.json();
+        finalAvatarUrl = mediaUrl;
       }
 
-      // Update profile
       await updateMutation.mutateAsync({
         data: {
           displayName,
           bio: bio || null,
-          avatarUrl: finalAvatarUrl || null,
+          avatarUrl: finalAvatarUrl,
         }
       });
-      
+
+      await queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
+      setAvatarFile(null);
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
+      setSaveError(e?.message || "Something went wrong — please try again.");
     } finally {
       setIsSaving(false);
     }
@@ -79,7 +90,7 @@ export default function SettingsPage() {
       <h1 className="text-3xl font-bold mb-8 text-foreground">Edit Profile</h1>
 
       <div className="bg-card border border-border rounded-3xl p-6 shadow-sm mb-8 space-y-8">
-        
+
         {/* Avatar Section */}
         <div className="flex flex-col md:flex-row items-center gap-6 pb-8 border-b border-border">
           <div className="relative group cursor-pointer" onClick={() => avatarInputRef.current?.click()}>
@@ -106,23 +117,23 @@ export default function SettingsPage() {
             <Input value={me?.username || ""} disabled className="bg-muted text-muted-foreground cursor-not-allowed" />
             <p className="text-xs text-muted-foreground">Usernames cannot be changed.</p>
           </div>
-          
+
           <div className="space-y-2">
             <label className="text-sm font-semibold text-foreground">Display Name</label>
-            <Input 
-              value={displayName} 
-              onChange={e => setDisplayName(e.target.value)} 
-              placeholder="Your name" 
+            <Input
+              value={displayName}
+              onChange={e => setDisplayName(e.target.value)}
+              placeholder="Your name"
               className="bg-input border-border focus-visible:ring-primary"
             />
           </div>
 
           <div className="space-y-2">
             <label className="text-sm font-semibold text-foreground">Bio</label>
-            <Textarea 
-              value={bio} 
-              onChange={e => setBio(e.target.value)} 
-              placeholder="Tell us about yourself" 
+            <Textarea
+              value={bio}
+              onChange={e => setBio(e.target.value)}
+              placeholder="Tell us about yourself"
               className="bg-input border-border focus-visible:ring-primary resize-none h-24"
               maxLength={150}
             />
@@ -131,20 +142,24 @@ export default function SettingsPage() {
 
           <div className="space-y-2">
             <label className="text-sm font-semibold text-foreground">Website (coming soon)</label>
-            <Input 
-              value={website} 
-              onChange={e => setWebsite(e.target.value)} 
-              placeholder="https://yourwebsite.com" 
+            <Input
+              value={website}
+              onChange={e => setWebsite(e.target.value)}
+              placeholder="https://yourwebsite.com"
               className="bg-input border-border focus-visible:ring-primary"
               disabled
             />
           </div>
         </div>
 
+        {saveError && (
+          <p className="text-sm text-destructive text-center">{saveError}</p>
+        )}
+
         {/* Save Button */}
         <div className="pt-6 border-t border-border flex justify-end">
-          <Button 
-            onClick={handleSave} 
+          <Button
+            onClick={handleSave}
             disabled={isSaving || !displayName.trim()}
             className="w-full md:w-40 h-12 rounded-full font-bold bg-gradient-to-r from-primary to-[#c084fc] text-white hover:opacity-90 border-0 shadow-lg shadow-primary/20"
           >
@@ -163,8 +178,8 @@ export default function SettingsPage() {
       <div className="bg-destructive/5 border border-destructive/20 rounded-3xl p-6 mb-20">
         <h3 className="text-lg font-bold text-destructive mb-2">Account Access</h3>
         <p className="text-sm text-muted-foreground mb-6">Log out of your Squawk account on this device.</p>
-        <Button 
-          variant="outline" 
+        <Button
+          variant="outline"
           className="w-full md:w-auto border-destructive text-destructive hover:bg-destructive hover:text-white"
           onClick={() => signOut({ redirectUrl: "/" })}
         >
