@@ -6,15 +6,14 @@ export default function LandingPage() {
     <div className="min-h-[100dvh] bg-background text-foreground overflow-hidden flex flex-col relative dark">
       {/* Abstract Background */}
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
-        <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] rounded-full bg-primary/20 blur-[120px]" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-[#06b6d4]/20 blur-[120px]" />
-        <div className="absolute top-[40%] left-[40%] w-[30%] h-[30%] rounded-full bg-purple-500/10 blur-[100px]" />
+        <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] rounded-full bg-primary/15 blur-[120px]" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-secondary/15 blur-[120px]" />
+        <div className="absolute top-[40%] left-[40%] w-[30%] h-[30%] rounded-full bg-primary/8 blur-[100px]" />
       </div>
 
       <nav className="w-full flex items-center justify-between p-6 md:px-12 relative z-10">
         <div className="flex items-center gap-3">
-          <img src={import.meta.env.BASE_URL.replace(/\/$/, "") + "/logo.svg"} alt="Squawk Logo" className="w-10 h-10" />
-          <span className="text-2xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-primary to-[#06b6d4]">Squawk</span>
+          <img src={import.meta.env.BASE_URL.replace(/\/$/, "") + "/logo.png"} alt="Squawk Logo" className="h-10 w-auto" />
         </div>
         <div className="flex gap-4">
           <Link href="/sign-in" className="px-6 py-2 rounded-full font-medium text-foreground hover:bg-white/5 transition-colors" data-testid="link-login">

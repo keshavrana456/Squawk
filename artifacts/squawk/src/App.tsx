@@ -45,17 +45,17 @@ const clerkAppearance = {
   options: {
     logoPlacement: "inside" as const,
     logoLinkUrl: basePath || "/",
-    logoImageUrl: `${window.location.origin}${basePath}/logo.svg`,
+    logoImageUrl: `${window.location.origin}${basePath}/logo.png`,
   },
   variables: {
-    colorPrimary: "hsl(262, 83%, 58%)",
+    colorPrimary: "hsl(340, 100%, 80%)",
     colorForeground: "hsl(0, 0%, 98%)",
-    colorMutedForeground: "hsl(240, 5%, 65%)",
-    colorDanger: "hsl(0, 62.8%, 30.6%)",
-    colorBackground: "hsl(240, 10%, 6%)",
-    colorInput: "hsl(240, 10%, 12%)",
+    colorMutedForeground: "hsl(0, 0%, 60%)",
+    colorDanger: "hsl(0, 62.8%, 40%)",
+    colorBackground: "hsl(0, 0%, 7%)",
+    colorInput: "hsl(0, 0%, 11%)",
     colorInputForeground: "hsl(0, 0%, 98%)",
-    colorNeutral: "hsl(240, 10%, 12%)",
+    colorNeutral: "hsl(0, 0%, 12%)",
     fontFamily: "'Outfit', sans-serif",
     borderRadius: "1rem",
   },
@@ -75,9 +75,9 @@ const clerkAppearance = {
     formFieldSuccessText: "text-green-500",
     alertText: "text-destructive-foreground",
     logoBox: "flex justify-center mb-4",
-    logoImage: "h-12 w-12",
+    logoImage: "h-16 w-auto",
     socialButtonsBlockButton: "border border-border hover:bg-muted/50 transition-colors",
-    formButtonPrimary: "bg-gradient-to-r from-primary to-[#06b6d4] hover:opacity-90 transition-opacity text-white border-0",
+    formButtonPrimary: "bg-gradient-to-r from-primary to-secondary hover:opacity-90 transition-opacity text-foreground border-0 font-semibold",
     formFieldInput: "bg-input border-border text-foreground placeholder:text-muted-foreground focus:ring-primary",
     footerAction: "bg-transparent",
     dividerLine: "bg-border",
@@ -92,8 +92,8 @@ function SignInPage() {
   return (
     <div className="flex min-h-[100dvh] items-center justify-center bg-background px-4 relative overflow-hidden dark">
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
-        <div className="absolute -top-[20%] -left-[10%] w-[50%] h-[50%] rounded-full bg-primary/20 blur-[120px]" />
-        <div className="absolute bottom-[0%] -right-[10%] w-[50%] h-[50%] rounded-full bg-[#06b6d4]/20 blur-[120px]" />
+        <div className="absolute -top-[20%] -left-[10%] w-[50%] h-[50%] rounded-full bg-primary/15 blur-[120px]" />
+        <div className="absolute bottom-[0%] -right-[10%] w-[50%] h-[50%] rounded-full bg-secondary/15 blur-[120px]" />
       </div>
       <div className="relative z-10 w-full flex justify-center">
         <SignIn routing="path" path={`${basePath}/sign-in`} signUpUrl={`${basePath}/sign-up`} />
@@ -106,8 +106,8 @@ function SignUpPage() {
   return (
     <div className="flex min-h-[100dvh] items-center justify-center bg-background px-4 relative overflow-hidden dark">
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
-        <div className="absolute -top-[20%] -right-[10%] w-[50%] h-[50%] rounded-full bg-primary/20 blur-[120px]" />
-        <div className="absolute bottom-[0%] -left-[10%] w-[50%] h-[50%] rounded-full bg-[#06b6d4]/20 blur-[120px]" />
+        <div className="absolute -top-[20%] -right-[10%] w-[50%] h-[50%] rounded-full bg-primary/15 blur-[120px]" />
+        <div className="absolute bottom-[0%] -left-[10%] w-[50%] h-[50%] rounded-full bg-secondary/15 blur-[120px]" />
       </div>
       <div className="relative z-10 w-full flex justify-center">
         <SignUp routing="path" path={`${basePath}/sign-up`} signInUrl={`${basePath}/sign-in`} />

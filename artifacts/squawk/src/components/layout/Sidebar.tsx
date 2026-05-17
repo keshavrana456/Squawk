@@ -25,8 +25,7 @@ export default function Sidebar() {
     <aside className="hidden md:flex flex-col w-64 border-r border-border bg-card/50 backdrop-blur-xl h-full p-4 justify-between sticky top-0">
       <div>
         <Link href="/home" className="flex items-center gap-3 px-4 py-4 mb-8" data-testid="link-logo">
-          <img src={import.meta.env.BASE_URL.replace(/\/$/, "") + "/logo.svg"} alt="Squawk Logo" className="w-8 h-8" />
-          <span className="text-2xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-primary to-[#06b6d4]">Squawk</span>
+          <img src={import.meta.env.BASE_URL.replace(/\/$/, "") + "/logo.png"} alt="Squawk Logo" className="h-9 w-auto" />
         </Link>
         <nav className="space-y-2">
           {navItems.map((item) => {

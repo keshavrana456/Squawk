@@ -1,0 +1,187 @@
+Fix the feed system, upload system, and search system so the social media app behaves like a real Instagram/TikTok-style platform.
+
+IMPORTANT:
+Currently uploaded posts are not properly appearing in the feed and search is not working correctly. Fix all related issues and make the systems fully functional with realtime updates.
+
+==================================================
+UPLOAD TO FEED SYSTEM
+==================================================
+
+After a user uploads a photo or video successfully:
+
+- instantly add the post to the main feed
+- show the post without refreshing the page
+- update profile post count
+- display uploaded content on user profile
+- show new post in explore/trending section
+- update realtime feed state
+
+The upload flow should feel instant and smooth like Instagram.
+
+==================================================
+POST DATABASE INTEGRATION
+==================================================
+
+Save all uploaded posts properly in database including:
+
+- user ID
+- username
+- profile image
+- caption
+- hashtags
+- media URL
+- media type (photo/video)
+- upload timestamp
+- likes/comments count
+- visibility
+- location
+- thumbnail
+
+Ensure feed fetches posts dynamically from database.
+
+==================================================
+MAIN FEED FIX
+==================================================
+
+Fix feed loading issues and make:
+- newest posts appear first
+- uploaded posts appear instantly
+- videos autoplay correctly
+- images load correctly
+- infinite scrolling work
+- realtime refresh work
+
+Feed should display:
+- own uploaded posts
+- followed users posts
+- trending/demo posts
+
+==================================================
+SEARCH SYSTEM FIX
+==================================================
+
+Make the search button fully functional.
+
+Users should be able to search:
+- usernames
+- display names
+- hashtags
+- captions
+- posts
+- creators
+
+==================================================
+OWN PROFILE SEARCH FIX
+==================================================
+
+IMPORTANT:
+If the logged-in user searches their own:
+- username
+OR
+- display name
+
+The search should correctly show their own profile.
+
+Clicking the result should:
+- open their profile page
+- display their uploaded posts
+- show followers/following
+- allow editing profile
+
+==================================================
+LIVE SEARCH RESULTS
+==================================================
+
+Add:
+- realtime search suggestions
+- dropdown search results
+- recent searches
+- trending creators
+- search loading animation
+
+Search should update instantly while typing.
+
+==================================================
+SEARCH RESULT TYPES
+==================================================
+
+Search results should include:
+1. User profiles
+2. Posts/photos
+3. Videos/reels
+4. Hashtags
+5. Trending topics
+
+==================================================
+SEARCH UI
+==================================================
+
+Create a premium modern search experience with:
+- animated search bar
+- glowing input field
+- smooth dropdown animations
+- profile preview cards
+- post thumbnails
+- responsive mobile layout
+
+==================================================
+FEED UI IMPROVEMENTS
+==================================================
+
+Make the feed feel alive and premium:
+- smooth loading transitions
+- realtime updates
+- animated like button
+- double tap like
+- comments popup
+- share modal
+- save/bookmark feature
+- responsive reels layout
+
+==================================================
+REALTIME STATE MANAGEMENT
+==================================================
+
+Ensure all systems update instantly after actions:
+- upload post
+- delete post
+- like post
+- follow user
+- edit profile
+
+Without requiring manual refresh.
+
+==================================================
+ERROR HANDLING
+==================================================
+
+Fix:
+- uploaded post not showing
+- search returning empty results
+- own profile not appearing in search
+- broken feed refresh
+- failed uploads
+- database sync issues
+- duplicate posts
+- missing thumbnails
+
+Add:
+- loading states
+- retry states
+- proper empty states
+- smooth error messages
+
+==================================================
+FINAL GOAL
+==================================================
+
+The app should now behave like a real modern social media platform where:
+
+- uploaded posts instantly appear in feed
+- users can search any profile correctly
+- own profile appears when searching own username
+- feed updates in realtime
+- posts display correctly everywhere
+- search feels fast and responsive
+
+The entire experience should feel smooth, premium, and production-ready.

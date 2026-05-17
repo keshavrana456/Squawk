@@ -1,0 +1,257 @@
+Fix the broken profile page and create a fully functional modern social media profile system for the app.
+
+IMPORTANT:
+The profile page must actually open and work correctly when clicking on a user profile, profile picture, username, followers list, comments username, search result, or navigation profile icon.
+
+The profile system should feel like a real Instagram/TikTok profile experience with premium UI and realtime functionality.
+
+==================================================
+PROFILE PAGE REQUIREMENTS
+==================================================
+
+Create a fully working dynamic profile page.
+
+ROUTE STRUCTURE:
+- /profile/[username]
+OR
+- /user/[id]
+
+The page should dynamically load the correct user data from the database.
+
+Fix all routing/navigation issues causing the profile page not to open.
+
+==================================================
+PROFILE HEADER
+==================================================
+
+Create a premium animated profile header including:
+
+- profile picture
+- username
+- verified badge support
+- bio
+- followers count
+- following count
+- total posts count
+- creator category
+- website/social links
+- edit profile button
+- follow/unfollow button
+- message button
+- call button
+- video call button
+
+Add:
+- smooth animations
+- glowing buttons
+- responsive layout
+- glassmorphism effects
+- hover transitions
+
+==================================================
+PROFILE TABS
+==================================================
+
+Add working tabs:
+- Posts
+- Reels/Videos
+- Tagged
+- Saved
+- Liked
+
+Tabs should:
+- animate smoothly
+- load realtime content
+- support infinite scroll
+
+==================================================
+POST GRID SYSTEM
+==================================================
+
+Create Instagram-style post grid.
+
+Features:
+- photo thumbnails
+- video thumbnails
+- hover preview
+- like/comment counts
+- click to open fullscreen modal
+- responsive masonry/grid layout
+
+==================================================
+FULLSCREEN POST VIEW
+==================================================
+
+When clicking a post:
+- open fullscreen modal
+- show image/video
+- comments section
+- likes
+- caption
+- share button
+- save button
+- follow button
+- realtime engagement
+
+Support:
+- autoplay videos
+- swipe navigation
+- smooth transitions
+
+==================================================
+EDIT PROFILE SYSTEM
+==================================================
+
+Users should be able to edit:
+- username
+- bio
+- profile photo
+- cover/banner
+- links
+- interests
+
+Changes should save to database instantly.
+
+==================================================
+FOLLOW SYSTEM
+==================================================
+
+Implement real follow/unfollow functionality.
+
+Requirements:
+- realtime follower count updates
+- following list
+- followers list
+- follow suggestions
+- mutual followers
+
+==================================================
+PROFILE NAVIGATION
+==================================================
+
+Make profile opening work from everywhere:
+
+- clicking usernames
+- clicking profile images
+- clicking comments usernames
+- clicking followers/following
+- clicking search results
+- clicking chat users
+- clicking notifications
+- clicking feed posts
+
+Every user interaction should correctly navigate to the profile page.
+
+==================================================
+SEARCH PROFILE SYSTEM
+==================================================
+
+Users should be searchable by:
+- username
+- name
+- tags
+- bio keywords
+
+Add:
+- live search suggestions
+- trending creators
+- recent searches
+
+==================================================
+PROFILE MEDIA SYSTEM
+==================================================
+
+Display:
+- uploaded photos
+- uploaded videos
+- reels
+- stories
+- saved content
+
+All media should load dynamically from database/storage.
+
+==================================================
+REALTIME PROFILE FEATURES
+==================================================
+
+Add:
+- online status
+- typing indicator in messages
+- live follower updates
+- realtime post counts
+- live activity indicators
+
+==================================================
+PROFILE DESIGN STYLE
+==================================================
+
+The profile page should feel:
+- modern
+- futuristic
+- premium
+- social-media quality
+
+Design inspiration:
+- Instagram
+- TikTok
+- Threads
+- Discord profile aesthetics
+
+Add:
+- dark modern UI
+- neon/glow accents
+- smooth page transitions
+- animated counters
+- hover effects
+- responsive mobile-first layout
+
+==================================================
+DATABASE INTEGRATION
+==================================================
+
+Connect profile system with database tables:
+
+- users
+- posts
+- followers
+- following
+- likes
+- comments
+- saved posts
+- stories
+
+==================================================
+ERROR FIXES
+==================================================
+
+Fix:
+- profile page not loading
+- broken dynamic routes
+- navigation errors
+- undefined user data
+- loading state crashes
+- missing profile images
+- failed database fetches
+
+Add proper:
+- loading skeletons
+- fallback states
+- error handling
+- empty profile states
+
+==================================================
+FINAL GOAL
+==================================================
+
+The final profile system should feel like a real production-grade social media profile experience.
+
+Users should be able to:
+- open profiles instantly
+- follow creators
+- view posts/reels
+- message users
+- call/video call
+- explore content
+- edit their identity
+
+The profile page should feel smooth, alive, premium, and fully functional.

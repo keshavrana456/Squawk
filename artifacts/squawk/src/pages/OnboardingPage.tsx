@@ -35,8 +35,11 @@ export default function OnboardingPage() {
       });
       setLocation("/home");
     } catch (err: any) {
-      if (err.message?.includes("Username")) {
-        form.setError("username", { message: "Username already taken" });
+      const msg = err?.message || err?.body?.message || "";
+      if (msg.toLowerCase().includes("username") || msg.toLowerCase().includes("already") || msg.toLowerCase().includes("taken") || msg.toLowerCase().includes("exist")) {
+        form.setError("username", { message: "That username is already taken — please choose a different one" });
+      } else {
+        form.setError("username", { message: "Something went wrong. Please try a different username." });
       }
     }
   };
@@ -44,7 +47,8 @@ export default function OnboardingPage() {
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4 relative overflow-hidden dark">
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
-        <div className="absolute top-[20%] left-[20%] w-[40%] h-[40%] rounded-full bg-primary/10 blur-[100px]" />
+        <div className="absolute top-[20%] left-[20%] w-[40%] h-[40%] rounded-full bg-primary/15 blur-[100px]" />
+        <div className="absolute bottom-[10%] right-[10%] w-[30%] h-[30%] rounded-full bg-secondary/10 blur-[80px]" />
       </div>
 
       <motion.div 
@@ -53,6 +57,11 @@ export default function OnboardingPage() {
         className="w-full max-w-md bg-card border border-border rounded-3xl p-8 relative z-10 shadow-2xl"
       >
         <div className="text-center mb-8">
+          <img
+            src={import.meta.env.BASE_URL.replace(/\/$/, "") + "/logo.png"}
+            alt="Squawk"
+            className="h-16 w-auto mx-auto mb-4"
+          />
           <h1 className="text-3xl font-bold mb-2">Claim your identity</h1>
           <p className="text-muted-foreground">This is how you'll appear on the grid.</p>
         </div>
@@ -92,7 +101,7 @@ export default function OnboardingPage() {
 
             <Button 
               type="submit" 
-              className="w-full h-12 text-lg rounded-xl bg-gradient-to-r from-primary to-[#06b6d4] hover:opacity-90 transition-opacity border-0"
+              className="w-full h-12 text-lg rounded-xl bg-gradient-to-r from-primary to-secondary hover:opacity-90 transition-opacity border-0 text-primary-foreground font-semibold"
               disabled={onboardMutation.isPending}
               data-testid="button-complete-onboarding"
             >
