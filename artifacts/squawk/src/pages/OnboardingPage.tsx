@@ -2,8 +2,9 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useLocation } from "wouter";
-import { useOnboardUser } from "@workspace/api-client-react";
+import { useOnboardUser, getGetMeQueryKey } from "@workspace/api-client-react";
 import { useUser } from "@clerk/react";
+import { useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -19,6 +20,7 @@ export default function OnboardingPage() {
   const [, setLocation] = useLocation();
   const { user } = useUser();
   const onboardMutation = useOnboardUser();
+  const queryClient = useQueryClient();
 
   const form = useForm<z.infer<typeof onboardSchema>>({
     resolver: zodResolver(onboardSchema),
@@ -33,6 +35,7 @@ export default function OnboardingPage() {
       await onboardMutation.mutateAsync({
         data: values
       });
+      await queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
       setLocation("/home");
     } catch (err: any) {
       const msg = err?.message || err?.body?.message || "";
