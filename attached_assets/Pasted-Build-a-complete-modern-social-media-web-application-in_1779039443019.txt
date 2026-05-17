@@ -1,0 +1,331 @@
+Build a complete modern social media web application inspired by Instagram, TikTok, and Discord. The platform should feel like a real-world production-ready startup product with premium UI/UX, smooth animations, realtime features, and fully working authentication.
+
+The app must be fully responsive, mobile-first, visually stunning, and highly interactive.
+
+APP GOAL:
+Create a next-generation social platform where users can:
+- create accounts
+- connect with people
+- follow creators
+- upload photos and videos
+- chat in realtime
+- make voice/video calls
+- explore trending content
+- build their online identity
+
+The platform should feel modern, addictive, smooth, and alive.
+
+TECH STACK:
+- Next.js
+- React
+- Tailwind CSS
+- Framer Motion
+- Supabase (auth, database, realtime)
+- Cloudinary (photo/video uploads)
+- WebRTC or Stream API for voice/video calls
+- Deployable on Replit
+
+DESIGN STYLE:
+- Instagram-level clean UI
+- TikTok-style immersive feed
+- Discord-like realtime communication
+- Dark modern aesthetic
+- Glassmorphism effects
+- Neon gradients
+- Smooth transitions
+- Mobile-first responsive design
+- Premium startup feel
+
+==================================================
+AUTHENTICATION SYSTEM
+==================================================
+
+Create a fully working authentication system.
+
+LOGIN / SIGNUP FLOW:
+1. User enters:
+   - phone number OR email
+
+2. Send OTP verification code
+   - real OTP UI
+   - animated verification screen
+   - countdown timer
+   - resend OTP button
+   - smooth validation
+
+3. After successful OTP:
+   - ask user to create username
+   - upload profile photo
+   - add bio
+   - select interests
+   - create account
+
+4. Automatically generate:
+   - user profile
+   - user ID
+   - personal feed
+   - suggested creators
+
+AUTH FEATURES:
+- phone login
+- email login
+- OTP verification
+- persistent sessions
+- logout system
+- secure authentication
+- protected routes
+- onboarding flow
+- loading animations
+- realtime validation
+- forgot password support
+
+==================================================
+HOME FEED
+==================================================
+
+Create a beautiful Instagram + TikTok style feed.
+
+FEATURES:
+- vertical scrolling feed
+- photo posts
+- video posts
+- autoplay videos
+- smooth transitions
+- infinite scrolling
+- like button
+- comment button
+- share button
+- save/bookmark feature
+- realtime engagement counters
+- double tap like animation
+- swipe gestures
+- trending posts
+
+Each post should support:
+- captions
+- hashtags
+- mentions
+- music/audio
+- comments
+- likes
+- view count
+- upload time
+
+==================================================
+UPLOAD SYSTEM
+==================================================
+
+Users should be able to upload:
+- photos
+- reels/videos
+- stories
+
+UPLOAD FEATURES:
+- drag and drop upload
+- camera access
+- gallery picker
+- upload progress bar
+- preview before posting
+- caption editor
+- hashtag support
+- tagging users
+- location tagging
+- filters/effects
+- cropping tools
+- thumbnail generation
+
+Store media using Cloudinary or Supabase Storage.
+
+==================================================
+PROFILE SYSTEM
+==================================================
+
+Create fully functional user profiles.
+
+PROFILE FEATURES:
+- profile picture
+- username
+- bio
+- followers/following count
+- posts grid
+- reels tab
+- tagged posts
+- edit profile
+- links/socials
+- pinned posts
+- verified badge system
+- activity stats
+
+Users should be able to:
+- follow/unfollow others
+- view profiles
+- share profiles
+- search profiles
+
+==================================================
+SEARCH & EXPLORE
+==================================================
+
+Create a powerful search and explore system.
+
+SEARCH FEATURES:
+- search users
+- search hashtags
+- search videos
+- search trending posts
+- search creators
+- live search suggestions
+- recent searches
+
+EXPLORE PAGE:
+- trending reels
+- viral posts
+- suggested creators
+- categories
+- gaming
+- memes
+- AI content
+- tech content
+- music
+- photography
+
+==================================================
+REALTIME MESSAGING SYSTEM
+==================================================
+
+Create a modern realtime chat system.
+
+CHAT FEATURES:
+- private messaging
+- group chats
+- typing indicators
+- online/offline status
+- read receipts
+- reactions/emojis
+- GIF support
+- media sharing
+- voice notes
+- message notifications
+- pinned chats
+- search chats
+
+UI should feel like:
+Instagram DM + Discord + WhatsApp combined.
+
+==================================================
+VOICE & VIDEO CALLING
+==================================================
+
+Implement realtime calling system.
+
+CALL FEATURES:
+- voice calls
+- video calls
+- group calls
+- mute/unmute
+- camera toggle
+- screen sharing
+- call notifications
+- floating call UI
+- fullscreen video UI
+- realtime connection status
+
+Use:
+- WebRTC
+OR
+- Stream Video API
+
+==================================================
+NOTIFICATION SYSTEM
+==================================================
+
+Create realtime notifications for:
+- likes
+- comments
+- follows
+- messages
+- mentions
+- calls
+- tags
+- uploads
+
+Include:
+- notification center
+- animated alerts
+- realtime updates
+- push notification ready structure
+
+==================================================
+STORIES SYSTEM
+==================================================
+
+Create Instagram-style stories.
+
+FEATURES:
+- upload story
+- image/video stories
+- story viewer
+- reactions
+- story highlights
+- auto expire after 24h
+- progress bars
+- swipe navigation
+
+==================================================
+UI/UX DETAILS
+==================================================
+
+The app should feel premium and smooth.
+
+Add:
+- page transitions
+- loading skeletons
+- hover animations
+- smooth scrolling
+- glassmorphism cards
+- animated buttons
+- realtime UI updates
+- cinematic transitions
+- dark/light mode
+- responsive layouts
+
+==================================================
+ADMIN / MODERATION
+==================================================
+
+Add moderation system:
+- report posts
+- block users
+- mute users
+- delete posts
+- content moderation structure
+- admin dashboard
+
+==================================================
+DATABASE STRUCTURE
+==================================================
+
+Store:
+- users
+- posts
+- comments
+- followers
+- likes
+- chats
+- calls
+- notifications
+- stories
+- saved posts
+- hashtags
+
+==================================================
+FINAL GOAL
+==================================================
+
+The final app should feel like a real modern social media platform built by a startup team.
+
+It should emotionally feel like:
+Instagram + TikTok + Discord + WhatsApp combined into one futuristic social platform.
+
+When someone opens the app, they should immediately think:
+“This feels like a real production social media app.”
