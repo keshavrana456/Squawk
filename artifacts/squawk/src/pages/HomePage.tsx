@@ -1,4 +1,3 @@
-import { useEffect, useRef } from "react";
 import { Link } from "wouter";
 import { useGetFeed, useGetFeedStats, type Post } from "@workspace/api-client-react";
 import { motion } from "framer-motion";
@@ -8,34 +7,10 @@ import PostCard from "@/components/PostCard";
 import { Users, Heart, Image as ImageIcon } from "lucide-react";
 
 export default function HomePage() {
-  const { data: feedData, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = useGetFeed({ query: { queryKey: ["feed"] } });
+  const { data: feedData, isLoading } = useGetFeed(undefined, { query: { queryKey: ["feed"] } });
   const { data: stats } = useGetFeedStats();
-  
-  const observerTarget = useRef(null);
 
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      entries => {
-        if (entries[0].isIntersecting && hasNextPage) {
-          fetchNextPage();
-        }
-      },
-      { threshold: 1.0 }
-    );
-
-    if (observerTarget.current) {
-      observer.observe(observerTarget.current);
-    }
-
-    return () => {
-      if (observerTarget.current) {
-        observer.unobserve(observerTarget.current);
-      }
-    };
-  }, [observerTarget, hasNextPage, fetchNextPage]);
-
-  // Use items directly depending on how Orval structured it.
-  const posts = (feedData as any)?.pages?.flatMap((page: any) => page.items) || (feedData as any)?.items || [];
+  const posts = feedData?.posts || [];
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex justify-center max-w-6xl mx-auto w-full dark">
@@ -70,9 +45,7 @@ export default function HomePage() {
             </div>
           )}
           
-          <div ref={observerTarget} className="h-10 flex justify-center pb-8">
-            {isFetchingNextPage && <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />}
-          </div>
+          <div className="h-10 pb-8" />
         </div>
       </div>
       
@@ -81,8 +54,8 @@ export default function HomePage() {
           <h3 className="font-bold text-lg mb-4">Network Stats</h3>
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-muted-foreground"><Users className="w-4 h-4" /> Users</div>
-              <span className="font-semibold text-primary">{stats?.totalUsers || 0}</span>
+              <div className="flex items-center gap-2 text-muted-foreground"><Users className="w-4 h-4" /> Followers</div>
+              <span className="font-semibold text-primary">{stats?.totalFollowers || 0}</span>
             </div>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 text-muted-foreground"><ImageIcon className="w-4 h-4" /> Posts</div>

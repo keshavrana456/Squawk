@@ -84,6 +84,24 @@ router.put("/users/me/profile", requireUser, async (req, res): Promise<void> => 
   res.json(profile);
 });
 
+// GET /users/suggested — must be before /users/:username to avoid route conflict
+router.get("/users/suggested", requireUser, async (req, res): Promise<void> => {
+  const currentUser = (req as any).currentUser as typeof usersTable.$inferSelect;
+  const queryParams = GetSuggestedUsersQueryParams.safeParse(req.query);
+  const limit = queryParams.success ? (queryParams.data.limit ?? 10) : 10;
+
+  const following = await db.select({ followingId: followsTable.followingId })
+    .from(followsTable).where(eq(followsTable.followerId, currentUser.id));
+  const followingIds = following.map(f => f.followingId);
+
+  const excludeIds = [currentUser.id, ...followingIds];
+  const suggested = await db.select().from(usersTable)
+    .where(notInArray(usersTable.id, excludeIds))
+    .limit(limit);
+
+  res.json(suggested.map(u => buildUserSummary(u)));
+});
+
 // GET /users/:username
 router.get("/users/:username", async (req, res): Promise<void> => {
   const params = GetUserByUsernameParams.safeParse(req.params);
@@ -163,25 +181,6 @@ router.get("/users/:username/following", async (req, res): Promise<void> => {
     .where(eq(followsTable.followerId, user.id));
 
   res.json(following.map(f => buildUserSummary(f.user)));
-});
-
-// GET /users/suggested
-router.get("/users/suggested", requireUser, async (req, res): Promise<void> => {
-  const currentUser = (req as any).currentUser as typeof usersTable.$inferSelect;
-  const queryParams = GetSuggestedUsersQueryParams.safeParse(req.query);
-  const limit = queryParams.success ? (queryParams.data.limit ?? 10) : 10;
-
-  // Get users the current user already follows
-  const following = await db.select({ followingId: followsTable.followingId })
-    .from(followsTable).where(eq(followsTable.followerId, currentUser.id));
-  const followingIds = following.map(f => f.followingId);
-
-  const excludeIds = [currentUser.id, ...followingIds];
-  const suggested = await db.select().from(usersTable)
-    .where(notInArray(usersTable.id, excludeIds))
-    .limit(limit);
-
-  res.json(suggested.map(u => buildUserSummary(u)));
 });
 
 // POST /follows/:username

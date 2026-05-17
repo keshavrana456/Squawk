@@ -14,7 +14,7 @@ export default function ProfilePage() {
   const { data: me } = useGetMe();
   const { data: profile, isLoading } = useGetUserByUsername(username || "", { query: { enabled: !!username } });
   const { data: postsData } = useGetUserPosts(username || "", { query: { enabled: !!username } });
-  const posts = (postsData as any)?.items || [];
+  const posts = postsData?.posts || [];
   
   const followMutation = useFollowUser();
   const unfollowMutation = useUnfollowUser();
@@ -108,11 +108,11 @@ export default function ProfilePage() {
               <span className="text-sm text-muted-foreground font-medium">Posts</span>
             </div>
             <div className="flex flex-col cursor-pointer hover:opacity-80 transition-opacity">
-              <span className="font-bold text-lg text-foreground">{(profile as any).followersCount || Math.floor(Math.random() * 10000)}</span>
+              <span className="font-bold text-lg text-foreground">{profile.followersCount ?? 0}</span>
               <span className="text-sm text-muted-foreground font-medium">Followers</span>
             </div>
             <div className="flex flex-col cursor-pointer hover:opacity-80 transition-opacity">
-              <span className="font-bold text-lg text-foreground">{(profile as any).followingCount || Math.floor(Math.random() * 1000)}</span>
+              <span className="font-bold text-lg text-foreground">{profile.followingCount ?? 0}</span>
               <span className="text-sm text-muted-foreground font-medium">Following</span>
             </div>
           </div>

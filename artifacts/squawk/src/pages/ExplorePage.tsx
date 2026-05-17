@@ -19,7 +19,7 @@ export default function ExplorePage() {
   }, [query]);
 
   // Pass an object with query property based on the API definition
-  const { data: searchResults, isLoading: isSearchLoading } = useSearch({ query: debouncedQuery, type: "all" }, { query: { enabled: debouncedQuery.length > 0 } });
+  const { data: searchResults, isLoading: isSearchLoading } = useSearch({ q: debouncedQuery, type: "all" }, { query: { enabled: debouncedQuery.length > 0 } });
   const { data: trendingHashtags } = useGetTrendingHashtags();
   const { data: suggestedUsers } = useGetSuggestedUsers();
   const { data: trendingPosts } = useGetTrendingPosts();
@@ -45,10 +45,10 @@ export default function ExplorePage() {
             <div className="w-16 h-16 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center text-primary font-bold text-3xl">#</div>
             <div>
               <h1 className="text-3xl font-bold text-foreground">#{tag}</h1>
-              <p className="text-muted-foreground">{(hashtagPosts as any)?.items?.length || 0} posts</p>
+              <p className="text-muted-foreground">{hashtagPosts?.posts?.length || 0} posts</p>
             </div>
           </div>
-          <PostGrid posts={((hashtagPosts as any)?.items as Post[]) || []} />
+          <PostGrid posts={(hashtagPosts?.posts as Post[]) || []} />
         </div>
       ) : debouncedQuery ? (
         <div className="space-y-8">
@@ -100,7 +100,7 @@ export default function ExplorePage() {
 
           <div>
             <h2 className="text-lg font-bold mb-4 text-foreground">Explore Posts</h2>
-            <PostGrid posts={((trendingPosts as any)?.items as Post[]) || []} />
+            <PostGrid posts={(trendingPosts as Post[]) || []} />
           </div>
         </div>
       )}
