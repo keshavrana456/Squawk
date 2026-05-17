@@ -1,15 +1,18 @@
 import { Link, useLocation } from "wouter";
 import { useUser, useClerk } from "@clerk/react";
 import { Home, Compass, PlaySquare, PlusSquare, MessageCircle, Bell, User, Settings, LogOut } from "lucide-react";
-import { useGetUnreadNotificationCount } from "@workspace/api-client-react";
+import { useGetUnreadNotificationCount, useGetMe } from "@workspace/api-client-react";
 
 export default function Sidebar() {
   const [location] = useLocation();
   const { user } = useUser();
   const { signOut } = useClerk();
-  
+  const { data: me } = useGetMe({ query: { enabled: !!user } });
+
   const { data: unreadData } = useGetUnreadNotificationCount({ query: { enabled: !!user } });
   const unreadCount = unreadData?.count || 0;
+
+  const profileHref = me?.username ? `/profile/${me.username}` : "/profile";
 
   const navItems = [
     { href: "/home", label: "Home", icon: Home },
@@ -18,7 +21,7 @@ export default function Sidebar() {
     { href: "/messages", label: "Messages", icon: MessageCircle },
     { href: "/notifications", label: "Notifications", icon: Bell, badge: unreadCount },
     { href: "/upload", label: "Create", icon: PlusSquare },
-    { href: `/profile/${user?.username || ''}`, label: "Profile", icon: User },
+    { href: profileHref, label: "Profile", icon: User },
   ];
 
   return (
