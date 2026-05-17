@@ -40,13 +40,13 @@ waitForPort = 8080
 name = "Start squawk"
 author = "agent"
 
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "PORT=8081 BASE_PATH=/squawk pnpm --filter @workspace/squawk dev"
-waitForPort = 8081
-
 [workflows.workflow.metadata]
 outputType = "webview"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "PORT=19926 BASE_PATH=/ pnpm --filter @workspace/squawk dev"
+waitForPort = 19926
 
 [agent]
 stack = "PNPM_WORKSPACE"

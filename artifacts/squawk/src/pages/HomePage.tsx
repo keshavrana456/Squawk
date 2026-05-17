@@ -1,22 +1,70 @@
+import { useState, useRef, useCallback } from "react";
 import { Link } from "wouter";
 import { useGetFeed, useGetFeedStats, type Post } from "@workspace/api-client-react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Skeleton } from "@/components/ui/skeleton";
 import StoriesRow from "@/components/StoriesRow";
 import PostCard from "@/components/PostCard";
-import { Users, Heart, Image as ImageIcon } from "lucide-react";
+import { Users, Heart, Image as ImageIcon, ArrowUp } from "lucide-react";
+
+const POLL_INTERVAL = 30 * 1000;
 
 export default function HomePage() {
-  const { data: feedData, isLoading } = useGetFeed(undefined, { query: { queryKey: ["feed"] } });
+  const [newPostsAvailable, setNewPostsAvailable] = useState(false);
+  const latestPostIdRef = useRef<number | null>(null);
+
+  const { data: feedData, isLoading, refetch } = useGetFeed(undefined, {
+    query: {
+      queryKey: ["feed"],
+      refetchInterval: POLL_INTERVAL,
+      select: (data) => {
+        const firstId = data?.posts?.[0]?.id ?? null;
+        if (latestPostIdRef.current === null) {
+          latestPostIdRef.current = firstId;
+        } else if (firstId !== null && firstId > latestPostIdRef.current) {
+          setNewPostsAvailable(true);
+        }
+        return data;
+      },
+    },
+  });
+
   const { data: stats } = useGetFeedStats();
 
   const posts = feedData?.posts || [];
 
+  const handleRefreshFeed = useCallback(() => {
+    latestPostIdRef.current = null;
+    setNewPostsAvailable(false);
+    refetch();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [refetch]);
+
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex justify-center max-w-6xl mx-auto w-full dark">
       <div className="flex-1 w-full max-w-2xl py-4 md:py-8 space-y-6">
+
+        <AnimatePresence>
+          {newPostsAvailable && (
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="fixed top-20 left-1/2 -translate-x-1/2 z-50"
+            >
+              <button
+                onClick={handleRefreshFeed}
+                className="flex items-center gap-2 bg-primary text-white px-5 py-2.5 rounded-full shadow-lg font-semibold text-sm hover:opacity-90 transition-opacity"
+              >
+                <ArrowUp className="w-4 h-4" />
+                New posts available
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         <StoriesRow />
-        
+
         <div className="space-y-6">
           {isLoading ? (
             <div className="space-y-6 px-4 md:px-0">
@@ -44,11 +92,11 @@ export default function HomePage() {
               </Link>
             </div>
           )}
-          
+
           <div className="h-10 pb-8" />
         </div>
       </div>
-      
+
       <div className="hidden xl:block w-[320px] shrink-0 py-8 px-6">
         <div className="sticky top-24 bg-card border border-border rounded-2xl p-6 shadow-sm">
           <h3 className="font-bold text-lg mb-4">Network Stats</h3>
