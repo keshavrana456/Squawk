@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { eq, and, notInArray, sql, desc } from "drizzle-orm";
+import { eq, and, notInArray, sql, desc, like } from "drizzle-orm";
 import { db, usersTable, followsTable, postsTable, notificationsTable } from "@workspace/db";
 import { requireAuth, requireUser, resolveUser } from "../lib/auth";
 import { buildUserProfile, buildUserSummary, buildPostWithMeta } from "../lib/userHelpers";
@@ -59,6 +59,30 @@ router.post("/users/me/onboard", requireAuth, async (req, res): Promise<void> =>
     bio: parsed.data.bio ?? null,
     avatarUrl: parsed.data.avatarUrl ?? null,
   }).returning();
+
+  // Auto-follow: up to 10 seed bot accounts follow the new user, and new user follows them back
+  try {
+    const seedBots = await db.select({ id: usersTable.id })
+      .from(usersTable)
+      .where(like(usersTable.clerkId, 'seed_%'))
+      .limit(10);
+
+    if (seedBots.length > 0) {
+      const botIds = seedBots.map(b => b.id);
+
+      // Bots follow the new user
+      await db.insert(followsTable)
+        .values(botIds.map(botId => ({ followerId: botId, followingId: user.id })))
+        .onConflictDoNothing();
+
+      // New user follows bots back (so their feed has content immediately)
+      await db.insert(followsTable)
+        .values(botIds.map(botId => ({ followerId: user.id, followingId: botId })))
+        .onConflictDoNothing();
+    }
+  } catch (_) {
+    // Non-fatal — don't block signup if this fails
+  }
 
   const profile = await buildUserProfile(user, user.id);
   res.status(201).json(profile);
