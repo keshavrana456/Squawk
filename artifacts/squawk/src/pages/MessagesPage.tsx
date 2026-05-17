@@ -34,7 +34,7 @@ export default function MessagesPage() {
   const getInitials = (n: string) => n ? n.charAt(0).toUpperCase() : '?';
 
   return (
-    <div className="flex h-[100dvh] w-full bg-background dark overflow-hidden relative">
+    <div className="absolute inset-0 flex w-full bg-background dark overflow-hidden">
       {/* Sidebar: Conversation List */}
       <div className={`w-full md:w-[320px] lg:w-[380px] shrink-0 border-r border-border bg-card flex flex-col h-full ${selectedConvId ? 'hidden md:flex' : 'flex'}`}>
         <div className="p-4 border-b border-border flex items-center justify-between">

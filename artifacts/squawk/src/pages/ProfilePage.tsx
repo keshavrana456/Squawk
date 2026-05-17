@@ -126,7 +126,7 @@ export default function ProfilePage() {
           </button>
           <button className="flex-1 py-4 flex items-center justify-center gap-2 border-b-2 border-transparent text-muted-foreground font-semibold uppercase tracking-wider text-sm hover:text-foreground">
             <Film className="w-4 h-4" />
-            Reels
+            Flow
           </button>
         </div>
 

@@ -16,7 +16,7 @@ export default function BottomNav() {
   const navItems = [
     { href: "/home", icon: Home, label: "Home" },
     { href: "/explore", icon: Compass, label: "Explore" },
-    { href: "/reels", icon: PlaySquare, label: "Reels" },
+    { href: "/reels", icon: PlaySquare, label: "Flow" },
     { href: "/upload", icon: PlusSquare, label: "Create" },
     { href: "/messages", icon: MessageCircle, label: "Messages" },
     { href: "/notifications", icon: Bell, label: "Notifications", badge: unreadCount },
