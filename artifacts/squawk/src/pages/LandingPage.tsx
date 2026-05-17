@@ -36,7 +36,7 @@ export default function LandingPage() {
           
           <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold tracking-tighter mb-6 leading-tight">
             Culture at <br className="hidden md:block" />
-            <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary via-purple-400 to-[#06b6d4]">
+            <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary via-pink-400 to-[#c084fc]">
               light speed.
             </span>
           </h1>
@@ -52,7 +52,7 @@ export default function LandingPage() {
                 Enter the Grid
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="transition-transform group-hover:translate-x-1"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
               </span>
-              <div className="absolute inset-0 z-0 h-full w-full bg-gradient-to-r from-primary to-[#06b6d4] opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+              <div className="absolute inset-0 z-0 h-full w-full bg-gradient-to-r from-primary to-[#c084fc] opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
             </button>
           </Link>
         </motion.div>

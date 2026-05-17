@@ -55,7 +55,7 @@ export default function UserCard({ user }: UserCardProps) {
         variant={isFollowing ? "secondary" : "default"} 
         size="sm" 
         onClick={handleFollowToggle}
-        className={!isFollowing ? "bg-gradient-to-r from-primary to-[#06b6d4] text-white border-0 hover:opacity-90" : ""}
+        className={!isFollowing ? "bg-gradient-to-r from-primary to-[#c084fc] text-white border-0 hover:opacity-90" : ""}
         data-testid={`button-follow-${user.username}`}
       >
         {isFollowing ? "Following" : "Follow"}

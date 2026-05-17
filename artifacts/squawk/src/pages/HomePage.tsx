@@ -65,7 +65,7 @@ export default function HomePage() {
               <h3 className="text-xl font-bold mb-2">Welcome to Squawk</h3>
               <p className="text-muted-foreground mb-6">Follow some creators to fill your feed</p>
               <Link href="/explore">
-                <span className="bg-gradient-to-r from-primary to-[#06b6d4] text-white px-6 py-2 rounded-full font-medium cursor-pointer">Find creators</span>
+                <span className="bg-gradient-to-r from-primary to-[#c084fc] text-white px-6 py-2 rounded-full font-medium cursor-pointer">Find creators</span>
               </Link>
             </div>
           )}

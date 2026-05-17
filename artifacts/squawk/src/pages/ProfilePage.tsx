@@ -49,7 +49,7 @@ export default function ProfilePage() {
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-4xl mx-auto w-full min-h-[100dvh] bg-background dark pb-20">
       {/* Cover Photo */}
-      <div className="h-48 md:h-64 w-full relative bg-gradient-to-br from-primary/20 via-purple-500/20 to-[#06b6d4]/20 border-b border-border overflow-hidden">
+      <div className="h-48 md:h-64 w-full relative bg-gradient-to-br from-primary/20 via-pink-400/15 to-[#c084fc]/20 border-b border-border overflow-hidden">
         {/* Just abstract shapes for now if no cover photo support in API */}
         <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay"></div>
       </div>
@@ -73,7 +73,7 @@ export default function ProfilePage() {
               <>
                 <Button 
                   onClick={handleFollow} 
-                  className={`flex-1 md:w-32 font-bold rounded-full transition-all ${isFollowing ? 'bg-secondary text-secondary-foreground hover:bg-secondary/80' : 'bg-gradient-to-r from-primary to-[#06b6d4] text-white hover:opacity-90 border-0'}`}
+                  className={`flex-1 md:w-32 font-bold rounded-full transition-all ${isFollowing ? 'bg-secondary text-secondary-foreground hover:bg-secondary/80' : 'bg-gradient-to-r from-primary to-[#c084fc] text-white hover:opacity-90 border-0'}`}
                 >
                   {isFollowing ? 'Following' : 'Follow'}
                 </Button>

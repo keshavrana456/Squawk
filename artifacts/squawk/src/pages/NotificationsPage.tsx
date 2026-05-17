@@ -31,7 +31,7 @@ export default function NotificationsPage() {
   const getIcon = (type: string) => {
     switch(type) {
       case "like": return <Heart className="w-4 h-4 fill-primary text-primary" />;
-      case "comment": return <MessageCircle className="w-4 h-4 text-[#06b6d4]" />;
+      case "comment": return <MessageCircle className="w-4 h-4 text-[#c084fc]" />;
       case "follow": return <UserPlus className="w-4 h-4 text-green-500" />;
       case "mention": return <AtSign className="w-4 h-4 text-purple-500" />;
       default: return <MessageCircle className="w-4 h-4 text-muted-foreground" />;

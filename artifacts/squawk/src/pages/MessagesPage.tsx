@@ -232,7 +232,7 @@ function ChatView({ conversationId, onBack, me, conversation }: any) {
                   <div 
                     className={`px-4 py-2.5 rounded-2xl text-[15px] shadow-sm ${
                       isMe 
-                        ? 'bg-gradient-to-br from-primary to-[#06b6d4] text-white rounded-br-sm' 
+                        ? 'bg-gradient-to-br from-primary to-[#c084fc] text-white rounded-br-sm' 
                         : 'bg-muted text-foreground border border-border/50 rounded-bl-sm'
                     }`}
                   >

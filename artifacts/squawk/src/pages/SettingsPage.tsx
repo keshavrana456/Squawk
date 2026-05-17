@@ -146,7 +146,7 @@ export default function SettingsPage() {
           <Button 
             onClick={handleSave} 
             disabled={isSaving || !displayName.trim()}
-            className="w-full md:w-40 h-12 rounded-full font-bold bg-gradient-to-r from-primary to-[#06b6d4] text-white hover:opacity-90 border-0 shadow-lg shadow-primary/20"
+            className="w-full md:w-40 h-12 rounded-full font-bold bg-gradient-to-r from-primary to-[#c084fc] text-white hover:opacity-90 border-0 shadow-lg shadow-primary/20"
           >
             {isSaving ? (
               <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
