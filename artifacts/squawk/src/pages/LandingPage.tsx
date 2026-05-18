@@ -1,21 +1,127 @@
 import { Link } from "wouter";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
+import { useEffect, useState, useCallback } from "react";
 import SquawkBot from "@/components/SquawkBot";
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
-const NFT_STATS = [
-  { label: "Total Supply", value: "10,000" },
-  { label: "Blockchain", value: "Monad" },
-  { label: "Artists", value: "10" },
-  { label: "Months of Work", value: "11" },
-];
+interface NftStats {
+  floorPrice: number | null;
+  floorPriceSymbol: string | null;
+  totalVolume: number | null;
+  numOwners: number | null;
+  numListed: number | null;
+  totalSupply: number;
+  source: string | null;
+  fetchedAt: number;
+}
+
+function fmt(n: number | null, decimals = 2): string {
+  if (n === null) return "—";
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
+  return n.toFixed(decimals);
+}
+
+function fmtPrice(n: number | null, symbol: string | null): string {
+  if (n === null) return "—";
+  return `${n.toFixed(4)} ${symbol ?? "ETH"}`;
+}
+
+function LiveDot({ live }: { live: boolean }) {
+  return (
+    <span className="inline-flex items-center gap-1">
+      <span
+        className={`w-1.5 h-1.5 rounded-full ${live ? "bg-green-400 animate-pulse" : "bg-white/20"}`}
+      />
+    </span>
+  );
+}
+
+interface StatCardProps {
+  label: string;
+  value: string;
+  sub?: string;
+  updating: boolean;
+}
+
+function StatCard({ label, value, sub, updating }: StatCardProps) {
+  return (
+    <div
+      className="rounded-2xl border border-white/10 p-4 text-center backdrop-blur-md relative overflow-hidden"
+      style={{ background: "rgba(88,28,135,0.2)" }}
+    >
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={value}
+          initial={{ opacity: 0, y: -6 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 6 }}
+          transition={{ duration: 0.3 }}
+          className={`text-xl md:text-2xl font-black text-white mb-0.5 transition-all ${updating ? "opacity-60" : ""}`}
+        >
+          {value}
+        </motion.div>
+      </AnimatePresence>
+      <div className="text-xs text-white/50 font-medium">{label}</div>
+      {sub && <div className="text-[10px] text-white/30 mt-0.5">{sub}</div>}
+    </div>
+  );
+}
 
 export default function LandingPage() {
+  const [stats, setStats] = useState<NftStats | null>(null);
+  const [updating, setUpdating] = useState(false);
+  const [hasLiveData, setHasLiveData] = useState(false);
+
+  const fetchStats = useCallback(async (isRefresh = false) => {
+    if (isRefresh) setUpdating(true);
+    try {
+      const res = await fetch(`${BASE}/api/nft/stats`);
+      if (!res.ok) return;
+      const data: NftStats = await res.json();
+      setStats(data);
+      if (data.source) setHasLiveData(true);
+    } catch {
+      // silently ignore — keep showing last known data
+    } finally {
+      if (isRefresh) setTimeout(() => setUpdating(false), 400);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchStats(false);
+    const interval = setInterval(() => fetchStats(true), 10_000);
+    return () => clearInterval(interval);
+  }, [fetchStats]);
+
+  const statCards = [
+    {
+      label: "Floor Price",
+      value: fmtPrice(stats?.floorPrice ?? null, stats?.floorPriceSymbol ?? null),
+      sub: "via OpenSea",
+    },
+    {
+      label: "Total Supply",
+      value: "10,000",
+      sub: "hand-drawn 1/1",
+    },
+    {
+      label: "Owners",
+      value: fmt(stats?.numOwners ?? null, 0),
+      sub: "unique holders",
+    },
+    {
+      label: "Listed",
+      value: fmt(stats?.numListed ?? null, 0),
+      sub: "for sale now",
+    },
+  ];
+
   return (
     <div className="min-h-[100dvh] bg-background text-foreground overflow-x-hidden flex flex-col relative dark">
 
-      {/* ── Nav — fully transparent ──────────────────────────────────── */}
+      {/* ── Nav ─────────────────────────────────────────────────────── */}
       <nav className="w-full flex items-center justify-between p-6 md:px-12 relative z-20 bg-transparent">
         <img src={`${BASE}/logo.png`} alt="Squawk" className="h-10 w-auto" />
         <div className="flex gap-4 items-center">
@@ -54,8 +160,8 @@ export default function LandingPage() {
           className="max-w-4xl mx-auto relative z-10"
         >
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/8 border border-white/15 text-sm font-medium mb-8 text-white/70 backdrop-blur-sm">
-            <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-            The new social grid is live on Monad
+            <LiveDot live={hasLiveData} />
+            {hasLiveData ? "Live stats · updates every 10s" : "The new social grid is live on Monad"}
           </div>
 
           <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold tracking-tighter mb-6 leading-tight text-white drop-shadow-xl">
@@ -81,23 +187,29 @@ export default function LandingPage() {
             </button>
           </Link>
 
+          {/* Live NFT Stats Grid */}
           <motion.div
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.4 }}
             className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-16 max-w-2xl mx-auto"
           >
-            {NFT_STATS.map(stat => (
-              <div
-                key={stat.label}
-                className="rounded-2xl border border-white/10 p-4 text-center backdrop-blur-md"
-                style={{ background: "rgba(88,28,135,0.2)" }}
-              >
-                <div className="text-2xl font-black text-white mb-0.5">{stat.value}</div>
-                <div className="text-xs text-white/50 font-medium">{stat.label}</div>
-              </div>
+            {statCards.map(s => (
+              <StatCard key={s.label} label={s.label} value={s.value} sub={s.sub} updating={updating} />
             ))}
           </motion.div>
+
+          {/* Source attribution */}
+          {hasLiveData && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="mt-4 text-[11px] text-white/25 flex items-center justify-center gap-1.5"
+            >
+              <span className="w-1 h-1 rounded-full bg-green-400/60" />
+              Live data from OpenSea · Monad chain
+            </motion.div>
+          )}
         </motion.div>
       </section>
 
@@ -179,6 +291,7 @@ export default function LandingPage() {
             { label: "Magic Eden", href: "https://magiceden.us/launchpad/monad/the_10k_squad" },
             { label: "10K Hub", href: "https://www.the10ksquadhub.com" },
             { label: "@the10kSquad", href: "https://x.com/the10ksquad" },
+            { label: "OpenSea", href: "https://opensea.io/collection/the-10k-squad" },
           ].map(link => (
             <a
               key={link.label}

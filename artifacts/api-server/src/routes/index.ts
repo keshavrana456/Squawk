@@ -9,6 +9,7 @@ import exploreRouter from "./explore";
 import messagesRouter from "./messages";
 import notificationsRouter from "./notifications";
 import botRouter from "./bot";
+import nftRouter from "./nft";
 
 const router: IRouter = Router();
 
@@ -22,5 +23,6 @@ router.use(exploreRouter);
 router.use(messagesRouter);
 router.use(notificationsRouter);
 router.use(botRouter);
+router.use(nftRouter);
 
 export default router;
