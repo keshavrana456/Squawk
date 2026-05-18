@@ -24,6 +24,32 @@ const TOTAL_SUPPLY = 3333;
 // Correct slug for the 10K Squad on OpenSea (Monad chain)
 const OPENSEA_SLUGS = ["the-10k-squad-350905768", "the-10k-squad", "10k-squad", "10ksquad"];
 
+// CoinGecko: MON is "monad", fetch ETH per MON so we can invert to MON per ETH
+let monRateCache: { monPerEth: number; ts: number } | null = null;
+const RATE_TTL = 60_000; // refresh rate every 60 s
+
+async function getMonPerEth(): Promise<number> {
+  if (monRateCache && Date.now() - monRateCache.ts < RATE_TTL) {
+    return monRateCache.monPerEth;
+  }
+  try {
+    const res = await fetch(
+      "https://api.coingecko.com/api/v3/simple/price?ids=monad&vs_currencies=eth",
+      { signal: AbortSignal.timeout(5000) }
+    );
+    if (!res.ok) throw new Error("CoinGecko error");
+    const json = (await res.json()) as any;
+    const ethPerMon: number = json?.monad?.eth;
+    if (!ethPerMon || ethPerMon <= 0) throw new Error("Bad rate");
+    const monPerEth = 1 / ethPerMon;
+    monRateCache = { monPerEth, ts: Date.now() };
+    return monPerEth;
+  } catch {
+    // Fall back to last cached rate, or a rough estimate
+    return monRateCache?.monPerEth ?? 79_000;
+  }
+}
+
 async function tryOpenSea(): Promise<NftStats | null> {
   const apiKey = process.env.OPENSEA_API_KEY;
   const headers: Record<string, string> = { Accept: "application/json" };
@@ -46,18 +72,24 @@ async function tryOpenSea(): Promise<NftStats | null> {
       const rawFloor = total.floor_price ?? null;
       const floorPrice = (rawFloor !== null && rawFloor > 0) ? rawFloor : null;
 
-      // Always display in MON (Monad native token)
-      const floorPriceSymbol = "MON";
+      // OpenSea returns volume in ETH — convert to MON
+      const monPerEth = await getMonPerEth();
+      const rawVolume: number | null = total.volume ?? null;
+      const rawVol24h: number | null = interval1d?.volume ?? null;
+      const rawVol7d: number | null = interval7d?.volume ?? null;
+
+      const toMon = (v: number | null) =>
+        v !== null && v > 0 ? Math.round(v * monPerEth) : v;
 
       return {
         floorPrice,
-        floorPriceSymbol,
-        totalVolume: total.volume ?? null,
+        floorPriceSymbol: "MON",
+        totalVolume: toMon(rawVolume),
         totalSales: total.sales ?? null,
         numOwners: total.num_owners ?? null,
         numListed: null,
-        volume24h: interval1d?.volume ?? null,
-        volume7d: interval7d?.volume ?? null,
+        volume24h: toMon(rawVol24h),
+        volume7d: toMon(rawVol7d),
         totalSupply: TOTAL_SUPPLY,
         source: `opensea:${slug}`,
         fetchedAt: Date.now(),
