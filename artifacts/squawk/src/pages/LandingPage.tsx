@@ -20,27 +20,28 @@ interface NftStats {
   fetchedAt: number;
 }
 
-function fmt(n: number | null, decimals = 2): string {
+function fmt(n: number | null): string {
   if (n === null) return "—";
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
-  return n.toFixed(decimals);
+  return n.toLocaleString("en-US", { maximumFractionDigits: 0 });
 }
 
 function fmtPrice(n: number | null, symbol: string | null): string {
-  if (n === null) return "Not Listed";
-  if (n === 0) return "Not Listed";
-  return `${n.toFixed(4)} ${symbol ?? "MON"}`;
+  if (n === null || n === 0) return "Not Listed";
+  const formatted = n.toLocaleString("en-US", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  });
+  return `${formatted} ${symbol ?? "MON"}`;
 }
 
 function fmtVolume(n: number | null): string {
   if (n === null) return "—";
   if (n === 0) return "0 MON";
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(2)}M MON`;
-  if (n >= 1_000) return `${(n / 1_000).toFixed(2)}K MON`;
-  if (n >= 1) return `${n.toFixed(2)} MON`;
-  // Small values — show more precision
-  return `${n.toFixed(4)} MON`;
+  const formatted = n.toLocaleString("en-US", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  });
+  return `${formatted} MON`;
 }
 
 function LiveDot({ live }: { live: boolean }) {
