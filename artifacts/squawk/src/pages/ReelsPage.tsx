@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import { useListPosts, useLikePost, useSavePost, useGetMe, type Post } from "@workspace/api-client-react";
-import { Heart, MessageCircle, Bookmark, Volume2, VolumeX, MoreHorizontal } from "lucide-react";
+import { useListPosts, useLikePost, useSavePost, useGetPostComments, useCreateComment, type Post } from "@workspace/api-client-react";
+import { Heart, MessageCircle, Bookmark, Volume2, VolumeX, MoreHorizontal, X, Send } from "lucide-react";
 import { Link } from "wouter";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 
 const DEMO_VIDEOS = [
   {
@@ -48,6 +48,106 @@ const DEMO_VIDEOS = [
   },
 ];
 
+function CommentsSheet({ post, onClose }: { post: any; onClose: () => void }) {
+  const isReal = post.id > 0;
+  const { data: commentsData, isLoading } = useGetPostComments(post.id, { query: { enabled: isReal } });
+  const comments: any[] = isReal ? (Array.isArray(commentsData) ? commentsData : []) : [];
+  const createMutation = useCreateComment();
+  const [text, setText] = useState("");
+
+  const handleSubmit = () => {
+    if (!text.trim() || !isReal) return;
+    createMutation.mutate({ postId: post.id, data: { content: text.trim() } }, {
+      onSuccess: () => setText(""),
+    });
+  };
+
+  const getInitials = (n: string) => n ? n.charAt(0).toUpperCase() : "?";
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="absolute inset-0 z-50 flex flex-col justify-end"
+      style={{ background: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)" }}
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ y: "100%" }}
+        animate={{ y: 0 }}
+        exit={{ y: "100%" }}
+        transition={{ type: "spring", damping: 28, stiffness: 320 }}
+        className="rounded-t-3xl flex flex-col overflow-hidden"
+        style={{ background: "rgba(15,8,28,0.97)", borderTop: "1px solid rgba(255,255,255,0.1)", maxHeight: "70vh" }}
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-white/10 shrink-0">
+          <span className="font-bold text-white text-base">
+            Comments {post.commentsCount > 0 ? `· ${post.commentsCount}` : ""}
+          </span>
+          <button onClick={onClose} className="text-white/60 hover:text-white transition-colors p-1">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Comments list */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar">
+          {!isReal ? (
+            <div className="text-center py-12 text-white/40 text-sm">
+              Demo post — no comments available
+            </div>
+          ) : isLoading ? (
+            <div className="flex justify-center py-12">
+              <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : comments.length === 0 ? (
+            <div className="text-center py-12 text-white/40 text-sm">
+              No comments yet. Be the first!
+            </div>
+          ) : (
+            comments.map((c: any) => (
+              <div key={c.id} className="flex gap-3 items-start">
+                <Avatar className="w-8 h-8 shrink-0 border border-white/10">
+                  <AvatarImage src={c.author?.avatarUrl || ""} />
+                  <AvatarFallback className="bg-primary/30 text-white text-xs font-bold">
+                    {getInitials(c.author?.displayName || "?")}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1">
+                  <span className="font-semibold text-white text-sm mr-2">{c.author?.username}</span>
+                  <span className="text-white/80 text-sm">{c.content}</span>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* Comment input */}
+        {isReal && (
+          <div className="p-4 border-t border-white/10 flex items-center gap-3 shrink-0">
+            <input
+              value={text}
+              onChange={e => setText(e.target.value)}
+              onKeyDown={e => e.key === "Enter" && handleSubmit()}
+              placeholder="Add a comment…"
+              className="flex-1 bg-white/8 border border-white/10 rounded-full px-4 py-2.5 text-sm text-white placeholder:text-white/40 outline-none focus:border-primary/50"
+            />
+            <button
+              onClick={handleSubmit}
+              disabled={!text.trim() || createMutation.isPending}
+              className="p-2.5 rounded-full text-primary disabled:opacity-40 hover:bg-primary/10 transition-colors"
+            >
+              <Send className="w-5 h-5" />
+            </button>
+          </div>
+        )}
+      </motion.div>
+    </motion.div>
+  );
+}
+
 export default function ReelsPage() {
   const { data: postsData } = useListPosts();
   const rawPosts = (postsData as any)?.items || [];
@@ -81,6 +181,7 @@ function Reel({ post, muted, setMuted }: { post: any; muted: boolean; setMuted: 
   const [isLiked, setIsLiked] = useState(post.isLiked);
   const [likesCount, setLikesCount] = useState(post.likesCount);
   const [isSaved, setIsSaved] = useState(post.isSaved);
+  const [showComments, setShowComments] = useState(false);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -89,6 +190,7 @@ function Reel({ post, muted, setMuted }: { post: any; muted: boolean; setMuted: 
           videoRef.current?.play().catch(() => {});
         } else {
           videoRef.current?.pause();
+          setShowComments(false);
         }
       },
       { threshold: 0.5, rootMargin: "0px" }
@@ -113,7 +215,6 @@ function Reel({ post, muted, setMuted }: { post: any; muted: boolean; setMuted: 
   };
 
   const getInitials = (n: string) => n ? n.charAt(0).toUpperCase() : "?";
-
   const fmt = (n: number) => n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n);
 
   return (
@@ -168,23 +269,14 @@ function Reel({ post, muted, setMuted }: { post: any; muted: boolean; setMuted: 
               </div>
               <span className="text-white text-xs font-bold">{fmt(likesCount)}</span>
             </button>
-            {post.id > 0 ? (
-              <Link href={`/post/${post.id}`}>
-                <button className="flex flex-col items-center gap-1 group">
-                  <div className="p-3.5 btn-water rounded-full">
-                    <MessageCircle className="w-7 h-7 text-white" />
-                  </div>
-                  <span className="text-white text-xs font-bold">{post.commentsCount}</span>
-                </button>
-              </Link>
-            ) : (
-              <button className="flex flex-col items-center gap-1 group">
-                <div className="p-3.5 btn-water rounded-full">
-                  <MessageCircle className="w-7 h-7 text-white" />
-                </div>
-                <span className="text-white text-xs font-bold">{post.commentsCount}</span>
-              </button>
-            )}
+
+            <button onClick={() => setShowComments(true)} className="flex flex-col items-center gap-1 group">
+              <div className="p-3.5 btn-water rounded-full">
+                <MessageCircle className="w-7 h-7 text-white" />
+              </div>
+              <span className="text-white text-xs font-bold">{fmt(post.commentsCount)}</span>
+            </button>
+
             <button onClick={handleSave} className="flex flex-col items-center gap-1 group">
               <div className="p-3.5 btn-water rounded-full">
                 <Bookmark className={`w-7 h-7 ${isSaved ? "fill-white text-white" : "text-white"}`} />
@@ -196,6 +288,13 @@ function Reel({ post, muted, setMuted }: { post: any; muted: boolean; setMuted: 
           </div>
         </div>
       </div>
+
+      {/* Inline Comments Sheet */}
+      <AnimatePresence>
+        {showComments && (
+          <CommentsSheet post={post} onClose={() => setShowComments(false)} />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

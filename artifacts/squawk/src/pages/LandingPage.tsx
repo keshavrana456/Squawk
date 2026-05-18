@@ -1,6 +1,7 @@
 import { Link } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useState, useCallback } from "react";
+import { Palette, Link2, Gamepad2, Camera, Zap, Heart } from "lucide-react";
 import SquawkBot from "@/components/SquawkBot";
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
@@ -28,7 +29,7 @@ function fmt(n: number | null, decimals = 2): string {
 
 function fmtPrice(n: number | null, symbol: string | null): string {
   if (n === null) return "—";
-  return `${n.toFixed(4)} ${symbol ?? "ETH"}`;
+  return `${n.toFixed(4)} ${symbol ?? "MON"}`;
 }
 
 function LiveDot({ live }: { live: boolean }) {
@@ -98,6 +99,8 @@ export default function LandingPage() {
     return () => clearInterval(interval);
   }, [fetchStats]);
 
+  const totalSupply = stats?.totalSupply ?? 3333;
+
   const statCards = [
     {
       label: "Floor Price",
@@ -106,7 +109,7 @@ export default function LandingPage() {
     },
     {
       label: "Total Volume",
-      value: stats?.totalVolume != null ? `${stats.totalVolume.toFixed(3)} ETH` : "—",
+      value: stats?.totalVolume != null ? `${stats.totalVolume.toFixed(3)} MON` : "—",
       sub: "all-time",
     },
     {
@@ -116,7 +119,7 @@ export default function LandingPage() {
     },
     {
       label: "Total Supply",
-      value: "10,000",
+      value: totalSupply.toLocaleString(),
       sub: "hand-drawn 1/1s",
     },
   ];
@@ -230,23 +233,25 @@ export default function LandingPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {[
               {
-                icon: "🎨",
+                Icon: Palette,
                 title: "Hand-Drawn, Every 1/1",
-                desc: "10,000 unique NFTs crafted by 3 lead artists and 7 guest artists over 11 months — all created live in VC sessions. Every single piece is one-of-a-kind.",
+                desc: "3,333 unique NFTs crafted by 3 lead artists and 7 guest artists over 11 months — all created live in VC sessions. Every single piece is one-of-a-kind.",
               },
               {
-                icon: "⛓️",
+                Icon: Link2,
                 title: "Built on Monad",
-                desc: "Living on Monad Mainnet — 10,000 TPS, 0.8s finality, near-zero gas. Drops process without congestion. Trade on Magic Eden.",
+                desc: "Living on Monad Mainnet — 10,000 TPS, 0.8s finality, near-zero gas. Drops process without congestion. Trade on OpenSea.",
               },
               {
-                icon: "🎮",
+                Icon: Gamepad2,
                 title: "Holder Rewards Hub",
                 desc: "Earn points automatically just by holding. Play memory games, speed challenges and mini-games at the10ksquadhub.com. GTD whitelist for 8 Monad projects.",
               },
             ].map(f => (
               <div key={f.title} className="rounded-3xl border border-white/10 p-8 flex flex-col gap-4" style={{ background: "rgba(88,28,135,0.12)" }}>
-                <div className="text-4xl">{f.icon}</div>
+                <div className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{ background: "linear-gradient(135deg, rgba(236,72,153,0.2), rgba(147,51,234,0.2))", border: "1px solid rgba(236,72,153,0.25)" }}>
+                  <f.Icon className="w-6 h-6 text-pink-400" />
+                </div>
                 <div className="text-xl font-bold text-white">{f.title}</div>
                 <div className="text-muted-foreground text-[15px] leading-relaxed">{f.desc}</div>
               </div>
@@ -267,12 +272,14 @@ export default function LandingPage() {
           <h2 className="text-3xl md:text-4xl font-black text-white text-center mb-12">Built for the culture</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {[
-              { icon: "📸", title: "Share Moments", desc: "Post photos and videos. Add stories that disappear in 24 hours. Your feed stays fresh and alive." },
-              { icon: "⚡", title: "Flow — Short Videos", desc: "Swipe through full-screen video content from the community. Like, comment and discover new creators." },
-              { icon: "💜", title: "10K Squad Home", desc: "Squawk is built for the 10K Squad community. Connect, post, and stay ahead of every Monad drop." },
+              { Icon: Camera, title: "Share Moments", desc: "Post photos and videos. Add stories that disappear in 24 hours. Your feed stays fresh and alive." },
+              { Icon: Zap, title: "Flow — Short Videos", desc: "Swipe through full-screen video content from the community. Like, comment and discover new creators." },
+              { Icon: Heart, title: "10K Squad Home", desc: "Squawk is built for the 10K Squad community. Connect, post, and stay ahead of every Monad drop." },
             ].map(f => (
               <div key={f.title} className="rounded-3xl border border-white/10 p-8 flex flex-col gap-4" style={{ background: "rgba(88,28,135,0.12)" }}>
-                <div className="text-4xl">{f.icon}</div>
+                <div className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{ background: "linear-gradient(135deg, rgba(236,72,153,0.2), rgba(147,51,234,0.2))", border: "1px solid rgba(236,72,153,0.25)" }}>
+                  <f.Icon className="w-6 h-6 text-purple-400" />
+                </div>
                 <div className="text-xl font-bold text-white">{f.title}</div>
                 <div className="text-muted-foreground text-[15px] leading-relaxed">{f.desc}</div>
               </div>
@@ -291,10 +298,9 @@ export default function LandingPage() {
       >
         <div className="max-w-2xl mx-auto flex flex-wrap justify-center gap-4">
           {[
-            { label: "Magic Eden", href: "https://magiceden.us/launchpad/monad/the_10k_squad" },
+            { label: "OpenSea", href: "https://opensea.io/collection/the-10k-squad" },
             { label: "10K Hub", href: "https://www.the10ksquadhub.com" },
             { label: "@the10kSquad", href: "https://x.com/the10ksquad" },
-            { label: "OpenSea", href: "https://opensea.io/collection/the-10k-squad" },
           ].map(link => (
             <a
               key={link.label}

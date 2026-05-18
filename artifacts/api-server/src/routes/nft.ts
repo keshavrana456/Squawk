@@ -19,6 +19,8 @@ interface NftStats {
 let cache: { data: NftStats; timestamp: number } | null = null;
 const CACHE_TTL = 10_000;
 
+const TOTAL_SUPPLY = 3333;
+
 // Possible slugs for the 10K Squad on OpenSea (Monad chain)
 const OPENSEA_SLUGS = ["the-10k-squad", "10k-squad", "10ksquad", "the10ksquad"];
 
@@ -43,8 +45,9 @@ async function tryOpenSea(): Promise<NftStats | null> {
       // floor_price of 0 means no active listing — treat as null for display
       const rawFloor = total.floor_price ?? null;
       const floorPrice = (rawFloor !== null && rawFloor > 0) ? rawFloor : null;
-      const rawSymbol = total.floor_price_symbol ?? "";
-      const floorPriceSymbol = rawSymbol !== "" ? rawSymbol : "ETH";
+
+      // Always display in MON (Monad native token)
+      const floorPriceSymbol = "MON";
 
       return {
         floorPrice,
@@ -55,50 +58,12 @@ async function tryOpenSea(): Promise<NftStats | null> {
         numListed: null,
         volume24h: interval1d?.volume ?? null,
         volume7d: interval7d?.volume ?? null,
-        totalSupply: 10000,
+        totalSupply: TOTAL_SUPPLY,
         source: `opensea:${slug}`,
         fetchedAt: Date.now(),
       };
     } catch {
       // try next slug
-    }
-  }
-  return null;
-}
-
-// Magic Eden Monad API — try the EVM collections endpoint
-async function tryMagicEden(): Promise<NftStats | null> {
-  const endpoints = [
-    // EVM / Monad mainnet format
-    "https://api-mainnet.magiceden.us/v2/collections/the_10k_squad/stats",
-    "https://api-mainnet.magiceden.us/collections/monad/the_10k_squad/stats",
-    "https://api.magiceden.us/v2/collections/the_10k_squad/stats",
-  ];
-
-  const headers: Record<string, string> = { Accept: "application/json" };
-  const meKey = process.env.MAGIC_EDEN_API_KEY;
-  if (meKey) headers["Authorization"] = `Bearer ${meKey}`;
-
-  for (const url of endpoints) {
-    try {
-      const res = await fetch(url, { headers, signal: AbortSignal.timeout(5000) });
-      if (!res.ok) continue;
-      const json = (await res.json()) as any;
-      return {
-        floorPrice: json.floorPrice ?? json.floor_price ?? null,
-        floorPriceSymbol: json.symbol ?? "MON",
-        totalVolume: json.volumeAll ?? json.volume ?? null,
-        totalSales: null,
-        numOwners: json.owners ?? null,
-        numListed: json.listedCount ?? null,
-        volume24h: null,
-        volume7d: null,
-        totalSupply: 10000,
-        source: "magiceden",
-        fetchedAt: Date.now(),
-      };
-    } catch {
-      // try next
     }
   }
   return null;
@@ -111,21 +76,20 @@ router.get("/nft/stats", async (_req, res): Promise<void> => {
     return;
   }
 
-  // Try data sources in order
-  let stats = await tryOpenSea();
-  if (!stats) stats = await tryMagicEden();
+  // Try OpenSea
+  const stats = await tryOpenSea();
 
   // If all external fetches failed, return nulls with static facts
   const result: NftStats = stats ?? {
     floorPrice: null,
-    floorPriceSymbol: null,
+    floorPriceSymbol: "MON",
     totalVolume: null,
     totalSales: null,
     numOwners: null,
     numListed: null,
     volume24h: null,
     volume7d: null,
-    totalSupply: 10000,
+    totalSupply: TOTAL_SUPPLY,
     source: null,
     fetchedAt: Date.now(),
   };

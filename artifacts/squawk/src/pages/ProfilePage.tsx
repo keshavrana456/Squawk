@@ -105,6 +105,7 @@ export default function ProfilePage() {
 
   const [, navigate] = useLocation();
   const isMe = me?.username === username;
+  const [activeTab, setActiveTab] = useState<"posts" | "flow">("posts");
 
   const [isFollowing, setIsFollowing] = useState(false);
   useEffect(() => { if (profile) setIsFollowing(profile.isFollowing); }, [profile]);
@@ -266,15 +267,36 @@ export default function ProfilePage() {
         </div>
 
         <div className="flex items-center border-b border-border mb-6">
-          <button className="flex-1 py-4 flex items-center justify-center gap-2 border-b-2 border-primary text-primary font-semibold uppercase tracking-wider text-sm">
+          <button
+            onClick={() => setActiveTab("posts")}
+            className={`flex-1 py-4 flex items-center justify-center gap-2 border-b-2 font-semibold uppercase tracking-wider text-sm transition-colors ${activeTab === "posts" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+          >
             <Grid className="w-4 h-4" />Posts
           </button>
-          <button className="flex-1 py-4 flex items-center justify-center gap-2 border-b-2 border-transparent text-muted-foreground font-semibold uppercase tracking-wider text-sm hover:text-foreground">
+          <button
+            onClick={() => setActiveTab("flow")}
+            className={`flex-1 py-4 flex items-center justify-center gap-2 border-b-2 font-semibold uppercase tracking-wider text-sm transition-colors ${activeTab === "flow" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+          >
             <Film className="w-4 h-4" />Flow
           </button>
         </div>
 
-        <PostGrid posts={posts as Post[]} />
+        {activeTab === "posts" ? (
+          <PostGrid posts={posts as Post[]} />
+        ) : (
+          (() => {
+            const videoPosts = (posts as Post[]).filter(p => p.mediaType === "video");
+            if (videoPosts.length === 0) {
+              return (
+                <div className="flex flex-col items-center justify-center py-20 text-muted-foreground gap-3">
+                  <Film className="w-10 h-10 opacity-30" />
+                  <p className="text-sm font-medium">No Flow videos yet</p>
+                </div>
+              );
+            }
+            return <PostGrid posts={videoPosts} />;
+          })()
+        )}
       </div>
 
       <AnimatePresence>
