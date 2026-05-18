@@ -18,7 +18,7 @@ interface NftStats {
 }
 
 let cache: { data: NftStats; timestamp: number } | null = null;
-const CACHE_TTL = 10_000;
+const CACHE_TTL = 8_000;
 
 const TOTAL_SUPPLY = 3333;
 const CONTRACT = "0x818030837e8350ba63e64d7dc01a547fa73c8279" as const;
