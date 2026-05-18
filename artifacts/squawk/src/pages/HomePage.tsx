@@ -94,7 +94,7 @@ export default function HomePage() {
   }, [refetch]);
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex justify-center max-w-6xl mx-auto w-full dark">
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex justify-center max-w-6xl mx-auto w-full">
       <div className="flex-1 w-full max-w-2xl py-4 md:py-8 space-y-6">
 
         <AnimatePresence>

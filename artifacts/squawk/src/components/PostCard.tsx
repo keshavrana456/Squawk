@@ -93,7 +93,7 @@ export default function PostCard({ post, onLike, onSave, onComment }: PostCardPr
   };
 
   return (
-    <div className="bg-card border-b border-border md:border md:rounded-2xl md:mb-6 overflow-hidden max-w-xl mx-auto dark" data-testid={`post-card-${post.id}`}>
+    <div className="bg-card border-b border-border md:border md:rounded-2xl md:mb-6 overflow-hidden max-w-xl mx-auto" data-testid={`post-card-${post.id}`}>
       {/* Header */}
       <div className="flex items-center justify-between p-4">
         <Link href={`/profile/${post.author.username}`} className="flex items-center gap-3 group" data-testid={`link-author-${post.author.username}`}>
@@ -118,7 +118,7 @@ export default function PostCard({ post, onLike, onSave, onComment }: PostCardPr
 
       {/* Media */}
       <div 
-        className="relative w-full bg-black aspect-[4/5] flex items-center justify-center overflow-hidden cursor-pointer"
+        className="relative w-full bg-muted aspect-[4/5] flex items-center justify-center overflow-hidden cursor-pointer"
         onDoubleClick={handleDoubleTap}
         data-testid="post-media"
       >

@@ -9,14 +9,14 @@ interface PostGridProps {
 export default function PostGrid({ posts }: PostGridProps) {
   if (!posts?.length) {
     return (
-      <div className="text-center p-8 text-muted-foreground dark">
+      <div className="text-center p-8 text-muted-foreground">
         No posts yet.
       </div>
     );
   }
 
   return (
-    <div className="grid grid-cols-3 gap-1 md:gap-2 dark">
+    <div className="grid grid-cols-3 gap-1 md:gap-2">
       {posts.map(post => (
         <Link 
           key={post.id} 

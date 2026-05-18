@@ -46,7 +46,7 @@ export default function SettingsPage() {
   }, [me]);
 
   if (isLoading) return (
-    <div className="min-h-screen flex items-center justify-center dark">
+    <div className="min-h-screen flex items-center justify-center">
       <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
     </div>
   );
@@ -103,7 +103,7 @@ export default function SettingsPage() {
   const currentAvatar = avatarPreview || me?.avatarUrl || '';
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-2xl mx-auto w-full min-h-[100dvh] bg-background p-4 md:p-8 dark">
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-2xl mx-auto w-full min-h-[100dvh] bg-background p-4 md:p-8">
       <h1 className="text-3xl font-bold mb-8 text-foreground">Edit Profile</h1>
 
       <div className="bg-card border border-border rounded-3xl overflow-hidden shadow-sm mb-8">

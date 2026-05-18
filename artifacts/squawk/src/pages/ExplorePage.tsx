@@ -26,7 +26,7 @@ export default function ExplorePage() {
   const { data: hashtagPosts } = useGetHashtagPosts(tag || "", { query: { enabled: !!tag } });
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-4xl mx-auto p-4 md:p-8 dark">
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-4xl mx-auto p-4 md:p-8">
       {!tag && (
         <div className="relative mb-8">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground w-5 h-5" />

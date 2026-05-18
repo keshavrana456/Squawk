@@ -51,7 +51,7 @@ export default function NotificationsPage() {
   const getInitials = (name: string) => name ? name.charAt(0).toUpperCase() : '?';
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-3xl mx-auto w-full min-h-[100dvh] bg-background border-x border-border dark flex flex-col">
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-3xl mx-auto w-full min-h-[100dvh] bg-background border-x border-border flex flex-col">
       <div className="sticky top-0 z-20 bg-background/80 backdrop-blur-xl border-b border-border">
         <div className="p-4 flex items-center justify-between">
           <h1 className="text-2xl font-bold text-foreground">Notifications</h1>

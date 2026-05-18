@@ -98,7 +98,7 @@ export default function UploadFlow({ onSuccess }: { onSuccess?: () => void }) {
   };
 
   return (
-    <div className="w-full max-w-xl mx-auto bg-card rounded-2xl border border-border p-6 shadow-xl dark" data-testid="upload-flow">
+    <div className="w-full max-w-xl mx-auto bg-card rounded-2xl border border-border p-6 shadow-xl" data-testid="upload-flow">
       <h2 className="text-2xl font-bold mb-6 text-foreground">Create New Post</h2>
 
       {error && (
@@ -132,7 +132,7 @@ export default function UploadFlow({ onSuccess }: { onSuccess?: () => void }) {
         </div>
       ) : (
         <div className="space-y-6">
-          <div className="relative aspect-square w-full max-w-sm mx-auto rounded-xl overflow-hidden bg-black border border-border">
+          <div className="relative aspect-square w-full max-w-sm mx-auto rounded-xl overflow-hidden bg-muted border border-border">
             {file.type.startsWith("video/") ? (
               <video src={previewUrl!} className="w-full h-full object-cover" controls />
             ) : (

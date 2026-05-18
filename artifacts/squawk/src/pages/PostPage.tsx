@@ -24,8 +24,8 @@ export default function PostPage() {
   const createCommentMutation = useCreateComment();
   const [commentText, setCommentText] = useState("");
 
-  if (isLoadingPost) return <div className="min-h-screen flex items-center justify-center dark"><div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" /></div>;
-  if (!post) return <div className="p-8 text-center text-muted-foreground dark">Post not found</div>;
+  if (isLoadingPost) return <div className="min-h-screen flex items-center justify-center"><div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" /></div>;
+  if (!post) return <div className="p-8 text-center text-muted-foreground">Post not found</div>;
 
   const handleComment = () => {
     if (!commentText.trim()) return;
@@ -40,7 +40,7 @@ export default function PostPage() {
   const getInitials = (n: string) => n ? n.charAt(0).toUpperCase() : '?';
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-6xl mx-auto min-h-[100dvh] flex flex-col dark bg-background pt-4 md:py-8 md:px-4">
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-6xl mx-auto min-h-[100dvh] flex flex-col bg-background pt-4 md:py-8 md:px-4">
       
       {/* Mobile Back Button */}
       <div className="md:hidden flex items-center p-4 border-b border-border">
@@ -53,7 +53,7 @@ export default function PostPage() {
       <div className="flex flex-col md:flex-row bg-card border-x border-b md:border border-border md:rounded-xl overflow-hidden shadow-2xl md:max-h-[85vh]">
         
         {/* Left: Media (Takes up max 60% width on desktop) */}
-        <div className="w-full md:w-[60%] bg-black flex items-center justify-center min-h-[400px] max-h-[600px] md:max-h-full">
+        <div className="w-full md:w-[60%] bg-muted flex items-center justify-center min-h-[400px] max-h-[600px] md:max-h-full">
           {post.mediaType === 'video' ? (
             <video 
               src={post.mediaUrl.startsWith('/api/') ? post.mediaUrl : post.mediaUrl} 

@@ -33,7 +33,7 @@ export default function UserCard({ user }: UserCardProps) {
   };
 
   return (
-    <div className="flex items-center justify-between p-4 bg-card border border-border rounded-xl w-full min-w-[280px] max-w-sm dark" data-testid={`user-card-${user.username}`}>
+    <div className="flex items-center justify-between p-4 bg-card border border-border rounded-xl w-full min-w-[280px] max-w-sm" data-testid={`user-card-${user.username}`}>
       <Link href={`/profile/${user.username}`} className="flex items-center gap-3 overflow-hidden" data-testid={`link-profile-${user.username}`}>
         <Avatar className="w-12 h-12 border border-border">
           <AvatarImage src={user.avatarUrl || ''} />

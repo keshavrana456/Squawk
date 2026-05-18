@@ -323,7 +323,7 @@ export default function StoriesRow() {
 
   if (isLoading) {
     return (
-      <div className="flex gap-4 p-4 overflow-x-auto no-scrollbar border-b border-border dark">
+      <div className="flex gap-4 p-4 overflow-x-auto no-scrollbar border-b border-border">
         {[1, 2, 3, 4, 5, 6].map(i => (
           <div key={i} className="flex flex-col items-center gap-1 shrink-0">
             <div className="w-16 h-16 rounded-full bg-muted animate-pulse" />
@@ -338,7 +338,7 @@ export default function StoriesRow() {
 
   return (
     <>
-      <div className="flex gap-4 p-4 overflow-x-auto no-scrollbar border-b border-border dark" data-testid="stories-row">
+      <div className="flex gap-4 p-4 overflow-x-auto no-scrollbar border-b border-border" data-testid="stories-row">
         {/* Your Story */}
         <div
           className="flex flex-col items-center gap-1 shrink-0 cursor-pointer group"
