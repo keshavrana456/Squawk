@@ -124,9 +124,9 @@ export default function LandingPage() {
       sub: "all-time",
     },
     {
-      label: "Total Sales",
-      value: fmt(stats?.totalSales ?? null, 0),
-      sub: "trades on-chain",
+      label: "Total Holders",
+      value: fmt(stats?.numOwners ?? null, 0),
+      sub: "unique wallets",
     },
     {
       label: "Total Supply",
