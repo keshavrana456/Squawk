@@ -9,6 +9,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useGetMe } from "@workspace/api-client-react";
 import { ThemeProvider } from "@/contexts/ThemeContext";
+import { AnimatePresence } from "framer-motion";
+import SplashScreen from "./components/SplashScreen";
 
 import AppLayout from "./components/layout/AppLayout";
 import LandingPage from "./pages/LandingPage";
@@ -239,12 +241,21 @@ function ClerkProviderWithRoutes() {
 }
 
 function App() {
+  const [splashDone, setSplashDone] = useState(false);
+
   return (
     <ThemeProvider>
       <TooltipProvider>
-        <WouterRouter base={basePath}>
-          <ClerkProviderWithRoutes />
-        </WouterRouter>
+        <AnimatePresence>
+          {!splashDone && (
+            <SplashScreen key="splash" onComplete={() => setSplashDone(true)} />
+          )}
+        </AnimatePresence>
+        {splashDone && (
+          <WouterRouter base={basePath}>
+            <ClerkProviderWithRoutes />
+          </WouterRouter>
+        )}
         <Toaster />
       </TooltipProvider>
     </ThemeProvider>

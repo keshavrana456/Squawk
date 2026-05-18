@@ -15,7 +15,7 @@ export default function PostPage() {
 
   const { data: post, isLoading: isLoadingPost } = useGetPost(postId, { query: { enabled: !!postId } });
 
-  const { data: commentsData, isLoading: isLoadingComments } = useGetPostComments(postId, { query: { enabled: !!postId } });
+  const { data: commentsData, isLoading: isLoadingComments, refetch: refetchComments } = useGetPostComments(postId, { query: { enabled: !!postId } });
   const comments = (commentsData as any) || [];
   
   const createCommentMutation = useCreateComment();
@@ -30,7 +30,10 @@ export default function PostPage() {
       postId, 
       data: { content: commentText.trim() } 
     }, {
-      onSuccess: () => setCommentText("")
+      onSuccess: () => {
+        setCommentText("");
+        refetchComments();
+      }
     });
   };
 

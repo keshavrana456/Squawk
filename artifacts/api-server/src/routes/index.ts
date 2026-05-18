@@ -8,6 +8,7 @@ import feedRouter from "./feed";
 import exploreRouter from "./explore";
 import messagesRouter from "./messages";
 import notificationsRouter from "./notifications";
+import botRouter from "./bot";
 
 const router: IRouter = Router();
 
@@ -20,5 +21,6 @@ router.use(feedRouter);
 router.use(exploreRouter);
 router.use(messagesRouter);
 router.use(notificationsRouter);
+router.use(botRouter);
 
 export default router;
