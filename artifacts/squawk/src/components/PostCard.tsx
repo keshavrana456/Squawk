@@ -38,17 +38,40 @@ export default function PostCard({ post, onLike, onSave, onComment }: PostCardPr
   const avatarColor = `hsl(${post.author.username.length * 50 % 360}, 70%, 50%)`;
 
   const handleLike = () => {
+    if (likeMutation.isPending) return;
     const newLiked = !isLiked;
     setIsLiked(newLiked);
     setLikesCount(prev => newLiked ? prev + 1 : prev - 1);
-    
+
     likeMutation.mutate({ id: post.id }, {
+      onSuccess: (data) => {
+        // Always trust the server's definitive response
+        setIsLiked(data.isLiked);
+        setLikesCount(data.likesCount);
+        // Patch every cached feed/post list so remounts initialize correctly
+        const patchPosts = (posts: any[]) =>
+          posts.map((p: any) =>
+            p.id === post.id ? { ...p, isLiked: data.isLiked, likesCount: data.likesCount } : p
+          );
+        queryClient.setQueriesData({ queryKey: ["feed"] }, (old: any) =>
+          old?.posts ? { ...old, posts: patchPosts(old.posts) } : old
+        );
+        queryClient.setQueriesData({ queryKey: getGetFeedQueryKey() }, (old: any) =>
+          old?.posts ? { ...old, posts: patchPosts(old.posts) } : old
+        );
+        queryClient.setQueriesData({ queryKey: getGetUserPostsQueryKey(post.author.username) }, (old: any) =>
+          Array.isArray(old) ? patchPosts(old) : old
+        );
+        queryClient.setQueriesData({ queryKey: getListPostsQueryKey() }, (old: any) =>
+          old?.items ? { ...old, items: patchPosts(old.items) } : old
+        );
+      },
       onError: () => {
         setIsLiked(!newLiked);
         setLikesCount(prev => !newLiked ? prev + 1 : prev - 1);
-      }
+      },
     });
-    
+
     if (onLike) onLike();
   };
 
