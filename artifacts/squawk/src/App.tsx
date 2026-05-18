@@ -195,6 +195,7 @@ function Router() {
       
       <ProtectedRoute path="/home" component={HomePage} />
       <ProtectedRoute path="/explore" component={ExplorePage} />
+      <ProtectedRoute path="/explore/hashtags/:tag" component={ExplorePage} />
       <ProtectedRoute path="/reels" component={ReelsPage} />
       <ProtectedRoute path="/messages" component={MessagesPage} />
       <ProtectedRoute path="/notifications" component={NotificationsPage} />

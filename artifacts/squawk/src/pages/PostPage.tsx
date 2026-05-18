@@ -1,6 +1,6 @@
 import { useRoute, Link, useLocation } from "wouter";
 import { useState } from "react";
-import { useGetPostComments, useCreateComment, useListPosts, type Post, type Comment } from "@workspace/api-client-react";
+import { useGetPostComments, useCreateComment, useGetPost, type Comment } from "@workspace/api-client-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -13,13 +13,10 @@ export default function PostPage() {
   const postId = match ? parseInt(params?.id || "0", 10) : 0;
   const [, setLocation] = useLocation();
 
-  // The API doesn't have a direct getPost(id), so we'll fetch list and find it. 
-  // In a real app we'd want a getPostById endpoint, but this works for the demo since the feed is small.
-  const { data: postsData, isLoading: isLoadingPost } = useListPosts();
-  const post = ((postsData as any)?.items as Post[])?.find(p => p.id === postId);
+  const { data: post, isLoading: isLoadingPost } = useGetPost(postId, { query: { enabled: !!postId } });
 
   const { data: commentsData, isLoading: isLoadingComments } = useGetPostComments(postId, { query: { enabled: !!postId } });
-  const comments = (commentsData as any)?.items || [];
+  const comments = (commentsData as any) || [];
   
   const createCommentMutation = useCreateComment();
   const [commentText, setCommentText] = useState("");
@@ -81,7 +78,8 @@ export default function PostPage() {
               </Avatar>
               <div className="flex items-center gap-1 font-semibold group-hover:text-primary transition-colors">
                 {post.author.username}
-                {post.author.isVerified && <BadgeCheck className="w-4 h-4 text-primary" />}
+                {(post.author as any).isFounder && <BadgeCheck className="w-4 h-4 text-pink-500" title="Founder" />}
+                {post.author.isVerified && !((post.author as any).isFounder) && <BadgeCheck className="w-4 h-4 text-primary" />}
               </div>
             </Link>
             <Button variant="ghost" size="icon"><MoreHorizontal className="w-5 h-5" /></Button>

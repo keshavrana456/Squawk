@@ -5,6 +5,7 @@ import { X, Send, ChevronRight } from "lucide-react";
 interface Message {
   role: "bot" | "user";
   text: string;
+  typing?: boolean;
 }
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
@@ -155,16 +156,31 @@ function getTopicKey(input: string): string {
   return "default";
 }
 
-function getResponse(input: string, recentTopics: string[]): { text: string; topic: string } {
+const FOLLOW_UP_PROMPTS: Record<string, string> = {
+  post: "Want to know how to add hashtags to get more reach, or how to schedule content?",
+  story: "Want to know who can see your stories, or how to reply to one?",
+  follow: "Want tips on finding specific people, or how to manage your follower list?",
+  message: "Want to know if you can message people who don't follow you back?",
+  nft: "Curious about the rarity tiers, or what perks holders get?",
+  rarity: "Want to know the floor price, or where to buy a 10K Squad NFT?",
+  explore: "Want to know how hashtags affect your reach on Explore?",
+  flow: "Want to know how to post your own video to Flow?",
+  notification: "Want to know how to turn off specific notification types?",
+  profile: "Want to know how to change your banner or profile photo?",
+  like: "Want to know where your liked posts are saved?",
+  comment: "Want to know how to mention someone in a comment?",
+};
+
+function getResponse(input: string, recentTopics: string[]): { text: string; topic: string; followUp?: string } {
   const topic = getTopicKey(input);
   const variants = TOPIC_RESPONSES[topic] || TOPIC_RESPONSES.default;
   
-  // Avoid repeating the exact same variant — track last used index per topic
   const lastUsed = recentTopics.filter(t => t === topic).length;
   const idx = lastUsed % variants.length;
   
-  // For repeated same-topic asks, rotate through variants
-  return { text: variants[idx], topic };
+  const followUp = lastUsed === 0 ? FOLLOW_UP_PROMPTS[topic] : undefined;
+  
+  return { text: variants[idx], topic, followUp };
 }
 
 export default function SquawkBot() {
@@ -175,24 +191,33 @@ export default function SquawkBot() {
   const [input, setInput] = useState("");
   const [topicHistory, setTopicHistory] = useState<string[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(true);
+  const [isTyping, setIsTyping] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [messages, isTyping]);
 
   const send = (text?: string) => {
     const trimmed = (text || input).trim();
-    if (!trimmed) return;
-    const { text: responseText, topic } = getResponse(trimmed, topicHistory);
-    setMessages(prev => [
-      ...prev,
-      { role: "user", text: trimmed },
-      { role: "bot", text: responseText },
-    ]);
+    if (!trimmed || isTyping) return;
+    const { text: responseText, topic, followUp } = getResponse(trimmed, topicHistory);
+    setMessages(prev => [...prev, { role: "user", text: trimmed }]);
     setTopicHistory(prev => [...prev, topic]);
     setInput("");
     setShowSuggestions(false);
+    setIsTyping(true);
+
+    const delay = 600 + Math.random() * 600;
+    setTimeout(() => {
+      setIsTyping(false);
+      setMessages(prev => [...prev, { role: "bot", text: responseText }]);
+      if (followUp) {
+        setTimeout(() => {
+          setMessages(prev => [...prev, { role: "bot", text: followUp }]);
+        }, 800);
+      }
+    }, delay);
   };
 
   return (
@@ -262,6 +287,17 @@ export default function SquawkBot() {
                       {s}
                     </button>
                   ))}
+                </div>
+              )}
+
+              {isTyping && (
+                <div className="flex justify-start">
+                  <img src={`${BASE}/squad-bot.jpg`} alt="SQUAD" className="w-6 h-6 rounded-full object-cover mr-2 mt-1 shrink-0 border border-border" />
+                  <div className="bg-muted border border-border/50 rounded-2xl rounded-bl-sm px-4 py-3 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground animate-bounce" style={{ animationDelay: "0ms" }} />
+                    <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground animate-bounce" style={{ animationDelay: "150ms" }} />
+                    <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground animate-bounce" style={{ animationDelay: "300ms" }} />
+                  </div>
                 </div>
               )}
 

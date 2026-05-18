@@ -74,7 +74,8 @@ function UserListModal({
                   <div className="flex-1 min-w-0">
                     <div className="font-semibold text-foreground text-sm flex items-center gap-1">
                       {u.displayName}
-                      {u.isVerified && <BadgeCheck className="w-4 h-4 text-primary" />}
+                      {(u as any).isFounder && <BadgeCheck className="w-4 h-4 text-pink-500" title="Founder" />}
+                      {u.isVerified && !((u as any).isFounder) && <BadgeCheck className="w-4 h-4 text-primary" />}
                     </div>
                     <div className="text-muted-foreground text-xs">@{u.username}</div>
                   </div>
@@ -205,7 +206,8 @@ export default function ProfilePage() {
         <div className="mb-8">
           <div className="flex items-center gap-2 mb-1">
             <h1 className="text-2xl font-bold text-foreground">{profile.displayName}</h1>
-            {profile.isVerified && <BadgeCheck className="w-6 h-6 text-primary" />}
+            {(profile as any).isFounder && <BadgeCheck className="w-6 h-6 text-pink-500" title="Founder" />}
+            {profile.isVerified && !((profile as any).isFounder) && <BadgeCheck className="w-6 h-6 text-primary" />}
           </div>
           <p className="text-muted-foreground font-medium text-[15px]">@{profile.username}</p>
           {profile.bio && <p className="mt-4 text-[15px] whitespace-pre-wrap max-w-2xl">{profile.bio}</p>}

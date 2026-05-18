@@ -75,6 +75,7 @@ export default function ReelsPage() {
 
 function Reel({ post, muted, setMuted }: { post: any; muted: boolean; setMuted: (m: boolean) => void }) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const likeMutation = useLikePost();
   const saveMutation = useSavePost();
   const [isLiked, setIsLiked] = useState(post.isLiked);
@@ -84,12 +85,16 @@ function Reel({ post, muted, setMuted }: { post: any; muted: boolean; setMuted: 
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting) videoRef.current?.play().catch(() => {});
-        else videoRef.current?.pause();
+        if (entry.isIntersecting) {
+          videoRef.current?.play().catch(() => {});
+        } else {
+          videoRef.current?.pause();
+        }
       },
-      { threshold: 0.6 }
+      { threshold: 0.5, rootMargin: "0px" }
     );
-    if (videoRef.current) observer.observe(videoRef.current);
+    const container = containerRef.current;
+    if (container) observer.observe(container);
     return () => observer.disconnect();
   }, []);
 
@@ -112,14 +117,14 @@ function Reel({ post, muted, setMuted }: { post: any; muted: boolean; setMuted: 
   const fmt = (n: number) => n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n);
 
   return (
-    <div className="h-[100dvh] w-full snap-start relative flex items-center justify-center bg-black">
+    <div ref={containerRef} className="h-[100dvh] w-full snap-start relative flex items-center justify-center bg-black">
       {post.mediaType === "video" ? (
         <video
           ref={videoRef}
           src={post.mediaUrl}
           className="w-full h-full object-cover md:w-auto md:max-w-lg"
-          loop muted={muted} playsInline
-          onClick={() => videoRef.current?.paused ? videoRef.current.play() : videoRef.current?.pause()}
+          loop muted={muted} playsInline preload="auto"
+          onClick={() => videoRef.current?.paused ? videoRef.current.play().catch(() => {}) : videoRef.current?.pause()}
         />
       ) : (
         <img src={post.mediaUrl} className="w-full h-full object-cover md:w-auto md:max-w-lg" />
@@ -144,7 +149,8 @@ function Reel({ post, muted, setMuted }: { post: any; muted: boolean; setMuted: 
               </Avatar>
               <div>
                 <div className="font-bold text-base">{post.author.username}</div>
-                {post.author.isVerified && <span className="text-[11px] text-primary font-semibold">✓ Verified</span>}
+                {post.author.isVerified && !post.author.isFounder && <span className="text-[11px] text-primary font-semibold">✓ Verified</span>}
+                {post.author.isFounder && <span className="text-[11px] text-pink-400 font-semibold">✓ Founder</span>}
               </div>
             </Link>
             <p className="text-[15px] line-clamp-2 leading-snug">{post.caption}</p>

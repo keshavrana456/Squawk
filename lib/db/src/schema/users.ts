@@ -12,6 +12,7 @@ export const usersTable = pgTable("users", {
   coverUrl: text("cover_url"),
   website: text("website"),
   isVerified: boolean("is_verified").notNull().default(false),
+  isFounder: boolean("is_founder").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 });

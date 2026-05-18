@@ -35,6 +35,7 @@ export async function buildUserProfile(user: typeof usersTable.$inferSelect, cur
     coverUrl: user.coverUrl ?? null,
     website: user.website ?? null,
     isVerified: user.isVerified,
+    isFounder: user.isFounder,
     followersCount: followersCountResult[0]?.count ?? 0,
     followingCount: followingCountResult[0]?.count ?? 0,
     postsCount: postsCountResult[0]?.count ?? 0,
@@ -50,6 +51,7 @@ export function buildUserSummary(user: typeof usersTable.$inferSelect, isFollowi
     displayName: user.displayName,
     avatarUrl: user.avatarUrl ?? null,
     isVerified: user.isVerified,
+    isFounder: user.isFounder,
     isFollowing,
     bio: user.bio ?? null,
   };

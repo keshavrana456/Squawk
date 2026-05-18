@@ -106,7 +106,8 @@ export default function PostCard({ post, onLike, onSave, onComment }: PostCardPr
           <div className="flex flex-col">
             <div className="flex items-center gap-1">
               <span className="font-semibold text-foreground group-hover:text-primary transition-colors">{post.author.username}</span>
-              {post.author.isVerified && <BadgeCheck className="w-4 h-4 text-primary" />}
+              {(post.author as any).isFounder && <BadgeCheck className="w-4 h-4 text-pink-500" title="Founder" />}
+              {post.author.isVerified && !((post.author as any).isFounder) && <BadgeCheck className="w-4 h-4 text-primary" />}
             </div>
             <span className="text-xs text-muted-foreground">{formatDistanceToNow(new Date(post.createdAt))} ago</span>
           </div>
