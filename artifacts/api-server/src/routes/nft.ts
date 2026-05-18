@@ -21,8 +21,8 @@ const CACHE_TTL = 10_000;
 
 const TOTAL_SUPPLY = 3333;
 
-// Possible slugs for the 10K Squad on OpenSea (Monad chain)
-const OPENSEA_SLUGS = ["the-10k-squad", "10k-squad", "10ksquad", "the10ksquad"];
+// Correct slug for the 10K Squad on OpenSea (Monad chain)
+const OPENSEA_SLUGS = ["the-10k-squad-350905768", "the-10k-squad", "10k-squad", "10ksquad"];
 
 async function tryOpenSea(): Promise<NftStats | null> {
   const apiKey = process.env.OPENSEA_API_KEY;

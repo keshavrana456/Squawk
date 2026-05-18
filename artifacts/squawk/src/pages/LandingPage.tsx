@@ -309,7 +309,7 @@ export default function LandingPage() {
       >
         <div className="max-w-2xl mx-auto flex flex-wrap justify-center gap-4">
           {[
-            { label: "OpenSea", href: "https://opensea.io/collection/the-10k-squad" },
+            { label: "OpenSea", href: "https://opensea.io/collection/the-10k-squad-350905768" },
             { label: "10K Hub", href: "https://www.the10ksquadhub.com" },
             { label: "@the10kSquad", href: "https://x.com/the10ksquad" },
           ].map(link => (
