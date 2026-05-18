@@ -69,68 +69,60 @@
   --radius-xl: calc(var(--radius) + 4px);
 }
 
-/* DARK PURPLE & PINK THEME */
+/* ── LIGHT MODE (default :root) ─── */
 :root {
   --app-font-sans: 'Outfit', sans-serif;
   --app-font-mono: 'Space Grotesk', monospace;
-  
-  --button-outline: rgba(255, 120, 180, 0.18);
-  --badge-outline: rgba(255, 120, 180, 0.09);
-  --opaque-button-border-intensity: 9; 
-  --elevate-1: rgba(160, 60, 220, 0.06);
-  --elevate-2: rgba(160, 60, 220, 0.11);
 
-  /* Deep dark purple background */
-  --background: 268 45% 7%;
-  --foreground: 280 20% 97%;
+  --background: 270 30% 98%;
+  --foreground: 270 60% 8%;
 
-  --card: 268 40% 10%;
-  --card-foreground: 280 20% 97%;
-  --card-border: 268 35% 16%;
+  --card: 0 0% 100%;
+  --card-foreground: 270 60% 8%;
+  --card-border: 270 20% 90%;
 
-  --popover: 268 40% 10%;
-  --popover-foreground: 280 20% 97%;
-  --popover-border: 268 35% 16%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 270 60% 8%;
+  --popover-border: 270 20% 90%;
 
-  /* Hot pink primary */
-  --primary: 330 100% 71%;
-  --primary-foreground: 268 45% 7%;
+  --primary: 330 90% 55%;
+  --primary-foreground: 0 0% 100%;
 
-  /* Purple-pink secondary */
-  --secondary: 290 70% 62%;
-  --secondary-foreground: 268 45% 7%;
+  --secondary: 290 60% 55%;
+  --secondary-foreground: 0 0% 100%;
 
-  --muted: 268 35% 14%;
-  --muted-foreground: 270 15% 58%;
+  --muted: 270 20% 93%;
+  --muted-foreground: 270 20% 42%;
 
-  --accent: 330 100% 71%;
-  --accent-foreground: 268 45% 7%;
+  --accent: 330 90% 55%;
+  --accent-foreground: 0 0% 100%;
 
   --destructive: 0 62.8% 40%;
   --destructive-foreground: 0 0% 98%;
 
-  --border: 268 35% 17%;
-  --input: 268 38% 12%;
-  --ring: 330 100% 71%;
+  --border: 270 20% 88%;
+  --input: 270 20% 95%;
+  --ring: 330 90% 55%;
 
-  --sidebar: 268 48% 6%;
-  --sidebar-foreground: 280 20% 97%;
-  --sidebar-border: 268 35% 16%;
-  --sidebar-primary: 330 100% 71%;
-  --sidebar-primary-foreground: 268 45% 7%;
-  --sidebar-accent: 268 35% 14%;
-  --sidebar-accent-foreground: 280 20% 97%;
-  --sidebar-ring: 330 100% 71%;
+  --sidebar: 270 25% 96%;
+  --sidebar-foreground: 270 60% 8%;
+  --sidebar-border: 270 20% 88%;
+  --sidebar-primary: 330 90% 55%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 270 20% 93%;
+  --sidebar-accent-foreground: 270 60% 8%;
+  --sidebar-ring: 330 90% 55%;
 
-  --chart-1: 330 100% 71%;
-  --chart-2: 290 70% 62%;
-  --chart-3: 310 85% 66%;
-  --chart-4: 260 65% 60%;
-  --chart-5: 350 90% 68%;
+  --chart-1: 330 90% 55%;
+  --chart-2: 290 60% 55%;
+  --chart-3: 310 80% 58%;
+  --chart-4: 260 65% 55%;
+  --chart-5: 350 85% 62%;
 
-  --radius: 1rem; 
+  --radius: 1rem;
 }
 
+/* ── DARK MODE ─── */
 .dark {
   --background: 268 45% 7%;
   --foreground: 280 20% 97%;
@@ -179,12 +171,36 @@
 }
 
 @layer base {
-  * {
-    @apply border-border;
-  }
+  * { @apply border-border; }
   body {
     @apply font-sans antialiased bg-background text-foreground;
-    /* Enforce dark mode effectively */
-    color-scheme: dark;
+  }
+  html.dark body { color-scheme: dark; }
+  html:not(.dark) body { color-scheme: light; }
+}
+
+/* ── WATER / GLASS BUTTON EFFECT ─── */
+@layer components {
+  .btn-water {
+    background: rgba(255,255,255,0.10);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid rgba(255,255,255,0.18);
+    transition: background 0.2s, border-color 0.2s, transform 0.15s;
+  }
+  .btn-water:hover {
+    background: rgba(255,255,255,0.18);
+    border-color: rgba(255,255,255,0.28);
+    transform: translateY(-1px);
+  }
+  .btn-water:active { transform: translateY(0); }
+
+  .dark .btn-water {
+    background: rgba(255,255,255,0.07);
+    border-color: rgba(255,255,255,0.12);
+  }
+  .dark .btn-water:hover {
+    background: rgba(255,255,255,0.12);
+    border-color: rgba(255,255,255,0.20);
   }
 }

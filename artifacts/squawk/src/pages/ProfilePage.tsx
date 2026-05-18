@@ -1,148 +1,259 @@
 import { useRoute, Link, useLocation } from "wouter";
-import { useGetUserByUsername, useGetUserPosts, useGetMe, useFollowUser, useUnfollowUser, type Post } from "@workspace/api-client-react";
-import { useState, useEffect } from "react";
+import {
+  useGetUserByUsername, useGetUserPosts, useGetMe,
+  useFollowUser, useUnfollowUser, useUpdateMyProfile,
+  useGetUserFollowers, useGetUserFollowing,
+  type Post, type UserSummary,
+} from "@workspace/api-client-react";
+import { useState, useEffect, useRef } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { BadgeCheck, Grid, Film, Play, Link as LinkIcon } from "lucide-react";
+import { BadgeCheck, Grid, Film, X, ImagePlus } from "lucide-react";
 import PostGrid from "@/components/PostGrid";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
+import { useQueryClient } from "@tanstack/react-query";
+
+async function uploadFile(file: File): Promise<string> {
+  const formData = new FormData();
+  formData.append("file", file);
+  const res = await fetch("/api/storage/upload", { method: "POST", body: formData });
+  if (!res.ok) throw new Error("Upload failed");
+  const { mediaUrl } = await res.json();
+  return mediaUrl;
+}
+
+function UserListModal({
+  title, username, type, onClose,
+}: { title: string; username: string; type: "followers" | "following"; onClose: () => void }) {
+  const followersQuery = useGetUserFollowers(username, { query: { enabled: type === "followers" } });
+  const followingQuery = useGetUserFollowing(username, { query: { enabled: type === "following" } });
+  const users: UserSummary[] = (type === "followers" ? followersQuery.data : followingQuery.data) || [];
+  const isLoading = type === "followers" ? followersQuery.isLoading : followingQuery.isLoading;
+  const getInitials = (n: string) => n ? n.charAt(0).toUpperCase() : "?";
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
+      style={{ background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)" }}
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ y: 40, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 40, opacity: 0 }}
+        transition={{ type: "spring", damping: 24, stiffness: 320 }}
+        className="bg-card border border-border rounded-3xl w-full max-w-md max-h-[70vh] flex flex-col overflow-hidden shadow-2xl"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+          <h2 className="font-bold text-lg text-foreground">{title}</h2>
+          <button onClick={onClose} className="p-1 text-muted-foreground hover:text-foreground transition-colors">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        <div className="flex-1 overflow-y-auto p-4 space-y-1">
+          {isLoading ? (
+            [...Array(5)].map((_, i) => (
+              <div key={i} className="flex items-center gap-3 p-3 animate-pulse">
+                <div className="w-11 h-11 rounded-full bg-muted shrink-0" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-4 bg-muted rounded w-1/2" />
+                  <div className="h-3 bg-muted rounded w-1/3" />
+                </div>
+              </div>
+            ))
+          ) : users.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground">No users yet</div>
+          ) : (
+            users.map(u => (
+              <Link key={u.id} href={`/profile/${u.username}`} onClick={onClose}>
+                <div className="flex items-center gap-3 p-3 rounded-2xl hover:bg-muted/60 transition-colors cursor-pointer">
+                  <Avatar className="w-11 h-11 border border-border">
+                    <AvatarImage src={u.avatarUrl || ""} />
+                    <AvatarFallback className="bg-primary/20 text-primary font-bold">{getInitials(u.displayName)}</AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-semibold text-foreground text-sm flex items-center gap-1">
+                      {u.displayName}
+                      {u.isVerified && <BadgeCheck className="w-4 h-4 text-primary" />}
+                    </div>
+                    <div className="text-muted-foreground text-xs">@{u.username}</div>
+                  </div>
+                </div>
+              </Link>
+            ))
+          )}
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
 
 export default function ProfilePage() {
   const [match, params] = useRoute("/profile/:username");
   const username = match ? params?.username : "";
 
   const { data: me } = useGetMe();
-  const { data: profile, isLoading } = useGetUserByUsername(username || "", { query: { enabled: !!username } });
+  const { data: profile, isLoading, refetch: refetchProfile } = useGetUserByUsername(username || "", { query: { enabled: !!username } });
   const { data: postsData } = useGetUserPosts(username || "", { query: { enabled: !!username } });
   const posts = postsData?.posts || [];
-  
+
   const followMutation = useFollowUser();
   const unfollowMutation = useUnfollowUser();
+  const updateProfileMutation = useUpdateMyProfile();
+  const queryClient = useQueryClient();
 
   const [, navigate] = useLocation();
   const isMe = me?.username === username;
 
-  // Optimistic follow state
   const [isFollowing, setIsFollowing] = useState(false);
-  useEffect(() => {
-    if (profile) setIsFollowing(profile.isFollowing);
-  }, [profile]);
+  useEffect(() => { if (profile) setIsFollowing(profile.isFollowing); }, [profile]);
+
+  const [userListModal, setUserListModal] = useState<{ type: "followers" | "following"; title: string } | null>(null);
+
+  const bannerInputRef = useRef<HTMLInputElement>(null);
+  const [bannerUploading, setBannerUploading] = useState(false);
+
+  const handleBannerUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setBannerUploading(true);
+    try {
+      const url = await uploadFile(file);
+      await updateProfileMutation.mutateAsync({
+        data: {
+          displayName: profile?.displayName ?? me?.displayName ?? "",
+          bio: profile?.bio ?? me?.bio ?? null,
+          avatarUrl: profile?.avatarUrl ?? me?.avatarUrl ?? null,
+          coverUrl: url,
+        },
+      });
+      refetchProfile();
+    } catch (e) { console.error(e); }
+    finally { setBannerUploading(false); }
+  };
 
   if (isLoading) {
     return <div className="min-h-screen flex items-center justify-center"><div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" /></div>;
   }
-
   if (!profile) return <div className="p-8 text-center text-muted-foreground">User not found</div>;
 
   const handleFollow = () => {
     const newFollowing = !isFollowing;
     setIsFollowing(newFollowing);
-    if (newFollowing) {
-      followMutation.mutate({ username: profile.username }, { onError: () => setIsFollowing(false) });
-    } else {
-      unfollowMutation.mutate({ username: profile.username }, { onError: () => setIsFollowing(true) });
-    }
+    if (newFollowing) followMutation.mutate({ username: profile.username }, { onError: () => setIsFollowing(false) });
+    else unfollowMutation.mutate({ username: profile.username }, { onError: () => setIsFollowing(true) });
   };
 
-  const getInitials = (n: string) => n ? n.charAt(0).toUpperCase() : '?';
-  const avatarColor = `hsl(${profile.username.length * 50 % 360}, 70%, 50%)`;
+  const getInitials = (n: string) => n ? n.charAt(0).toUpperCase() : "?";
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-4xl mx-auto w-full min-h-[100dvh] bg-background dark pb-20">
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-4xl mx-auto w-full min-h-[100dvh] bg-background pb-20">
       {/* Cover / Banner */}
-      <div className="h-48 md:h-64 w-full relative border-b border-border overflow-hidden bg-gradient-to-br from-primary/20 via-pink-400/15 to-[#c084fc]/20">
-        {profile.coverUrl && (
-          <img src={profile.coverUrl} alt="Banner" className="absolute inset-0 w-full h-full object-cover" />
-        )}
+      <div
+        className="h-48 md:h-64 w-full relative border-b border-border overflow-hidden bg-gradient-to-br from-primary/20 via-pink-400/15 to-[#c084fc]/20"
+        style={isMe ? { cursor: "pointer" } : {}}
+        onClick={isMe ? () => bannerInputRef.current?.click() : undefined}
+      >
+        {profile.coverUrl && <img src={profile.coverUrl} alt="Banner" className="absolute inset-0 w-full h-full object-cover" />}
         {isMe && (
-          <Link href="/settings">
-            <div className="absolute bottom-3 right-3 bg-black/50 hover:bg-black/70 transition-colors text-white text-xs font-medium px-3 py-1.5 rounded-full backdrop-blur-sm cursor-pointer flex items-center gap-1.5">
-              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
+          <>
+            <div className="absolute inset-0 bg-black/0 hover:bg-black/30 transition-colors flex items-center justify-center opacity-0 hover:opacity-100">
+              <div className="flex flex-col items-center gap-2 text-white">
+                {bannerUploading
+                  ? <div className="w-7 h-7 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                  : <><ImagePlus className="w-7 h-7" /><span className="text-sm font-semibold">Change Banner</span></>
+                }
+              </div>
+            </div>
+            <div className="absolute bottom-3 right-3 btn-water text-white text-xs font-semibold px-3 py-1.5 rounded-full flex items-center gap-1.5" onClick={e => { e.stopPropagation(); bannerInputRef.current?.click(); }}>
+              <ImagePlus className="w-3.5 h-3.5" />
               Edit banner
             </div>
-          </Link>
+            <input ref={bannerInputRef} type="file" accept="image/*" className="hidden" onChange={handleBannerUpload} />
+          </>
         )}
       </div>
 
       <div className="px-4 md:px-8 relative">
-        {/* Header section with avatar pushing up into cover */}
         <div className="flex flex-col md:flex-row md:items-end justify-between -mt-16 md:-mt-20 mb-6 gap-4">
           <Avatar className="w-32 h-32 md:w-40 md:h-40 border-4 border-background shadow-2xl relative z-10 bg-card">
-            <AvatarImage src={profile.avatarUrl || ''} className="object-cover" />
-            <AvatarFallback style={{ backgroundColor: avatarColor, color: 'white', fontSize: '3rem' }}>
+            <AvatarImage src={profile.avatarUrl || ""} className="object-cover" />
+            <AvatarFallback style={{ backgroundColor: `hsl(${profile.username.length * 50 % 360}, 70%, 50%)`, color: "white", fontSize: "3rem" }}>
               {getInitials(profile.displayName)}
             </AvatarFallback>
           </Avatar>
-          
+
           <div className="flex gap-3 md:pb-4 z-10 w-full md:w-auto">
             {isMe ? (
               <Link href="/settings" className="w-full md:w-auto">
-                <Button variant="secondary" className="w-full md:w-32 font-semibold rounded-full border border-border">Edit Profile</Button>
+                <Button variant="secondary" className="w-full md:w-32 font-semibold rounded-full border border-border btn-water">Edit Profile</Button>
               </Link>
             ) : (
               <>
-                <Button 
-                  onClick={handleFollow} 
-                  className={`flex-1 md:w-32 font-bold rounded-full transition-all ${isFollowing ? 'bg-secondary text-secondary-foreground hover:bg-secondary/80' : 'bg-gradient-to-r from-primary to-[#c084fc] text-white hover:opacity-90 border-0'}`}
+                <Button
+                  onClick={handleFollow}
+                  className={`flex-1 md:w-32 font-bold rounded-full transition-all btn-water ${isFollowing ? "bg-secondary/80 text-secondary-foreground border border-border" : "bg-gradient-to-r from-primary to-[#c084fc] text-white border-0"}`}
                 >
-                  {isFollowing ? 'Following' : 'Follow'}
+                  {isFollowing ? "Following" : "Follow"}
                 </Button>
-                <Button variant="secondary" className="rounded-full px-6 border border-border" onClick={() => navigate(`/messages?username=${profile.username}`)}>Message</Button>
+                <Button variant="secondary" className="rounded-full px-6 border border-border btn-water" onClick={() => navigate(`/messages?username=${profile.username}`)}>Message</Button>
               </>
             )}
           </div>
         </div>
 
-        {/* User Info */}
         <div className="mb-8">
           <div className="flex items-center gap-2 mb-1">
             <h1 className="text-2xl font-bold text-foreground">{profile.displayName}</h1>
             {profile.isVerified && <BadgeCheck className="w-6 h-6 text-primary" />}
           </div>
           <p className="text-muted-foreground font-medium text-[15px]">@{profile.username}</p>
-          
-          {profile.bio && (
-            <p className="mt-4 text-[15px] whitespace-pre-wrap max-w-2xl">{profile.bio}</p>
-          )}
+          {profile.bio && <p className="mt-4 text-[15px] whitespace-pre-wrap max-w-2xl">{profile.bio}</p>}
 
-          {/* Website stub - not in API but good UI */}
-          <div className="mt-4 flex items-center gap-2 text-primary text-[15px] font-medium hover:underline cursor-pointer">
-            <LinkIcon className="w-4 h-4" />
-            <span>squawk.app/{profile.username}</span>
-          </div>
-          
-          {/* Stats */}
           <div className="flex gap-6 mt-6 pt-6 border-t border-border/50">
             <div className="flex flex-col">
               <span className="font-bold text-lg text-foreground">{posts.length}</span>
               <span className="text-sm text-muted-foreground font-medium">Posts</span>
             </div>
-            <div className="flex flex-col cursor-pointer hover:opacity-80 transition-opacity">
+            <button
+              className="flex flex-col cursor-pointer hover:opacity-80 transition-opacity text-left"
+              onClick={() => setUserListModal({ type: "followers", title: `Followers` })}
+            >
               <span className="font-bold text-lg text-foreground">{profile.followersCount ?? 0}</span>
-              <span className="text-sm text-muted-foreground font-medium">Followers</span>
-            </div>
-            <div className="flex flex-col cursor-pointer hover:opacity-80 transition-opacity">
+              <span className="text-sm text-muted-foreground font-medium hover:text-primary transition-colors">Followers</span>
+            </button>
+            <button
+              className="flex flex-col cursor-pointer hover:opacity-80 transition-opacity text-left"
+              onClick={() => setUserListModal({ type: "following", title: `Following` })}
+            >
               <span className="font-bold text-lg text-foreground">{profile.followingCount ?? 0}</span>
-              <span className="text-sm text-muted-foreground font-medium">Following</span>
-            </div>
+              <span className="text-sm text-muted-foreground font-medium hover:text-primary transition-colors">Following</span>
+            </button>
           </div>
         </div>
 
-        {/* Tabs */}
         <div className="flex items-center border-b border-border mb-6">
           <button className="flex-1 py-4 flex items-center justify-center gap-2 border-b-2 border-primary text-primary font-semibold uppercase tracking-wider text-sm">
-            <Grid className="w-4 h-4" />
-            Posts
+            <Grid className="w-4 h-4" />Posts
           </button>
           <button className="flex-1 py-4 flex items-center justify-center gap-2 border-b-2 border-transparent text-muted-foreground font-semibold uppercase tracking-wider text-sm hover:text-foreground">
-            <Film className="w-4 h-4" />
-            Flow
+            <Film className="w-4 h-4" />Flow
           </button>
         </div>
 
-        {/* Grid */}
         <PostGrid posts={posts as Post[]} />
       </div>
+
+      <AnimatePresence>
+        {userListModal && (
+          <UserListModal
+            title={userListModal.title}
+            username={username || ""}
+            type={userListModal.type}
+            onClose={() => setUserListModal(null)}
+          />
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }

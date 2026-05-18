@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Send, Bot } from "lucide-react";
+import { X, Send } from "lucide-react";
 
 interface Message {
   role: "bot" | "user";
@@ -10,22 +10,28 @@ interface Message {
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 const RESPONSES: Record<string, string> = {
-  default: "I'm SquawkBot! Ask me anything about Squawk or the 10K Squad NFT collection.",
-  hello: "Hey! I'm SquawkBot, your guide to the Squawk universe. What do you want to know?",
-  hi: "Hey! I'm SquawkBot, your guide to the Squawk universe. What do you want to know?",
+  default: "I'm SQUAD, your Squawk guide! Ask me about posting, stories, NFTs, or anything Squawk.",
+  hello: "Hey! I'm SQUAD 🐦 Your guide to the Squawk universe. What do you want to know?",
+  hi: "Hey! I'm SQUAD 🐦 Your guide to the Squawk universe. What do you want to know?",
+  hey: "Hey! I'm SQUAD 🐦 Your guide to the Squawk universe. What do you want to know?",
   post: "Posting on Squawk is easy — tap the ✦ button in the sidebar or bottom bar. You can upload images or short videos. Add captions and hashtags to get discovered!",
-  story: "To add a story, tap your profile picture in the home feed or the circle with your avatar. Stories expire after 24 hours. You can upload photos or videos up to 15 seconds.",
-  follow: "Go to a user's profile and tap Follow. You can also discover people in the Explore page. New users are auto-followed by the 10K Squad bots so your feed is never empty!",
-  message: "Tap the Message button on any user's profile to start a DM. Or head to the Messages tab in the sidebar.",
-  nft: "The 10K Squad is a collection of 10,000 unique Squawk bird NFTs. Each one is hand-drawn with different traits — outfits, expressions, accessories, and backgrounds. Holders get exclusive perks on Squawk!",
-  "10k": "10K Squad is Squawk's official NFT collection — 10,000 unique bird characters. They live on the blockchain and give holders special badges, exclusive feeds, and community perks.",
-  squad: "The Squad is the Squawk community! Join by grabbing a 10K Squad NFT or just by being active on the platform. Post, follow, and squawk your way to the top.",
-  notification: "Notifications are in the bell icon. You'll get alerts for likes, comments, follows, and mentions. Tap 'Mark all read' to clear them.",
-  profile: "Your profile shows your posts, followers, and following count. Tap Edit Profile in the sidebar to update your photo, bio, and cover banner.",
-  explore: "The Explore page shows trending posts, top hashtags, and suggested users. Great way to find new people to follow!",
-  reel: "Flow (Reels) are short videos from creators you follow. Swipe through in the Flow tab.",
+  story: "To add a story, tap your profile picture circle in the home feed. Stories expire after 24 hours. You can upload photos or videos up to 15 seconds.",
+  follow: "Go to a user's profile and tap Follow. You can also find people in the Explore page. New users are auto-followed by 10K Squad bots so your feed is never empty!",
+  message: "Tap the Message button on any user's profile to start a DM. Or head to the Messages tab. You can search for users by name too!",
+  nft: "The 10K Squad is a collection of 10,000 unique Squawk bird NFTs. Each one is hand-drawn with different traits. Holders get exclusive perks on Squawk including special badges!",
+  "10k": "10K Squad is Squawk's official NFT collection — 10,000 unique bird characters on-chain. Holders get special badges, exclusive feeds, and community perks.",
+  squad: "The Squad is the Squawk community! Join by grabbing a 10K Squad NFT or just by being active. Post, follow, and squawk your way to the top.",
+  notification: "Notifications live in the bell icon. You'll get alerts for likes, comments, follows, and mentions. Tap 'Mark all read' to clear them.",
+  profile: "Your profile shows your posts, followers, and following. Tap Edit Profile in the sidebar to update your photo, bio, and cover banner.",
+  banner: "To change your cover banner, go to your profile and click the 'Edit banner' button, or go to Settings > tap the banner area.",
+  explore: "The Explore page shows trending posts, top hashtags, and suggested users. Great way to discover new creators!",
+  flow: "Flow (Reels) are short videos from creators you follow. Scroll through in the Flow tab — swipe up for next!",
+  reel: "Flow (Reels) are short videos from creators you follow. Scroll through in the Flow tab — swipe up for next!",
   settings: "In Settings you can update your display name, bio, profile photo, and cover banner.",
   hashtag: "Use hashtags in your posts to get discovered. Trending hashtags show up in the Explore page.",
+  theme: "You can switch between dark and light mode using the sun/moon button in the sidebar!",
+  dark: "You can switch to dark mode using the moon button in the sidebar navigation.",
+  light: "You can switch to light mode using the sun button in the sidebar navigation.",
 };
 
 function getResponse(input: string): string {
@@ -39,7 +45,7 @@ function getResponse(input: string): string {
 export default function SquawkBot() {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
-    { role: "bot", text: "Hey! I'm SquawkBot 🐦 Ask me about posting, stories, NFTs, or anything Squawk!" }
+    { role: "bot", text: "Hey! I'm SQUAD 🐦 Your Squawk guide. Ask me about posting, stories, NFTs, or anything!" }
   ]);
   const [input, setInput] = useState("");
   const endRef = useRef<HTMLDivElement>(null);
@@ -51,9 +57,10 @@ export default function SquawkBot() {
   const send = () => {
     const trimmed = input.trim();
     if (!trimmed) return;
-    const userMsg: Message = { role: "user", text: trimmed };
-    const botMsg: Message = { role: "bot", text: getResponse(trimmed) };
-    setMessages(prev => [...prev, userMsg, botMsg]);
+    setMessages(prev => [...prev,
+      { role: "user", text: trimmed },
+      { role: "bot", text: getResponse(trimmed) }
+    ]);
     setInput("");
   };
 
@@ -66,34 +73,37 @@ export default function SquawkBot() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 16, scale: 0.95 }}
             transition={{ duration: 0.2 }}
-            className="w-[340px] max-h-[480px] rounded-3xl border border-border shadow-2xl shadow-black/60 flex flex-col overflow-hidden"
-            style={{ background: "hsl(268 48% 9%)" }}
+            className="w-[340px] rounded-3xl border border-border shadow-2xl flex flex-col overflow-hidden bg-card"
           >
-            <div className="flex items-center justify-between px-5 py-4 border-b border-border bg-gradient-to-r from-[#a21caf]/30 to-[#db2777]/20">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-border"
+              style={{ background: "linear-gradient(135deg, rgba(147,51,234,0.3), rgba(219,39,119,0.2))" }}>
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center shadow-lg">
-                  <img src={`${BASE}/logo.png`} alt="bot" className="w-6 h-6 object-contain" onError={e => { (e.target as HTMLImageElement).style.display='none'; }} />
-                </div>
+                <img
+                  src={`${BASE}/squad-bot.jpg`}
+                  alt="SQUAD"
+                  className="w-10 h-10 rounded-full object-cover border-2 border-primary/40 shadow-lg"
+                />
                 <div>
-                  <div className="font-bold text-white text-sm">SquawkBot</div>
-                  <div className="text-[11px] text-pink-300">Your Squawk guide</div>
+                  <div className="font-black text-foreground text-sm">SQUAD</div>
+                  <div className="text-[11px] text-primary">Your Squawk guide</div>
                 </div>
               </div>
-              <button onClick={() => setOpen(false)} className="text-white/50 hover:text-white transition-colors">
+              <button onClick={() => setOpen(false)} className="text-muted-foreground hover:text-foreground transition-colors">
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3 min-h-0" style={{ maxHeight: 320 }}>
+            <div className="overflow-y-auto p-4 flex flex-col gap-3" style={{ maxHeight: 320 }}>
               {messages.map((m, i) => (
                 <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
-                  <div
-                    className={`max-w-[80%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${
-                      m.role === "user"
-                        ? "bg-gradient-to-br from-pink-500 to-purple-600 text-white rounded-br-sm"
-                        : "bg-white/8 text-white/90 border border-white/10 rounded-bl-sm"
-                    }`}
-                  >
+                  {m.role === "bot" && (
+                    <img src={`${BASE}/squad-bot.jpg`} alt="SQUAD" className="w-6 h-6 rounded-full object-cover mr-2 mt-1 shrink-0 border border-border" />
+                  )}
+                  <div className={`max-w-[80%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${
+                    m.role === "user"
+                      ? "bg-primary text-primary-foreground rounded-br-sm font-medium"
+                      : "bg-muted text-foreground border border-border/50 rounded-bl-sm"
+                  }`}>
                     {m.text}
                   </div>
                 </div>
@@ -102,20 +112,20 @@ export default function SquawkBot() {
             </div>
 
             <div className="p-3 border-t border-border">
-              <div className="flex gap-2 items-center bg-white/5 border border-white/10 rounded-2xl px-3 py-1.5">
+              <div className="flex gap-2 items-center bg-muted/50 border border-border rounded-2xl px-3 py-1.5 focus-within:ring-1 focus-within:ring-primary transition-all">
                 <input
                   value={input}
                   onChange={e => setInput(e.target.value)}
                   onKeyDown={e => e.key === "Enter" && send()}
-                  placeholder="Ask me anything..."
-                  className="flex-1 bg-transparent outline-none text-sm text-white placeholder-white/30 py-1"
+                  placeholder="Ask SQUAD anything..."
+                  className="flex-1 bg-transparent outline-none text-sm text-foreground placeholder-muted-foreground py-1"
                 />
                 <button
                   onClick={send}
                   disabled={!input.trim()}
-                  className="w-7 h-7 rounded-full bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center disabled:opacity-40 transition-opacity shrink-0"
+                  className="w-7 h-7 rounded-full bg-primary flex items-center justify-center disabled:opacity-40 transition-opacity shrink-0 hover:opacity-90"
                 >
-                  <Send className="w-3.5 h-3.5 text-white" />
+                  <Send className="w-3.5 h-3.5 text-primary-foreground" />
                 </button>
               </div>
             </div>
@@ -127,22 +137,11 @@ export default function SquawkBot() {
         onClick={() => setOpen(o => !o)}
         whileHover={{ scale: 1.08 }}
         whileTap={{ scale: 0.94 }}
-        className="w-14 h-14 rounded-full shadow-2xl shadow-pink-900/50 flex items-center justify-center relative"
-        style={{ background: "linear-gradient(135deg, #ec4899, #9333ea)" }}
+        className="w-14 h-14 rounded-full shadow-2xl shadow-pink-900/40 overflow-hidden border-2 border-primary/50 relative"
       >
-        <AnimatePresence mode="wait">
-          {open ? (
-            <motion.div key="x" initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 90, opacity: 0 }} transition={{ duration: 0.15 }}>
-              <X className="w-6 h-6 text-white" />
-            </motion.div>
-          ) : (
-            <motion.div key="bot" initial={{ rotate: 90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: -90, opacity: 0 }} transition={{ duration: 0.15 }}>
-              <Bot className="w-6 h-6 text-white" />
-            </motion.div>
-          )}
-        </AnimatePresence>
+        <img src={`${BASE}/squad-bot.jpg`} alt="SQUAD" className="w-full h-full object-cover" />
         {!open && (
-          <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-pink-400 border-2 border-background animate-pulse" />
+          <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-primary border-2 border-background animate-pulse" />
         )}
       </motion.button>
     </div>
