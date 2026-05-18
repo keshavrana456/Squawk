@@ -6,8 +6,11 @@ interface NftStats {
   floorPrice: number | null;
   floorPriceSymbol: string | null;
   totalVolume: number | null;
+  totalSales: number | null;
   numOwners: number | null;
   numListed: number | null;
+  volume24h: number | null;
+  volume7d: number | null;
   totalSupply: number;
   source: string | null;
   fetchedAt: number;
@@ -33,12 +36,25 @@ async function tryOpenSea(): Promise<NftStats | null> {
       if (!res.ok) continue;
       const json = (await res.json()) as any;
       const total = json.total ?? json;
+      const intervals: any[] = json.intervals ?? [];
+      const interval1d = intervals.find((i: any) => i.interval === "one_day");
+      const interval7d = intervals.find((i: any) => i.interval === "seven_day");
+
+      // floor_price of 0 means no active listing — treat as null for display
+      const rawFloor = total.floor_price ?? null;
+      const floorPrice = (rawFloor !== null && rawFloor > 0) ? rawFloor : null;
+      const rawSymbol = total.floor_price_symbol ?? "";
+      const floorPriceSymbol = rawSymbol !== "" ? rawSymbol : "ETH";
+
       return {
-        floorPrice: total.floor_price ?? null,
-        floorPriceSymbol: total.floor_price_symbol ?? "ETH",
+        floorPrice,
+        floorPriceSymbol,
         totalVolume: total.volume ?? null,
+        totalSales: total.sales ?? null,
         numOwners: total.num_owners ?? null,
-        numListed: total.num_listed ?? null,
+        numListed: null,
+        volume24h: interval1d?.volume ?? null,
+        volume7d: interval7d?.volume ?? null,
         totalSupply: 10000,
         source: `opensea:${slug}`,
         fetchedAt: Date.now(),
@@ -72,8 +88,11 @@ async function tryMagicEden(): Promise<NftStats | null> {
         floorPrice: json.floorPrice ?? json.floor_price ?? null,
         floorPriceSymbol: json.symbol ?? "MON",
         totalVolume: json.volumeAll ?? json.volume ?? null,
-        numOwners: json.avgPrice24hr !== undefined ? null : (json.owners ?? null),
+        totalSales: null,
+        numOwners: json.owners ?? null,
         numListed: json.listedCount ?? null,
+        volume24h: null,
+        volume7d: null,
         totalSupply: 10000,
         source: "magiceden",
         fetchedAt: Date.now(),
@@ -101,8 +120,11 @@ router.get("/nft/stats", async (_req, res): Promise<void> => {
     floorPrice: null,
     floorPriceSymbol: null,
     totalVolume: null,
+    totalSales: null,
     numOwners: null,
     numListed: null,
+    volume24h: null,
+    volume7d: null,
     totalSupply: 10000,
     source: null,
     fetchedAt: Date.now(),

@@ -9,8 +9,11 @@ interface NftStats {
   floorPrice: number | null;
   floorPriceSymbol: string | null;
   totalVolume: number | null;
+  totalSales: number | null;
   numOwners: number | null;
   numListed: number | null;
+  volume24h: number | null;
+  volume7d: number | null;
   totalSupply: number;
   source: string | null;
   fetchedAt: number;
@@ -102,19 +105,19 @@ export default function LandingPage() {
       sub: "via OpenSea",
     },
     {
+      label: "Total Volume",
+      value: stats?.totalVolume != null ? `${stats.totalVolume.toFixed(3)} ETH` : "—",
+      sub: "all-time",
+    },
+    {
+      label: "Total Sales",
+      value: fmt(stats?.totalSales ?? null, 0),
+      sub: "trades on-chain",
+    },
+    {
       label: "Total Supply",
       value: "10,000",
-      sub: "hand-drawn 1/1",
-    },
-    {
-      label: "Owners",
-      value: fmt(stats?.numOwners ?? null, 0),
-      sub: "unique holders",
-    },
-    {
-      label: "Listed",
-      value: fmt(stats?.numListed ?? null, 0),
-      sub: "for sale now",
+      sub: "hand-drawn 1/1s",
     },
   ];
 
