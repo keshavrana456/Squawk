@@ -310,8 +310,6 @@ function StoryViewer({ groups, startIndex, onClose }: { groups: StoryGroup[]; st
 export default function StoriesRow() {
   const { data: storyGroups, isLoading, refetch } = useGetActiveStories();
   const { data: me } = useGetMe();
-  const queryClient = useQueryClient();
-
   const [uploadOpen, setUploadOpen] = useState(false);
   const [viewerGroupIndex, setViewerGroupIndex] = useState<number | null>(null);
 
