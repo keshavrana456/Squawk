@@ -13,7 +13,7 @@ export default function NotificationsPage() {
   const [activeTab, setActiveTab] = useState<typeof TABS[number]>("All");
   
   const { data: notifData, isLoading } = useGetNotifications();
-  const notifications = (notifData as any)?.items || [];
+  const notifications = Array.isArray(notifData) ? notifData : [];
   const markReadMutation = useMarkAllNotificationsRead();
 
   const handleMarkAllRead = () => {

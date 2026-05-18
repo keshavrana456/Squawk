@@ -63,14 +63,10 @@ router.get("/feed/stats", requireUser, async (req, res): Promise<void> => {
   const [postsCount, followersCount, totalLikesResult, totalViewsResult] = await Promise.all([
     db.select({ count: sql<number>`count(*)::int` }).from(postsTable).where(eq(postsTable.authorId, currentUser.id)),
     db.select({ count: sql<number>`count(*)::int` }).from(followsTable).where(eq(followsTable.followingId, currentUser.id)),
-    db.select({ total: sql<number>`coalesce(sum(lc.cnt), 0)::int` }).from(
-      db.select({ postId: postsTable.id, cnt: sql<number>`count(${likesTable.id})::int` })
-        .from(postsTable)
-        .leftJoin(likesTable, eq(likesTable.postId, postsTable.id))
-        .where(eq(postsTable.authorId, currentUser.id))
-        .groupBy(postsTable.id)
-        .as("lc")
-    ),
+    db.select({ total: sql<number>`coalesce(count(${likesTable.id}), 0)::int` })
+      .from(postsTable)
+      .leftJoin(likesTable, eq(likesTable.postId, postsTable.id))
+      .where(eq(postsTable.authorId, currentUser.id)),
     db.select({ total: sql<number>`coalesce(sum(${postsTable.viewsCount}), 0)::int` })
       .from(postsTable).where(eq(postsTable.authorId, currentUser.id)),
   ]);

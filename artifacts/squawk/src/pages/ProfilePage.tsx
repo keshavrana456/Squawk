@@ -1,4 +1,4 @@
-import { useRoute, Link } from "wouter";
+import { useRoute, Link, useLocation } from "wouter";
 import { useGetUserByUsername, useGetUserPosts, useGetMe, useFollowUser, useUnfollowUser, type Post } from "@workspace/api-client-react";
 import { useState, useEffect } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -19,6 +19,7 @@ export default function ProfilePage() {
   const followMutation = useFollowUser();
   const unfollowMutation = useUnfollowUser();
 
+  const [, navigate] = useLocation();
   const isMe = me?.username === username;
 
   // Optimistic follow state
@@ -86,7 +87,7 @@ export default function ProfilePage() {
                 >
                   {isFollowing ? 'Following' : 'Follow'}
                 </Button>
-                <Button variant="secondary" className="rounded-full px-6 border border-border">Message</Button>
+                <Button variant="secondary" className="rounded-full px-6 border border-border" onClick={() => navigate(`/messages?username=${profile.username}`)}>Message</Button>
               </>
             )}
           </div>

@@ -153,7 +153,7 @@ function StoryViewer({ groups, startIndex, onClose }: { groups: StoryGroup[]; st
   const [groupIndex, setGroupIndex] = useState(startIndex);
   const [storyIndex, setStoryIndex] = useState(0);
   const [progress, setProgress] = useState(0);
-  const markViewed = useMarkStoryViewed();
+  const markViewed = useViewStory();
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
 

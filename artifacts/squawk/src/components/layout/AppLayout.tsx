@@ -1,6 +1,7 @@
 import React from 'react';
 import Sidebar from './Sidebar';
 import BottomNav from './BottomNav';
+import SquawkBot from '@/components/SquawkBot';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -10,6 +11,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         {children}
       </main>
       <BottomNav />
+      <SquawkBot />
     </div>
   );
 }

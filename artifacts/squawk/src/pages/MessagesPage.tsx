@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Link } from "wouter";
+import { Link, useSearch } from "wouter";
 import { Send, Plus, ArrowLeft, MessageCircle } from "lucide-react";
 import { useGetConversations, useGetMessages, useSendMessage, useCreateConversation, useGetMe, type Conversation, type Message } from "@workspace/api-client-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -16,8 +16,29 @@ export default function MessagesPage() {
   const [selectedConvId, setSelectedConvId] = useState<number | null>(null);
   const [showNewConv, setShowNewConv] = useState(false);
   const [newUsername, setNewUsername] = useState("");
-  
+  const autoOpenedRef = useRef(false);
+
+  const searchString = useSearch();
   const createConvMutation = useCreateConversation();
+
+  // Auto-open conversation when ?username= is in the URL
+  useEffect(() => {
+    if (autoOpenedRef.current || isLoadingConvs) return;
+    const params = new URLSearchParams(searchString);
+    const targetUsername = params.get("username");
+    if (!targetUsername) return;
+    autoOpenedRef.current = true;
+    const existing = conversations.find((c: Conversation) =>
+      c.participants.some((p: any) => p.username === targetUsername)
+    );
+    if (existing) {
+      setSelectedConvId(existing.id);
+    } else {
+      createConvMutation.mutateAsync({ data: { username: targetUsername } })
+        .then(conv => setSelectedConvId(conv.id))
+        .catch(() => { setNewUsername(targetUsername); setShowNewConv(true); });
+    }
+  }, [searchString, isLoadingConvs, conversations]);
 
   const handleCreateConv = async () => {
     if (!newUsername.trim()) return;
