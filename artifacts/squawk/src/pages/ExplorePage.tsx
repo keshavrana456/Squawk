@@ -81,7 +81,7 @@ export default function ExplorePage() {
             <div className="flex flex-wrap gap-2">
               {trendingHashtags?.map((th: any) => (
                 <Link key={th.tag} href={`/explore/hashtags/${th.tag}`}>
-                  <span className="px-5 py-2.5 bg-card border border-border rounded-full hover:border-primary hover:text-primary transition-colors cursor-pointer text-sm font-medium">#{th.tag}</span>
+                  <span className="px-5 py-2.5 bg-muted text-foreground border border-border rounded-full hover:border-primary hover:bg-primary/10 hover:text-primary transition-colors cursor-pointer text-sm font-medium">#{th.tag}</span>
                 </Link>
               ))}
             </div>
