@@ -144,7 +144,7 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   const { data: me, isLoading, error } = useGetMe({ query: { enabled: isSignedIn, retry: false } });
   
   if (!isLoaded || (isSignedIn && isLoading)) {
-    return <div className="min-h-screen bg-background flex items-center justify-center dark">
+    return <div className="min-h-screen bg-background flex items-center justify-center">
       <div className="w-12 h-12 rounded-full border-4 border-primary/30 border-t-primary animate-spin" />
     </div>;
   }
@@ -204,7 +204,7 @@ function Router() {
       <ProtectedRoute path="/settings" component={SettingsPage} />
       
       <Route>
-        <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4 text-center dark">
+        <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4 text-center">
           <h1 className="text-6xl font-bold text-primary mb-4">404</h1>
           <p className="text-xl text-muted-foreground mb-8">This page lost signal.</p>
           <a href="/" className="bg-primary text-primary-foreground px-6 py-3 rounded-full font-medium hover:opacity-90 transition-opacity">

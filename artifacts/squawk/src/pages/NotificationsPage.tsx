@@ -98,7 +98,7 @@ export default function NotificationsPage() {
         ) : (
           <div className="space-y-2">
             {filteredNotifs.map((n: Notification) => {
-              const unreadStyle = !n.isRead ? "bg-primary/5 border-primary/20" : "bg-card border-transparent";
+              const unreadStyle = !n.isRead ? "bg-primary/5 border-primary/20" : "bg-background border-border/40";
               
               const Wrapper = n.postId ? Link : 'div';
               const wrapperProps = n.postId ? { href: `/post/${n.postId}` } : {};
