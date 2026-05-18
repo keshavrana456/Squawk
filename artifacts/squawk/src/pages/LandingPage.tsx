@@ -28,8 +28,19 @@ function fmt(n: number | null, decimals = 2): string {
 }
 
 function fmtPrice(n: number | null, symbol: string | null): string {
-  if (n === null) return "—";
+  if (n === null) return "Not Listed";
+  if (n === 0) return "Not Listed";
   return `${n.toFixed(4)} ${symbol ?? "MON"}`;
+}
+
+function fmtVolume(n: number | null): string {
+  if (n === null) return "—";
+  if (n === 0) return "0 MON";
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(2)}M MON`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(2)}K MON`;
+  if (n >= 1) return `${n.toFixed(2)} MON`;
+  // Small values — show more precision
+  return `${n.toFixed(4)} MON`;
 }
 
 function LiveDot({ live }: { live: boolean }) {
@@ -109,7 +120,7 @@ export default function LandingPage() {
     },
     {
       label: "Total Volume",
-      value: stats?.totalVolume != null ? `${stats.totalVolume.toFixed(3)} MON` : "—",
+      value: fmtVolume(stats?.totalVolume ?? null),
       sub: "all-time",
     },
     {
