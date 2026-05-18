@@ -373,7 +373,10 @@ export default function StoriesRow() {
               onClick={() => openViewer(idx)}
               data-testid={`story-${group.user.username}`}
             >
-              <div className={`relative w-16 h-16 rounded-full p-[2px] transition-transform group-hover:scale-105 ${hasUnviewed ? 'bg-gradient-to-tr from-primary to-[#c084fc]' : 'bg-border'}`}>
+              <div
+                className={`relative w-16 h-16 rounded-full p-[2px] transition-all group-hover:scale-105 ${hasUnviewed ? 'bg-gradient-to-tr from-primary to-[#c084fc]' : 'bg-gradient-to-tr from-primary/25 to-[#c084fc]/25'}`}
+                style={hasUnviewed ? { boxShadow: '0 0 14px 3px rgba(192,132,252,0.55)' } : undefined}
+              >
                 <div className="w-full h-full rounded-full border-2 border-background overflow-hidden bg-muted">
                   <Avatar className="w-full h-full rounded-none">
                     <AvatarImage src={group.user.avatarUrl || ''} className="object-cover" />
