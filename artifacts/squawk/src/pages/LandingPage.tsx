@@ -28,7 +28,7 @@ function fmt(n: number | null): string {
 function fmtPrice(n: number | null, symbol: string | null): string {
   if (n === null || n === 0) return "Not Listed";
   const formatted = n.toLocaleString("en-US", {
-    minimumFractionDigits: 0,
+    minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
   return `${formatted} ${symbol ?? "MON"}`;
