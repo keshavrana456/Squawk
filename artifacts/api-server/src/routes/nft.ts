@@ -1,4 +1,5 @@
 import { Router, type IRouter } from "express";
+import { createPublicClient, http, defineChain } from "viem";
 
 const router: IRouter = Router();
 
@@ -20,36 +21,105 @@ let cache: { data: NftStats; timestamp: number } | null = null;
 const CACHE_TTL = 10_000;
 
 const TOTAL_SUPPLY = 3333;
+const CONTRACT = "0x818030837e8350ba63e64d7dc01a547fa73c8279" as const;
+const OPENSEA_SLUGS = ["the-10k-squad-350905768", "the-10k-squad", "10k-squad"];
 
-// Correct slug for the 10K Squad on OpenSea (Monad chain)
-const OPENSEA_SLUGS = ["the-10k-squad-350905768", "the-10k-squad", "10k-squad", "10ksquad"];
+// ── Monad viem client ────────────────────────────────────────────────────────
+const monad = defineChain({
+  id: 143,
+  name: "Monad",
+  nativeCurrency: { name: "Monad", symbol: "MON", decimals: 18 },
+  rpcUrls: { default: { http: ["https://rpc.monad.xyz"] } },
+  contracts: {
+    multicall3: {
+      address: "0xcA11bde05977b3631167028862bE2a173976CA11",
+    },
+  },
+});
 
-// CoinGecko: MON is "monad", fetch ETH per MON so we can invert to MON per ETH
+const viemClient = createPublicClient({ chain: monad, transport: http() });
+
+const ownerOfAbi = [
+  {
+    name: "ownerOf",
+    type: "function" as const,
+    inputs: [{ name: "tokenId", type: "uint256" as const }],
+    outputs: [{ name: "", type: "address" as const }],
+    stateMutability: "view" as const,
+  },
+];
+
+// ── On-chain holder count (Multicall3) ───────────────────────────────────────
+let holderCache: { count: number; ts: number } | null = null;
+const HOLDER_CACHE_TTL = 10 * 60 * 1000;
+let holderScanRunning = false;
+
+async function scanHolders(): Promise<void> {
+  if (holderScanRunning) return;
+  holderScanRunning = true;
+  const owners = new Set<string>();
+  const BATCH = 200;
+
+  try {
+    for (let start = 1; start <= TOTAL_SUPPLY; start += BATCH) {
+      const ids: number[] = [];
+      for (let i = start; i < Math.min(start + BATCH, TOTAL_SUPPLY + 1); i++) {
+        ids.push(i);
+      }
+      const contracts = ids.map((id) => ({
+        address: CONTRACT,
+        abi: ownerOfAbi,
+        functionName: "ownerOf" as const,
+        args: [BigInt(id)] as [bigint],
+      }));
+      const results = await viemClient.multicall({ contracts, allowFailure: true });
+      for (const r of results) {
+        if (r.status === "success" && r.result) {
+          owners.add((r.result as string).toLowerCase());
+        }
+      }
+    }
+    holderCache = { count: owners.size, ts: Date.now() };
+  } catch (e) {
+    if (owners.size > 100) holderCache = { count: owners.size, ts: Date.now() };
+  } finally {
+    holderScanRunning = false;
+  }
+}
+
+// Start scan on boot
+scanHolders().catch(() => {});
+
+function maybeRefreshHolders(): void {
+  if (!holderScanRunning && (!holderCache || Date.now() - holderCache.ts > HOLDER_CACHE_TTL)) {
+    scanHolders().catch(() => {});
+  }
+}
+
+// ── MON/ETH rate ─────────────────────────────────────────────────────────────
 let monRateCache: { monPerEth: number; ts: number } | null = null;
-const RATE_TTL = 60_000; // refresh rate every 60 s
+const RATE_TTL = 60_000;
 
 async function getMonPerEth(): Promise<number> {
-  if (monRateCache && Date.now() - monRateCache.ts < RATE_TTL) {
-    return monRateCache.monPerEth;
-  }
+  if (monRateCache && Date.now() - monRateCache.ts < RATE_TTL) return monRateCache.monPerEth;
   try {
     const res = await fetch(
       "https://api.coingecko.com/api/v3/simple/price?ids=monad&vs_currencies=eth",
       { signal: AbortSignal.timeout(5000) }
     );
-    if (!res.ok) throw new Error("CoinGecko error");
-    const json = (await res.json()) as any;
+    if (!res.ok) throw new Error("bad");
+    const json: any = await res.json();
     const ethPerMon: number = json?.monad?.eth;
-    if (!ethPerMon || ethPerMon <= 0) throw new Error("Bad rate");
+    if (!ethPerMon || ethPerMon <= 0) throw new Error("bad rate");
     const monPerEth = 1 / ethPerMon;
     monRateCache = { monPerEth, ts: Date.now() };
     return monPerEth;
   } catch {
-    // Fall back to last cached rate, or a rough estimate
     return monRateCache?.monPerEth ?? 79_000;
   }
 }
 
+// ── OpenSea stats ─────────────────────────────────────────────────────────────
 async function tryOpenSea(): Promise<NftStats | null> {
   const apiKey = process.env.OPENSEA_API_KEY;
   const headers: Record<string, string> = { Accept: "application/json" };
@@ -62,34 +132,32 @@ async function tryOpenSea(): Promise<NftStats | null> {
         { headers, signal: AbortSignal.timeout(5000) }
       );
       if (!res.ok) continue;
-      const json = (await res.json()) as any;
+      const json: any = await res.json();
       const total = json.total ?? json;
       const intervals: any[] = json.intervals ?? [];
       const interval1d = intervals.find((i: any) => i.interval === "one_day");
       const interval7d = intervals.find((i: any) => i.interval === "seven_day");
 
-      // floor_price of 0 means no active listing — treat as null for display
       const rawFloor = total.floor_price ?? null;
-      const floorPrice = (rawFloor !== null && rawFloor > 0) ? rawFloor : null;
+      const floorPrice = rawFloor !== null && rawFloor > 0 ? rawFloor : null;
 
-      // OpenSea returns volume in ETH — convert to MON
       const monPerEth = await getMonPerEth();
-      const rawVolume: number | null = total.volume ?? null;
-      const rawVol24h: number | null = interval1d?.volume ?? null;
-      const rawVol7d: number | null = interval7d?.volume ?? null;
-
       const toMon = (v: number | null) =>
         v !== null && v > 0 ? Math.round(v * monPerEth) : v;
+
+      maybeRefreshHolders();
+      // Prefer on-chain scan result; fall back to OpenSea
+      const numOwners = holderCache?.count ?? total.num_owners ?? null;
 
       return {
         floorPrice,
         floorPriceSymbol: "MON",
-        totalVolume: toMon(rawVolume),
+        totalVolume: toMon(total.volume ?? null),
         totalSales: total.sales ?? null,
-        numOwners: total.num_owners ?? null,
+        numOwners,
         numListed: null,
-        volume24h: toMon(rawVol24h),
-        volume7d: toMon(rawVol7d),
+        volume24h: toMon(interval1d?.volume ?? null),
+        volume7d: toMon(interval7d?.volume ?? null),
         totalSupply: TOTAL_SUPPLY,
         source: `opensea:${slug}`,
         fetchedAt: Date.now(),
@@ -101,23 +169,21 @@ async function tryOpenSea(): Promise<NftStats | null> {
   return null;
 }
 
+// ── Route ─────────────────────────────────────────────────────────────────────
 router.get("/nft/stats", async (_req, res): Promise<void> => {
-  // Serve cache if fresh
   if (cache && Date.now() - cache.timestamp < CACHE_TTL) {
     res.json(cache.data);
     return;
   }
 
-  // Try OpenSea
   const stats = await tryOpenSea();
 
-  // If all external fetches failed, return nulls with static facts
   const result: NftStats = stats ?? {
     floorPrice: null,
     floorPriceSymbol: "MON",
     totalVolume: null,
     totalSales: null,
-    numOwners: null,
+    numOwners: holderCache?.count ?? null,
     numListed: null,
     volume24h: null,
     volume7d: null,
