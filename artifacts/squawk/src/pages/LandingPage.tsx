@@ -1,7 +1,7 @@
 import { Link } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useState, useCallback } from "react";
-import { Palette, Link2, Gamepad2, Camera, Zap, Heart } from "lucide-react";
+import { Palette, Link2, Gamepad2, Camera, Zap, Heart, Trophy, Globe, Gift, Users, TrendingUp, Star } from "lucide-react";
 import SquawkBot from "@/components/SquawkBot";
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
@@ -257,7 +257,7 @@ export default function LandingPage() {
               {
                 Icon: Gamepad2,
                 title: "Holder Rewards Hub",
-                desc: "Earn points automatically just by holding. Play memory games, speed challenges and mini-games at the10ksquadhub.com. GTD whitelist for 8 Monad projects.",
+                desc: "GTD whitelist for 8+ Monad mainnet projects. Earn XP by holding, play mini-games at the10ksquadhub.com, and unlock exclusive collab drops with Monad Nomads, Fantasy Top & more.",
               },
             ].map(f => (
               <div key={f.title} className="rounded-3xl border border-white/10 p-8 flex flex-col gap-4" style={{ background: "rgba(88,28,135,0.12)" }}>
@@ -269,6 +269,95 @@ export default function LandingPage() {
               </div>
             ))}
           </div>
+        </div>
+      </motion.section>
+
+      {/* ── Holder Benefits ──────────────────────────────────────────── */}
+      <motion.section
+        initial={{ opacity: 0, y: 20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        transition={{ duration: 0.6 }}
+        className="px-4 md:px-12 py-16 z-10"
+      >
+        <div className="max-w-6xl mx-auto">
+          <h2 className="text-3xl md:text-4xl font-black text-white text-center mb-2">Holder Rewards Hub</h2>
+          <p className="text-muted-foreground text-center mb-10 text-sm">Why holding a 10K Squad NFT puts you ahead in the Monad ecosystem</p>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {[
+              {
+                Icon: Trophy,
+                color: "text-yellow-400",
+                bg: "rgba(234,179,8,0.12)",
+                border: "rgba(234,179,8,0.25)",
+                title: "GTD Whitelist for 8+ Projects",
+                desc: "Holders receive guaranteed whitelist spots for Monad mainnet launches — including Drake Exchange and growing ecosystem partners. Join the Discord to claim yours.",
+              },
+              {
+                Icon: Globe,
+                color: "text-cyan-400",
+                bg: "rgba(6,182,212,0.12)",
+                border: "rgba(6,182,212,0.25)",
+                title: "Ecosystem Portal",
+                desc: "Your front-row seat to the entire Monad ecosystem. Squad members are deeply embedded in Monad Discord, always first to surface alpha on upcoming drops.",
+              },
+              {
+                Icon: Gift,
+                color: "text-pink-400",
+                bg: "rgba(236,72,153,0.12)",
+                border: "rgba(236,72,153,0.25)",
+                title: "Exclusive Collab Drops",
+                desc: "Holders unlock exclusive NFT partnership drops — 10K Squad × Fantasy Top (100 commemorative NFTs), 10K Squad × Monad Nomads, and more collabs in progress.",
+              },
+              {
+                Icon: Gamepad2,
+                color: "text-purple-400",
+                bg: "rgba(147,51,234,0.12)",
+                border: "rgba(147,51,234,0.25)",
+                title: "Gamified Hub at 10ksquadhub.com",
+                desc: "Earn XP automatically just by holding. Play memory games, speed challenges and mini-games. Climb the leaderboard, unlock Discord roles, and compete for rewards.",
+              },
+              {
+                Icon: Users,
+                color: "text-green-400",
+                bg: "rgba(34,197,94,0.12)",
+                border: "rgba(34,197,94,0.25)",
+                title: "Community Giveaways & Roles",
+                desc: "Active Discord giveaways via LuckyGo, exclusive holder roles, and early access to Squad announcements. The most active community in the Monad ecosystem.",
+              },
+              {
+                Icon: TrendingUp,
+                color: "text-orange-400",
+                bg: "rgba(249,115,22,0.12)",
+                border: "rgba(249,115,22,0.25)",
+                title: "Airdrop Positioning",
+                desc: "NFT ownership on Monad is a weighted factor in ecosystem on-chain activity scoring. Holding 10K Squad puts you in pole position for future $MON-related distributions.",
+              },
+            ].map(b => (
+              <div
+                key={b.title}
+                className="rounded-3xl border border-white/10 p-7 flex flex-col gap-4"
+                style={{ background: b.bg }}
+              >
+                <div
+                  className="w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0"
+                  style={{ background: b.bg, border: `1px solid ${b.border}` }}
+                >
+                  <b.Icon className={`w-5 h-5 ${b.color}`} />
+                </div>
+                <div className="text-[17px] font-bold text-white leading-snug">{b.title}</div>
+                <div className="text-muted-foreground text-[14px] leading-relaxed">{b.desc}</div>
+              </div>
+            ))}
+          </div>
+
+          <p className="text-center text-muted-foreground text-xs mt-8">
+            Always verify the latest perks via{" "}
+            <a href="https://discord.gg/the10ksquad" target="_blank" rel="noopener noreferrer" className="text-purple-400 hover:underline">Discord</a>
+            {" "}and{" "}
+            <a href="https://x.com/the10ksquad" target="_blank" rel="noopener noreferrer" className="text-purple-400 hover:underline">@the10kSquad on X</a>
+          </p>
         </div>
       </motion.section>
 
