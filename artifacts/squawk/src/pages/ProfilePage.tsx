@@ -8,7 +8,7 @@ import {
 import { useState, useEffect, useRef } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { BadgeCheck, Grid, Film, X, ImagePlus } from "lucide-react";
+import { BadgeCheck, Grid, Film, X, ImagePlus, Crown } from "lucide-react";
 import PostGrid from "@/components/PostGrid";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQueryClient } from "@tanstack/react-query";
@@ -113,6 +113,22 @@ export default function ProfilePage() {
 
   const bannerInputRef = useRef<HTMLInputElement>(null);
   const [bannerUploading, setBannerUploading] = useState(false);
+  const [founderToggling, setFounderToggling] = useState(false);
+
+  const isAppOwner = (me as any)?.id === 1;
+
+  const handleToggleFounder = async () => {
+    if (!profile || founderToggling) return;
+    setFounderToggling(true);
+    try {
+      const base = import.meta.env.BASE_URL.replace(/\/$/, "");
+      const res = await fetch(`${base}/api/users/${profile.username}/set-founder`, { method: "PUT", credentials: "include" });
+      if (res.ok) {
+        refetchProfile();
+      }
+    } catch (e) { console.error(e); }
+    finally { setFounderToggling(false); }
+  };
 
   const handleBannerUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -184,7 +200,7 @@ export default function ProfilePage() {
             </AvatarFallback>
           </Avatar>
 
-          <div className="flex gap-3 md:pb-4 z-10 w-full md:w-auto">
+          <div className="flex gap-3 md:pb-4 z-10 w-full md:w-auto flex-wrap">
             {isMe ? (
               <Link href="/settings" className="w-full md:w-auto">
                 <Button variant="secondary" className="w-full md:w-32 font-semibold rounded-full border border-border btn-water">Edit Profile</Button>
@@ -199,6 +215,21 @@ export default function ProfilePage() {
                 </Button>
                 <Button variant="secondary" className="rounded-full px-6 border border-border btn-water" onClick={() => navigate(`/messages?username=${profile.username}`)}>Message</Button>
               </>
+            )}
+            {isAppOwner && !isMe && (
+              <Button
+                onClick={handleToggleFounder}
+                disabled={founderToggling}
+                variant="outline"
+                className={`rounded-full px-4 border font-semibold text-sm gap-1.5 transition-all ${(profile as any).isFounder ? "border-pink-500 text-pink-500 hover:bg-pink-500/10" : "border-border text-muted-foreground hover:border-pink-400 hover:text-pink-400"}`}
+              >
+                {founderToggling ? (
+                  <div className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <Crown className="w-3.5 h-3.5" />
+                )}
+                {(profile as any).isFounder ? "Remove Founder" : "Mark as Founder"}
+              </Button>
             )}
           </div>
         </div>

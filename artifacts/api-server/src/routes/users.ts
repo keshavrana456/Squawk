@@ -229,4 +229,26 @@ router.delete("/follows/:username", requireUser, async (req, res): Promise<void>
   res.json({ isFollowing: false, followersCount: countResult?.count ?? 0 });
 });
 
+// PUT /users/:username/set-founder — admin only (user with id=1)
+router.put("/users/:username/set-founder", requireUser, async (req, res): Promise<void> => {
+  const currentUser = (req as any).currentUser as typeof usersTable.$inferSelect;
+
+  // Only the first registered user (the app founder/owner) can toggle this
+  if (currentUser.id !== 1) {
+    res.status(403).json({ error: "Only the app owner can assign founder status" });
+    return;
+  }
+
+  const params = GetUserByUsernameParams.safeParse(req.params);
+  if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
+
+  const [target] = await db.select().from(usersTable).where(eq(usersTable.username, params.data.username));
+  if (!target) { res.status(404).json({ error: "User not found" }); return; }
+
+  const newValue = !target.isFounder;
+  await db.update(usersTable).set({ isFounder: newValue }).where(eq(usersTable.id, target.id));
+
+  res.json({ isFounder: newValue });
+});
+
 export default router;
