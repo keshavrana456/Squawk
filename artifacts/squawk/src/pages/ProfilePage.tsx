@@ -93,7 +93,7 @@ export default function ProfilePage() {
   const username = match ? params?.username : "";
 
   const { data: me } = useGetMe();
-  const { data: profile, isLoading, refetch: refetchProfile } = useGetUserByUsername(username || "", { query: { enabled: !!username } });
+  const { data: profile, isLoading, refetch: refetchProfile } = useGetUserByUsername(username || "", { query: { enabled: !!username, staleTime: 0 } });
   const { data: postsData } = useGetUserPosts(username || "", { query: { enabled: !!username } });
   const posts = postsData?.posts || [];
 

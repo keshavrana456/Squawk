@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { useGetMe, useUpdateMyProfile, getGetMeQueryKey } from "@workspace/api-client-react";
+import { useGetMe, useUpdateMyProfile, getGetMeQueryKey, getGetUserByUsernameQueryKey } from "@workspace/api-client-react";
 import { useClerk } from "@clerk/react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Camera, LogOut, Check, ImagePlus } from "lucide-react";
@@ -84,6 +84,9 @@ export default function SettingsPage() {
       });
 
       await queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
+      if (me?.username) {
+        await queryClient.invalidateQueries({ queryKey: getGetUserByUsernameQueryKey(me.username) });
+      }
       setAvatarFile(null);
       setBannerFile(null);
       setSaved(true);
