@@ -24,9 +24,7 @@ export default function LandingPage() {
 
       {/* ── Nav ─────────────────────────────────────────────────────── */}
       <nav className="w-full flex items-center justify-between p-6 md:px-12 relative z-20">
-        <div className="flex items-center gap-3">
-          <img src={`${BASE}/logo.png`} alt="Squawk" className="h-10 w-auto" />
-        </div>
+        <img src={`${BASE}/logo.png`} alt="Squawk" className="h-10 w-auto" />
         <div className="flex gap-4 items-center">
           <Link href="/sign-in" className="px-6 py-2 rounded-full font-medium text-foreground/80 hover:text-foreground hover:bg-white/5 transition-colors">
             Log In
@@ -37,13 +35,26 @@ export default function LandingPage() {
         </div>
       </nav>
 
-      {/* ── Hero ────────────────────────────────────────────────────── */}
-      <section className="relative flex flex-col items-center justify-center text-center px-4 pt-8 pb-16 z-10 min-h-[80vh]">
-        {/* Ambient blobs */}
-        <div className="absolute inset-0 pointer-events-none overflow-hidden">
-          <div className="absolute top-[-15%] left-[-10%] w-[55%] h-[55%] rounded-full bg-purple-800/30 blur-[130px]" />
-          <div className="absolute bottom-[-5%] right-[-10%] w-[50%] h-[50%] rounded-full bg-pink-700/25 blur-[120px]" />
-          <div className="absolute top-[35%] left-[35%] w-[30%] h-[30%] rounded-full bg-violet-600/15 blur-[100px]" />
+      {/* ── Hero — NFT art as background ────────────────────────────── */}
+      <section className="relative flex flex-col items-center justify-center text-center px-4 pt-8 pb-20 z-10 min-h-[88vh] overflow-hidden">
+
+        {/* NFT banner as semi-transparent bg */}
+        <div className="absolute inset-0 z-0">
+          <img
+            src={`${BASE}/nft-banner.png`}
+            alt=""
+            className="w-full h-full object-cover object-center"
+            style={{ opacity: 0.18 }}
+            aria-hidden="true"
+          />
+          {/* Dark gradient overlay so text stays readable */}
+          <div className="absolute inset-0" style={{ background: "linear-gradient(180deg, rgba(14,7,25,0.55) 0%, rgba(14,7,25,0.3) 40%, rgba(14,7,25,0.7) 100%)" }} />
+        </div>
+
+        {/* Ambient blobs on top of image */}
+        <div className="absolute inset-0 pointer-events-none z-0">
+          <div className="absolute top-[-15%] left-[-10%] w-[55%] h-[55%] rounded-full bg-purple-800/25 blur-[130px]" />
+          <div className="absolute bottom-[-5%] right-[-10%] w-[50%] h-[50%] rounded-full bg-pink-700/20 blur-[120px]" />
         </div>
 
         <motion.div
@@ -52,12 +63,12 @@ export default function LandingPage() {
           transition={{ duration: 0.85, ease: "easeOut" }}
           className="max-w-4xl mx-auto relative z-10"
         >
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-sm font-medium mb-8 text-muted-foreground">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/8 border border-white/15 text-sm font-medium mb-8 text-white/70 backdrop-blur-sm">
             <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
             The new social grid is live
           </div>
 
-          <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold tracking-tighter mb-6 leading-tight">
+          <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold tracking-tighter mb-6 leading-tight text-white drop-shadow-xl">
             Culture at{" "}
             <br className="hidden md:block" />
             <span className="bg-clip-text text-transparent" style={{ backgroundImage: "linear-gradient(90deg, #f472b6, #c084fc, #818cf8)" }}>
@@ -65,14 +76,14 @@ export default function LandingPage() {
             </span>
           </h1>
 
-          <p className="text-xl md:text-2xl text-muted-foreground mb-12 max-w-2xl mx-auto font-light">
+          <p className="text-xl md:text-2xl text-white/60 mb-12 max-w-2xl mx-auto font-light drop-shadow-md">
             Squawk is where creators, communities, and culture collide.
             Fast, beautiful, and alive. Connect with the grid.
           </p>
 
           <Link href="/sign-up">
             <button
-              className="group relative inline-flex h-14 items-center justify-center overflow-hidden rounded-full px-8 font-bold text-white text-lg transition-all duration-300 hover:scale-105 shadow-xl shadow-pink-900/40"
+              className="group relative inline-flex h-14 items-center justify-center overflow-hidden rounded-full px-8 font-bold text-white text-lg transition-all duration-300 hover:scale-105 shadow-2xl shadow-pink-900/50"
               style={{ background: "linear-gradient(135deg, #ec4899, #9333ea)" }}
               data-testid="button-get-started"
             >
@@ -80,66 +91,27 @@ export default function LandingPage() {
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="ml-2 transition-transform group-hover:translate-x-1"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
             </button>
           </Link>
-        </motion.div>
-      </section>
 
-      {/* ── NFT Banner Image ────────────────────────────────────────── */}
-      <motion.section
-        initial={{ opacity: 0 }}
-        whileInView={{ opacity: 1 }}
-        viewport={{ once: true }}
-        transition={{ duration: 0.8 }}
-        className="relative w-full px-4 md:px-12 pb-4 z-10"
-      >
-        <div className="relative rounded-3xl overflow-hidden border border-white/10 shadow-2xl shadow-purple-950/60 max-w-6xl mx-auto">
-          <img
-            src={`${BASE}/nft-banner.png`}
-            alt="10K Squad NFT Collection"
-            className="w-full object-cover"
-            style={{ maxHeight: 480 }}
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-transparent" />
-          <div className="absolute bottom-6 left-6 right-6 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
-            <div>
-              <div className="text-white font-black text-2xl md:text-3xl drop-shadow-lg">10K Squad NFTs</div>
-              <div className="text-pink-300 text-sm font-medium">10,000 unique hand-drawn Squawk birds on-chain</div>
-            </div>
-            <a
-              href="https://opensea.io"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold text-white shrink-0 transition-all hover:scale-105"
-              style={{ background: "linear-gradient(135deg, #ec4899, #9333ea)" }}
-            >
-              View Collection →
-            </a>
-          </div>
-        </div>
-      </motion.section>
-
-      {/* ── NFT Stats ────────────────────────────────────────────────── */}
-      <motion.section
-        initial={{ opacity: 0, y: 20 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
-        transition={{ duration: 0.6, delay: 0.1 }}
-        className="px-4 md:px-12 py-12 z-10"
-      >
-        <div className="max-w-6xl mx-auto">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {/* NFT Stats inside hero */}
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, delay: 0.4 }}
+            className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-16 max-w-2xl mx-auto"
+          >
             {NFT_STATS.map(stat => (
               <div
                 key={stat.label}
-                className="rounded-2xl border border-white/10 p-6 text-center backdrop-blur-sm"
-                style={{ background: "rgba(88,28,135,0.15)" }}
+                className="rounded-2xl border border-white/10 p-4 text-center backdrop-blur-md"
+                style={{ background: "rgba(88,28,135,0.2)" }}
               >
-                <div className="text-3xl font-black text-white mb-1">{stat.value}</div>
-                <div className="text-sm text-muted-foreground font-medium">{stat.label}</div>
+                <div className="text-2xl font-black text-white mb-0.5">{stat.value}</div>
+                <div className="text-xs text-white/50 font-medium">{stat.label}</div>
               </div>
             ))}
-          </div>
-        </div>
-      </motion.section>
+          </motion.div>
+        </motion.div>
+      </section>
 
       {/* ── Rarity Tiers ─────────────────────────────────────────────── */}
       <motion.section
@@ -147,11 +119,11 @@ export default function LandingPage() {
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
         transition={{ duration: 0.6 }}
-        className="px-4 md:px-12 py-8 z-10"
+        className="px-4 md:px-12 py-16 z-10"
       >
         <div className="max-w-6xl mx-auto">
           <h2 className="text-3xl font-black text-white text-center mb-2">Rarity Tiers</h2>
-          <p className="text-muted-foreground text-center mb-8 text-sm">Every 10K Squad bird has hand-crafted traits across 4 rarity tiers</p>
+          <p className="text-muted-foreground text-center mb-10 text-sm">Every 10K Squad bird has hand-crafted traits across 4 rarity tiers</p>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {TRAITS.map(t => (
               <div key={t.name} className="rounded-2xl border border-white/10 p-5 flex flex-col items-center gap-3" style={{ background: "rgba(88,28,135,0.12)" }}>
@@ -161,10 +133,7 @@ export default function LandingPage() {
                 <div className="text-white font-bold">{t.name}</div>
                 <div className="text-muted-foreground text-sm">{t.count.toLocaleString()} birds</div>
                 <div className="w-full h-1.5 rounded-full bg-white/10 overflow-hidden">
-                  <div
-                    className={`h-full rounded-full bg-gradient-to-r ${t.color}`}
-                    style={{ width: `${(t.count / 10000) * 100}%` }}
-                  />
+                  <div className={`h-full rounded-full bg-gradient-to-r ${t.color}`} style={{ width: `${(t.count / 10000) * 100}%` }} />
                 </div>
               </div>
             ))}
@@ -188,11 +157,7 @@ export default function LandingPage() {
               { icon: "🐦", title: "10K Squad Perks", desc: "NFT holders unlock exclusive feeds, special badges, and priority features on Squawk." },
               { icon: "⚡", title: "Real-time Feed", desc: "Your feed updates in real-time. New posts surface instantly — never miss a drop." },
             ].map(f => (
-              <div
-                key={f.title}
-                className="rounded-3xl border border-white/10 p-8 flex flex-col gap-4"
-                style={{ background: "rgba(88,28,135,0.12)" }}
-              >
+              <div key={f.title} className="rounded-3xl border border-white/10 p-8 flex flex-col gap-4" style={{ background: "rgba(88,28,135,0.12)" }}>
                 <div className="text-4xl">{f.icon}</div>
                 <div className="text-xl font-bold text-white">{f.title}</div>
                 <div className="text-muted-foreground text-[15px] leading-relaxed">{f.desc}</div>
@@ -224,7 +189,6 @@ export default function LandingPage() {
       </motion.section>
 
       <div className="h-8" />
-
       <SquawkBot />
     </div>
   );
