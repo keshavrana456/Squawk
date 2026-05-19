@@ -6,20 +6,26 @@ import { randomUUID } from "crypto";
 
 const router: IRouter = Router();
 
+const IS_VERCEL = process.env.VERCEL === "1" || !!process.env.BLOB_READ_WRITE_TOKEN;
+
 const UPLOADS_DIR = path.resolve(process.cwd(), "uploads");
-if (!fs.existsSync(UPLOADS_DIR)) {
-  fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+if (!IS_VERCEL) {
+  if (!fs.existsSync(UPLOADS_DIR)) {
+    fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+  }
 }
 
-const storage = multer.diskStorage({
-  destination: (_req, _file, cb) => {
-    cb(null, UPLOADS_DIR);
-  },
-  filename: (_req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    cb(null, `${randomUUID()}${ext}`);
-  },
-});
+const storage = IS_VERCEL
+  ? multer.memoryStorage()
+  : multer.diskStorage({
+      destination: (_req, _file, cb) => {
+        cb(null, UPLOADS_DIR);
+      },
+      filename: (_req, file, cb) => {
+        const ext = path.extname(file.originalname);
+        cb(null, `${randomUUID()}${ext}`);
+      },
+    });
 
 const upload = multer({
   storage,
@@ -33,25 +39,39 @@ const upload = multer({
   },
 });
 
-/**
- * POST /storage/upload
- * Direct file upload — accepts multipart/form-data with a "file" field.
- * Returns { mediaUrl } pointing to the served file.
- */
-router.post("/storage/upload", upload.single("file"), (req: Request, res: Response) => {
+router.post("/storage/upload", upload.single("file"), async (req: Request, res: Response) => {
   if (!req.file) {
     res.status(400).json({ error: "No file provided" });
     return;
   }
+
+  if (IS_VERCEL) {
+    try {
+      const { put } = await import("@vercel/blob");
+      const ext = path.extname(req.file.originalname);
+      const filename = `uploads/${randomUUID()}${ext}`;
+      const blob = await put(filename, req.file.buffer as Buffer, {
+        access: "public",
+        contentType: req.file.mimetype,
+      });
+      res.json({ mediaUrl: blob.url });
+    } catch (err) {
+      console.error("Vercel Blob upload error:", err);
+      res.status(500).json({ error: "Failed to upload file. Make sure BLOB_READ_WRITE_TOKEN is set." });
+    }
+    return;
+  }
+
   const mediaUrl = `/api/storage/files/${req.file.filename}`;
   res.json({ mediaUrl });
 });
 
-/**
- * GET /storage/files/:filename
- * Serve uploaded files.
- */
 router.get("/storage/files/:filename", (req: Request, res: Response) => {
+  if (IS_VERCEL) {
+    res.status(410).json({ error: "Local file serving is not available on Vercel. Files are served directly from Vercel Blob URLs." });
+    return;
+  }
+
   const filename = path.basename(req.params.filename);
   const filePath = path.join(UPLOADS_DIR, filename);
 
