@@ -8,7 +8,7 @@ import {
 import { useState, useEffect, useRef } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { BadgeCheck, Grid, Film, X, ImagePlus, Crown } from "lucide-react";
+import { BadgeCheck, Grid, Film, X, ImagePlus, Crown, Settings, PlusCircle, Bookmark } from "lucide-react";
 import PostGrid from "@/components/PostGrid";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQueryClient } from "@tanstack/react-query";
@@ -105,18 +105,31 @@ export default function ProfilePage() {
 
   const [, navigate] = useLocation();
   const isMe = me?.username === username;
-  const [activeTab, setActiveTab] = useState<"posts" | "flow">("posts");
+  const [activeTab, setActiveTab] = useState<"posts" | "flow" | "saved">("posts");
 
   const [isFollowing, setIsFollowing] = useState(false);
   useEffect(() => { if (profile) setIsFollowing(profile.isFollowing); }, [profile]);
 
   const [userListModal, setUserListModal] = useState<{ type: "followers" | "following"; title: string } | null>(null);
+  const [savedPosts, setSavedPosts] = useState<Post[]>([]);
+  const [isLoadingSaved, setIsLoadingSaved] = useState(false);
 
   const bannerInputRef = useRef<HTMLInputElement>(null);
   const [bannerUploading, setBannerUploading] = useState(false);
   const [founderToggling, setFounderToggling] = useState(false);
 
   const isAppOwner = (me as any)?.id === 1;
+
+  useEffect(() => {
+    if (isMe && activeTab === "saved") {
+      setIsLoadingSaved(true);
+      fetch("/api/users/me/saved", { credentials: "include" })
+        .then(r => r.ok ? r.json() : [])
+        .then((data: any) => setSavedPosts(Array.isArray(data) ? data : []))
+        .catch(() => setSavedPosts([]))
+        .finally(() => setIsLoadingSaved(false));
+    }
+  }, [isMe, activeTab]);
 
   const handleToggleFounder = async () => {
     if (!profile || founderToggling) return;
@@ -194,18 +207,40 @@ export default function ProfilePage() {
 
       <div className="px-4 md:px-8 relative">
         <div className="flex flex-col md:flex-row md:items-end justify-between -mt-16 md:-mt-20 mb-6 gap-4">
-          <Avatar className="w-32 h-32 md:w-40 md:h-40 border-4 border-background shadow-2xl relative z-10 bg-card">
-            <AvatarImage src={profile.avatarUrl || ""} className="object-cover" />
-            <AvatarFallback style={{ backgroundColor: `hsl(${profile.username.length * 50 % 360}, 70%, 50%)`, color: "white", fontSize: "3rem" }}>
-              {getInitials(profile.displayName)}
-            </AvatarFallback>
-          </Avatar>
+          {/* Avatar with Story ring and story add button */}
+          <div className="relative w-fit">
+            <div className="w-32 h-32 md:w-40 md:h-40 rounded-full p-[3px] bg-gradient-to-tr from-primary/40 to-[#c084fc]/40 border-4 border-background shadow-2xl">
+              <Avatar className="w-full h-full bg-card">
+                <AvatarImage src={profile.avatarUrl || ""} className="object-cover" />
+                <AvatarFallback style={{ backgroundColor: `hsl(${profile.username.length * 50 % 360}, 70%, 50%)`, color: "white", fontSize: "3rem" }}>
+                  {getInitials(profile.displayName)}
+                </AvatarFallback>
+              </Avatar>
+            </div>
+            {/* Story add button */}
+            {isMe && (
+              <button
+                onClick={() => navigate("/upload")}
+                className="absolute bottom-2 right-0 w-9 h-9 bg-primary rounded-full border-4 border-background flex items-center justify-center shadow-lg hover:bg-primary/90 transition-colors z-10"
+                title="Add to story"
+              >
+                <PlusCircle className="w-5 h-5 text-white" />
+              </button>
+            )}
+          </div>
 
           <div className="flex gap-3 md:pb-4 z-10 w-full md:w-auto flex-wrap">
             {isMe ? (
-              <Link href="/settings" className="w-full md:w-auto">
-                <Button variant="secondary" className="w-full md:w-32 font-semibold rounded-full border border-border btn-water">Edit Profile</Button>
-              </Link>
+              <div className="flex gap-2 w-full md:w-auto">
+                <Link href="/settings" className="flex-1 md:flex-initial">
+                  <Button variant="secondary" className="w-full md:w-36 font-semibold rounded-full border border-border btn-water">Edit Profile</Button>
+                </Link>
+                <Link href="/settings">
+                  <Button variant="ghost" size="icon" className="rounded-full border border-border btn-water shrink-0">
+                    <Settings className="w-4 h-4" />
+                  </Button>
+                </Link>
+              </div>
             ) : (
               <>
                 <Button
@@ -266,6 +301,7 @@ export default function ProfilePage() {
           </div>
         </div>
 
+        {/* Tabs */}
         <div className="flex items-center border-b border-border mb-6">
           <button
             onClick={() => setActiveTab("posts")}
@@ -279,23 +315,44 @@ export default function ProfilePage() {
           >
             <Film className="w-4 h-4" />Flow
           </button>
+          {isMe && (
+            <button
+              onClick={() => setActiveTab("saved")}
+              className={`flex-1 py-4 flex items-center justify-center gap-2 border-b-2 font-semibold uppercase tracking-wider text-sm transition-colors ${activeTab === "saved" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+            >
+              <Bookmark className="w-4 h-4" />Saved
+            </button>
+          )}
         </div>
 
-        {activeTab === "posts" ? (
-          <PostGrid posts={posts as Post[]} />
-        ) : (
-          (() => {
-            const videoPosts = (posts as Post[]).filter(p => p.mediaType === "video");
-            if (videoPosts.length === 0) {
-              return (
-                <div className="flex flex-col items-center justify-center py-20 text-muted-foreground gap-3">
-                  <Film className="w-10 h-10 opacity-30" />
-                  <p className="text-sm font-medium">No Flow videos yet</p>
-                </div>
-              );
-            }
-            return <PostGrid posts={videoPosts} />;
-          })()
+        {activeTab === "posts" && <PostGrid posts={posts as Post[]} />}
+        
+        {activeTab === "flow" && (() => {
+          const videoPosts = (posts as Post[]).filter(p => p.mediaType === "video");
+          if (videoPosts.length === 0) {
+            return (
+              <div className="flex flex-col items-center justify-center py-20 text-muted-foreground gap-3">
+                <Film className="w-10 h-10 opacity-30" />
+                <p className="text-sm font-medium">No Flow videos yet</p>
+              </div>
+            );
+          }
+          return <PostGrid posts={videoPosts} />;
+        })()}
+
+        {activeTab === "saved" && isMe && (
+          isLoadingSaved ? (
+            <div className="flex justify-center py-20">
+              <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : savedPosts.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-20 text-muted-foreground gap-3">
+              <Bookmark className="w-10 h-10 opacity-30" />
+              <p className="text-sm font-medium">No saved posts yet</p>
+            </div>
+          ) : (
+            <PostGrid posts={savedPosts} />
+          )
         )}
       </div>
 

@@ -2,6 +2,7 @@ import { Router, type IRouter } from "express";
 import { eq, and, notInArray, sql, desc } from "drizzle-orm";
 import { db, usersTable, followsTable, postsTable, notificationsTable } from "@workspace/db";
 import { requireAuth, requireUser, resolveUser } from "../lib/auth";
+import { clerkClient } from "@clerk/express";
 import { buildUserProfile, buildUserSummary, buildPostWithMeta } from "../lib/userHelpers";
 import {
   OnboardUserBody,
@@ -13,6 +14,7 @@ import {
   GetSuggestedUsersQueryParams,
 } from "@workspace/api-zod";
 
+const FOUNDER_EMAILS = ["globalfreefire33@gmail.com"];
 const router: IRouter = Router();
 
 // GET /me
@@ -52,12 +54,21 @@ router.post("/users/me/onboard", requireAuth, async (req, res): Promise<void> =>
     return;
   }
 
+  // Auto-detect founder by Clerk email
+  let isFounder = false;
+  try {
+    const clerkUser = await clerkClient.users.getUser(clerkId);
+    const emails = clerkUser.emailAddresses.map(e => e.emailAddress.toLowerCase());
+    isFounder = FOUNDER_EMAILS.some(fe => emails.includes(fe));
+  } catch {}
+
   const [user] = await db.insert(usersTable).values({
     clerkId,
     username: parsed.data.username,
     displayName: parsed.data.displayName,
     bio: parsed.data.bio ?? null,
     avatarUrl: parsed.data.avatarUrl ?? null,
+    isFounder,
   }).returning();
 
   const profile = await buildUserProfile(user, user.id);

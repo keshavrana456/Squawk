@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Link, useLocation } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
-import { Heart, MessageCircle, Send, Bookmark, MoreHorizontal, BadgeCheck, Play } from "lucide-react";
+import { Heart, MessageCircle, Send, Bookmark, MoreHorizontal, BadgeCheck, Volume2, VolumeX } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
@@ -33,6 +33,8 @@ export default function PostCard({ post, onLike, onSave, onComment }: PostCardPr
   const [isLiked, setIsLiked] = useState(post.isLiked);
   const [likesCount, setLikesCount] = useState(post.likesCount);
   const [isSaved, setIsSaved] = useState(post.isSaved);
+  const [isMuted, setIsMuted] = useState(true);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   const getInitials = (name: string) => name ? name.charAt(0).toUpperCase() : '?';
   const avatarColor = `hsl(${post.author.username.length * 50 % 360}, 70%, 50%)`;
@@ -45,10 +47,8 @@ export default function PostCard({ post, onLike, onSave, onComment }: PostCardPr
 
     likeMutation.mutate({ id: post.id }, {
       onSuccess: (data) => {
-        // Always trust the server's definitive response
         setIsLiked(data.isLiked);
         setLikesCount(data.likesCount);
-        // Patch every cached feed/post list so remounts initialize correctly
         const patchPosts = (posts: any[]) =>
           posts.map((p: any) =>
             p.id === post.id ? { ...p, isLiked: data.isLiked, likesCount: data.likesCount } : p
@@ -78,11 +78,9 @@ export default function PostCard({ post, onLike, onSave, onComment }: PostCardPr
   const handleSave = () => {
     const newSaved = !isSaved;
     setIsSaved(newSaved);
-    
     saveMutation.mutate({ id: post.id }, {
       onError: () => setIsSaved(!newSaved)
     });
-    
     if (onSave) onSave();
   };
 
@@ -92,12 +90,29 @@ export default function PostCard({ post, onLike, onSave, onComment }: PostCardPr
     setTimeout(() => setShowHeart(false), 1000);
   };
 
+  const handleShare = async () => {
+    const url = `${window.location.origin}/post/${post.id}`;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: post.caption || "Squawk post", url });
+      } catch {}
+    } else {
+      try {
+        await navigator.clipboard.writeText(url);
+      } catch {}
+    }
+  };
+
+  const handleMuteToggle = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsMuted(m => {
+      if (videoRef.current) videoRef.current.muted = !m;
+      return !m;
+    });
+  };
+
   const renderCaption = (text: string | null, hashtags: string[]) => {
     if (!text) return null;
-    let renderedText = text;
-    
-    // Simple regex to find hashtags and make them bold, but since we have an array of hashtags,
-    // we can just append them if they aren't in the text, or we can just render the text and hashtags below
     return (
       <div className="text-sm mt-2">
         <span className="font-semibold mr-2">{post.author.username}</span>
@@ -142,24 +157,35 @@ export default function PostCard({ post, onLike, onSave, onComment }: PostCardPr
 
       {/* Media */}
       <div 
-        className="relative w-full bg-muted aspect-[4/5] flex items-center justify-center overflow-hidden cursor-pointer"
+        className="relative w-full bg-muted overflow-hidden cursor-pointer"
+        style={{ aspectRatio: post.mediaType === 'video' ? '9/16' : '4/5', maxHeight: post.mediaType === 'video' ? '75vh' : undefined }}
         onDoubleClick={handleDoubleTap}
         data-testid="post-media"
       >
         {post.mediaType === 'video' ? (
-          <video 
-            src={post.mediaUrl.startsWith('/api/') ? post.mediaUrl : post.mediaUrl} 
-            className="w-full h-full object-cover"
-            autoPlay 
-            muted 
-            loop 
-            playsInline
-          />
+          <>
+            <video 
+              ref={videoRef}
+              src={post.mediaUrl}
+              className="w-full h-full object-contain bg-black"
+              autoPlay 
+              muted={isMuted}
+              loop 
+              playsInline
+            />
+            <button
+              onClick={handleMuteToggle}
+              className="absolute bottom-3 right-3 p-2 rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors z-10"
+              aria-label={isMuted ? "Unmute" : "Mute"}
+            >
+              {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+            </button>
+          </>
         ) : (
           <img 
-            src={post.mediaUrl.startsWith('/api/') ? post.mediaUrl : post.mediaUrl} 
+            src={post.mediaUrl}
             alt={post.caption || "Post media"} 
-            className="w-full h-full object-cover"
+            className="w-full h-full object-contain bg-black"
             loading="lazy"
           />
         )}
@@ -197,16 +223,21 @@ export default function PostCard({ post, onLike, onSave, onComment }: PostCardPr
             >
               <MessageCircle className="w-7 h-7" />
             </button>
-            <button className="text-foreground transition-colors hover:opacity-70" data-testid="button-share">
+            <button 
+              onClick={handleShare} 
+              className="text-foreground transition-colors hover:opacity-70" 
+              data-testid="button-share"
+              aria-label="Share post"
+            >
               <Send className="w-7 h-7" />
             </button>
           </div>
           <button 
             onClick={handleSave} 
-            className={`transition-colors hover:opacity-70 ${isSaved ? 'text-foreground' : 'text-foreground'}`}
+            className={`transition-colors hover:opacity-70 ${isSaved ? 'text-primary' : 'text-foreground'}`}
             data-testid="button-save"
           >
-            <Bookmark className={`w-7 h-7 ${isSaved ? 'fill-foreground' : ''}`} />
+            <Bookmark className={`w-7 h-7 ${isSaved ? 'fill-primary' : ''}`} />
           </button>
         </div>
 

@@ -445,7 +445,7 @@ function ChatView({ conversationId, onBack, me, conversation }: any) {
 
   const handleSend = () => {
     if (!content.trim()) return;
-    sendMutation.mutate({ data: { conversationId, content: content.trim() } }, { onSuccess: () => setContent("") });
+    sendMutation.mutate({ id: conversationId, data: { content: content.trim() } }, { onSuccess: () => setContent("") });
   };
 
   const formatDayGroup = (date: Date) => {

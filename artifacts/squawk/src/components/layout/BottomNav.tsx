@@ -1,15 +1,12 @@
 import { Link, useLocation } from "wouter";
 import { useUser } from "@clerk/react";
-import { Home, Compass, PlaySquare, PlusSquare, MessageCircle, Bell, User } from "lucide-react";
-import { useGetUnreadNotificationCount, useGetMe } from "@workspace/api-client-react";
+import { Home, Compass, PlaySquare, PlusSquare, User } from "lucide-react";
+import { useGetMe } from "@workspace/api-client-react";
 
 export default function BottomNav() {
   const [location] = useLocation();
   const { user } = useUser();
   const { data: me } = useGetMe({ query: { enabled: !!user } });
-
-  const { data: unreadData } = useGetUnreadNotificationCount({ query: { enabled: !!user } });
-  const unreadCount = unreadData?.count || 0;
 
   const profileHref = me?.username ? `/profile/${me.username}` : "/profile";
 
@@ -18,8 +15,6 @@ export default function BottomNav() {
     { href: "/explore", icon: Compass, label: "Explore" },
     { href: "/reels", icon: PlaySquare, label: "Flow" },
     { href: "/upload", icon: PlusSquare, label: "Create" },
-    { href: "/messages", icon: MessageCircle, label: "Messages" },
-    { href: "/notifications", icon: Bell, label: "Notifications", badge: unreadCount },
     { href: profileHref, icon: User, label: "Profile" },
   ];
 
@@ -32,9 +27,6 @@ export default function BottomNav() {
             <Link key={item.href} href={item.href} data-testid={`mobile-link-${item.label.toLowerCase()}`}>
               <div className="relative p-3 flex items-center justify-center cursor-pointer">
                 <item.icon className={`w-6 h-6 transition-all duration-200 ${isActive ? 'text-primary scale-110' : 'text-muted-foreground'}`} />
-                {item.badge ? (
-                  <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-primary rounded-full" />
-                ) : null}
               </div>
             </Link>
           );

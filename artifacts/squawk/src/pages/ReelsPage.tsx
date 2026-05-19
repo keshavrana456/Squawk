@@ -5,48 +5,6 @@ import { Link } from "wouter";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { motion, AnimatePresence } from "framer-motion";
 
-const DEMO_VIDEOS = [
-  {
-    id: -1, mediaUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
-    mediaType: "video", caption: "Fire vibes only 🔥 #squad #vibes #10ksquad",
-    hashtags: ["squad", "vibes", "10ksquad"], likesCount: 1842, commentsCount: 94,
-    isLiked: false, isSaved: false, viewsCount: 12400,
-    author: { id: -1, username: "squad_official", displayName: "SQUAD Official", avatarUrl: "", isVerified: true },
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: -2, mediaUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4",
-    mediaType: "video", caption: "Escape the ordinary ✨ #flow #nft #art",
-    hashtags: ["flow", "nft", "art"], likesCount: 3210, commentsCount: 155,
-    isLiked: false, isSaved: false, viewsCount: 28900,
-    author: { id: -2, username: "pixel_phoenix", displayName: "Pixel Phoenix", avatarUrl: "", isVerified: false },
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: -3, mediaUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4",
-    mediaType: "video", caption: "Having too much fun with the crew 😂🎉 #fun #squadgoals",
-    hashtags: ["fun", "squadgoals"], likesCount: 5670, commentsCount: 312,
-    isLiked: false, isSaved: false, viewsCount: 54300,
-    author: { id: -3, username: "neon_cult", displayName: "Neon Cult", avatarUrl: "", isVerified: true },
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: -4, mediaUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4",
-    mediaType: "video", caption: "Joy ride season 🚗💨 #joyride #culture",
-    hashtags: ["joyride", "culture"], likesCount: 2890, commentsCount: 87,
-    isLiked: false, isSaved: false, viewsCount: 31200,
-    author: { id: -4, username: "drift_mode", displayName: "Drift Mode", avatarUrl: "", isVerified: false },
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: -5, mediaUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4",
-    mediaType: "video", caption: "When the beat drops 🎵🔥 #music #vibes #squawk",
-    hashtags: ["music", "vibes", "squawk"], likesCount: 7340, commentsCount: 441,
-    isLiked: false, isSaved: false, viewsCount: 89100,
-    author: { id: -5, username: "bass_theory", displayName: "Bass Theory", avatarUrl: "", isVerified: true },
-    createdAt: new Date().toISOString(),
-  },
-];
 
 function CommentsSheet({ post, onClose }: { post: any; onClose: () => void }) {
   const isReal = post.id > 0;
@@ -149,18 +107,23 @@ function CommentsSheet({ post, onClose }: { post: any; onClose: () => void }) {
 }
 
 export default function ReelsPage() {
-  const { data: postsData } = useListPosts();
+  const { data: postsData, isLoading } = useListPosts();
   const rawPosts = (postsData as any)?.items || [];
-  const videoPosts = rawPosts.filter((p: Post) => p.mediaType === "video");
-  const reels = videoPosts.length > 0
-    ? [...videoPosts, ...DEMO_VIDEOS]
-    : [...DEMO_VIDEOS, ...rawPosts.slice(0, 3)];
+  const reels = rawPosts.filter((p: Post) => p.mediaType === "video");
 
   const [muted, setMuted] = useState(true);
 
-  if (!reels.length) return (
+  if (isLoading) return (
     <div className="flex items-center justify-center h-full min-h-screen bg-black">
       <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+    </div>
+  );
+
+  if (!reels.length) return (
+    <div className="flex flex-col items-center justify-center h-full min-h-screen bg-black gap-4 text-white/40 p-8 text-center">
+      <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="opacity-30"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="2" y1="7" x2="7" y2="7"/><line x1="2" y1="17" x2="7" y2="17"/><line x1="17" y1="17" x2="22" y2="17"/><line x1="17" y1="7" x2="22" y2="7"/></svg>
+      <p className="text-lg font-bold text-white/50">No Flow videos yet</p>
+      <p className="text-sm text-white/30 max-w-xs">Be the first to post a video to Flow. Upload a video from the Create page.</p>
     </div>
   );
 
