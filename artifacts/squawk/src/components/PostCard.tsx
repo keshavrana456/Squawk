@@ -2,6 +2,7 @@ import { useState, useRef } from "react";
 import { Link, useLocation } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
 import { Heart, MessageCircle, Send, Bookmark, MoreHorizontal, BadgeCheck, Volume2, VolumeX } from "lucide-react";
+import { ShareSheet } from "@/components/ShareSheet";
 import { formatDistanceToNow } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
@@ -34,6 +35,7 @@ export default function PostCard({ post, onLike, onSave, onComment }: PostCardPr
   const [likesCount, setLikesCount] = useState(post.likesCount);
   const [isSaved, setIsSaved] = useState(post.isSaved);
   const [isMuted, setIsMuted] = useState(true);
+  const [shareOpen, setShareOpen] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   const getInitials = (name: string) => name ? name.charAt(0).toUpperCase() : '?';
@@ -90,17 +92,8 @@ export default function PostCard({ post, onLike, onSave, onComment }: PostCardPr
     setTimeout(() => setShowHeart(false), 1000);
   };
 
-  const handleShare = async () => {
-    const url = `${window.location.origin}/post/${post.id}`;
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: post.caption || "Squawk post", url });
-      } catch {}
-    } else {
-      try {
-        await navigator.clipboard.writeText(url);
-      } catch {}
-    }
+  const handleShare = () => {
+    setShareOpen(true);
   };
 
   const handleMuteToggle = (e: React.MouseEvent) => {
@@ -253,6 +246,13 @@ export default function PostCard({ post, onLike, onSave, onComment }: PostCardPr
           </Link>
         )}
       </div>
+
+      <ShareSheet
+        open={shareOpen}
+        onOpenChange={setShareOpen}
+        postId={post.id}
+        caption={post.caption}
+      />
     </div>
   );
 }
