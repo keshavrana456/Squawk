@@ -77,7 +77,7 @@ export default function PostCard({ post, onLike, onSave, onComment }: PostCardPr
       Array.isArray(old) ? patchPosts(old) : old
     );
     queryClient.setQueriesData({ queryKey: getListPostsQueryKey() }, (old: any) =>
-      old?.items ? { ...old, items: patchPosts(old.items) } : old
+      old?.posts ? { ...old, posts: patchPosts(old.posts) } : old
     );
   };
 
@@ -228,7 +228,7 @@ export default function PostCard({ post, onLike, onSave, onComment }: PostCardPr
 
         {/* Media */}
         <div
-          className="relative w-full overflow-hidden cursor-pointer"
+          className="relative w-full overflow-hidden"
           style={{
             aspectRatio: post.mediaType === "video" ? "9/16" : "4/5",
             maxHeight: post.mediaType === "video" ? "80vh" : undefined,
@@ -238,7 +238,10 @@ export default function PostCard({ post, onLike, onSave, onComment }: PostCardPr
           data-testid="post-media"
         >
           {post.mediaType === "video" ? (
-            <>
+            <div
+              className="absolute inset-0 cursor-pointer"
+              onClick={() => setLocation(`/reels?id=${post.id}`)}
+            >
               <video
                 ref={videoRef}
                 src={post.mediaUrl}
@@ -248,6 +251,8 @@ export default function PostCard({ post, onLike, onSave, onComment }: PostCardPr
                 loop
                 playsInline
               />
+              {/* Gradient */}
+              <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/40 pointer-events-none" />
               {/* Mute toggle */}
               <button
                 onClick={handleMuteToggle}
@@ -256,20 +261,17 @@ export default function PostCard({ post, onLike, onSave, onComment }: PostCardPr
               >
                 {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
               </button>
-              {/* Open in Flow button */}
-              <button
-                onClick={(e) => { e.stopPropagation(); setLocation(`/reels?id=${post.id}`); }}
-                className="absolute top-3 left-3 flex items-center gap-1.5 bg-black/55 backdrop-blur-sm text-white text-xs font-semibold px-2.5 py-1.5 rounded-full hover:bg-black/70 transition-colors z-10"
-              >
+              {/* Open in Flow badge */}
+              <div className="absolute top-3 left-3 flex items-center gap-1.5 bg-black/55 backdrop-blur-sm text-white text-xs font-semibold px-2.5 py-1.5 rounded-full pointer-events-none z-10">
                 <PlaySquare className="w-3.5 h-3.5" />
-                Open in Flow
-              </button>
-            </>
+                Tap to open in Flow
+              </div>
+            </div>
           ) : (
             <img
               src={post.mediaUrl}
               alt={post.caption || "Post media"}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-cover cursor-pointer"
               loading="lazy"
             />
           )}

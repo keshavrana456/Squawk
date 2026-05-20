@@ -96,10 +96,12 @@ router.post("/chirps", requireUser, async (req, res): Promise<void> => {
   }).returning();
 
   if (parentId) {
-    const parentChirp = await db.select().from(chirpsTable).where(eq(chirpsTable.id, parseInt(String(parentId), 10)));
-    if (parentChirp[0]) {
-      await db.update(chirpsTable).set({ viewCount: sql`${chirpsTable.viewCount} + 0` }).where(eq(chirpsTable.id, parseInt(String(parentId), 10)));
-    }
+    const pid = parseInt(String(parentId), 10);
+    await db.insert(chirpCommentsTable).values({
+      chirpId: pid,
+      authorId: currentUser.id,
+      content: content.trim().slice(0, 500),
+    });
   }
 
   const result = await buildChirpWithMeta(chirp, currentUser, currentUser.id);

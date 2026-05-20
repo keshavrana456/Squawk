@@ -151,10 +151,17 @@ function ChirpCard({ chirp, onReply }: { chirp: ChirpData; onReply?: (chirp: Chi
     <motion.article
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      className="px-4 py-4 border-b border-border hover:bg-muted/30 transition-colors cursor-pointer"
+      className="border-b border-border hover:bg-muted/30 transition-colors cursor-pointer"
       onClick={() => { }}
     >
-      <div className="flex gap-3">
+      {/* Repost label */}
+      {(chirp.rechirpOfId !== null || localRechirped) && (
+        <div className="flex items-center gap-2 px-4 pt-3 text-xs font-semibold text-green-500">
+          <Repeat2 className="w-3.5 h-3.5" />
+          {localRechirped ? "You reposted" : "Reposted"}
+        </div>
+      )}
+      <div className="flex gap-3 px-4 py-4">
         <Link href={`/profile/${chirp.author.username}`} onClick={e => e.stopPropagation()}>
           <Avatar className="w-11 h-11 border border-border hover:border-primary transition-colors shrink-0">
             <AvatarImage src={chirp.author.avatarUrl || ""} />

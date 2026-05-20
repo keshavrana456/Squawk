@@ -7,8 +7,9 @@ import {
 } from "@workspace/api-client-react";
 import {
   Heart, Bookmark, Volume2, VolumeX, MoreHorizontal, PlusCircle,
-  Trash2, Copy, Flag, EyeOff,
+  Trash2, Copy, Flag, EyeOff, Share2,
 } from "lucide-react";
+import { ShareSheet } from "@/components/ShareSheet";
 import CommentsSheet from "@/components/CommentsSheet";
 import StoryUploadModal from "@/components/StoryUploadModal";
 import { Link } from "wouter";
@@ -109,6 +110,7 @@ function Reel({ post, muted, setMuted }: { post: any; muted: boolean; setMuted: 
   const [showComments, setShowComments] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showHeart, setShowHeart] = useState(false);
+  const [showShare, setShowShare] = useState(false);
 
   const isOwner = me && (me as any).id === post.author?.id;
 
@@ -216,7 +218,7 @@ function Reel({ post, muted, setMuted }: { post: any; muted: boolean; setMuted: 
             <video
               ref={videoRef}
               src={post.mediaUrl}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-contain"
               loop
               muted={muted}
               playsInline
@@ -346,6 +348,12 @@ function Reel({ post, muted, setMuted }: { post: any; muted: boolean; setMuted: 
                     <Bookmark className={`w-7 h-7 ${isSaved ? "fill-white text-white" : "text-white"}`} />
                   </div>
                 </button>
+
+                <button onClick={() => setShowShare(true)} className="flex flex-col items-center gap-1">
+                  <div className="p-3.5 btn-water rounded-full">
+                    <Share2 className="w-7 h-7 text-white" />
+                  </div>
+                </button>
               </div>
             </div>
           </div>
@@ -358,6 +366,14 @@ function Reel({ post, muted, setMuted }: { post: any; muted: boolean; setMuted: 
         commentsCount={post.commentsCount}
         isOpen={showComments}
         onClose={() => setShowComments(false)}
+      />
+
+      {/* Share sheet */}
+      <ShareSheet
+        open={showShare}
+        onOpenChange={setShowShare}
+        postId={post.id}
+        caption={post.caption}
       />
 
       {/* Delete confirmation */}
