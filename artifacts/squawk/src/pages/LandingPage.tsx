@@ -137,21 +137,28 @@ export default function LandingPage() {
   return (
     <div className="min-h-[100dvh] bg-background text-foreground overflow-x-hidden flex flex-col relative dark">
 
-      {/* ── Hero (nav lives inside so it overlays the banner image) ─── */}
-      <section className="relative flex flex-col items-center justify-center text-center px-4 pb-20 z-10 min-h-screen overflow-hidden">
+      {/* ── Fixed transparent navbar ─────────────────────────────────── */}
+      <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 md:px-12 h-16 backdrop-blur-md border-b border-white/8" style={{ background: "rgba(14,7,25,0.55)" }}>
+        <img src={`${BASE}/logo.png`} alt="Squawk" className="h-9 w-auto" />
+        <div className="flex gap-3 items-center">
+          <Link
+            href="/sign-in"
+            className="px-5 py-1.5 rounded-full text-sm font-medium text-white/70 hover:text-white hover:bg-white/8 transition-all"
+          >
+            Sign In
+          </Link>
+          <Link
+            href="/sign-up"
+            className="px-5 py-1.5 rounded-full text-sm font-bold text-white transition-all hover:scale-105 hover:shadow-[0_0_20px_4px_rgba(219,39,119,0.4)]"
+            style={{ background: "linear-gradient(135deg, #ec4899, #9333ea)" }}
+          >
+            Join Now
+          </Link>
+        </div>
+      </nav>
 
-        {/* Transparent nav — floats over the NFT banner */}
-        <nav className="absolute top-0 left-0 right-0 flex items-center justify-between p-6 md:px-12 z-20">
-          <img src={`${BASE}/logo.png`} alt="Squawk" className="h-10 w-auto" />
-          <div className="flex gap-4 items-center">
-            <Link href="/sign-in" className="px-6 py-2 rounded-full font-medium text-white/70 hover:text-white hover:bg-white/5 transition-colors">
-              Log In
-            </Link>
-            <Link href="/sign-up" className="px-6 py-2 rounded-full font-bold text-white transition-all hover:scale-105 hover:shadow-[0_0_24px_4px_rgba(219,39,119,0.35)]" style={{ background: "linear-gradient(135deg, #ec4899, #9333ea)" }}>
-              Join Now
-            </Link>
-          </div>
-        </nav>
+      {/* ── Hero ─────────────────────────────────────────────────────── */}
+      <section className="relative flex flex-col items-center justify-center text-center px-4 pb-20 z-10 min-h-screen overflow-hidden pt-16">
 
         <div className="absolute inset-0 z-0">
           <img
@@ -173,7 +180,7 @@ export default function LandingPage() {
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.85, ease: "easeOut" }}
-          className="max-w-4xl mx-auto relative z-10"
+          className="max-w-4xl mx-auto relative z-10 mt-8"
         >
           <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold tracking-tighter mb-6 leading-tight text-white drop-shadow-xl">
             Culture at{" "}
