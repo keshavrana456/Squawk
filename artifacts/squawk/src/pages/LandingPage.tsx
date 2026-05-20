@@ -175,11 +175,6 @@ export default function LandingPage() {
           transition={{ duration: 0.85, ease: "easeOut" }}
           className="max-w-4xl mx-auto relative z-10"
         >
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/8 border border-white/15 text-sm font-medium mb-8 text-white/70 backdrop-blur-sm">
-            <LiveDot live={hasLiveData} />
-            {hasLiveData ? "Live stats · updates every 10s" : "The new social grid is live on Monad"}
-          </div>
-
           <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold tracking-tighter mb-6 leading-tight text-white drop-shadow-xl">
             Culture at{" "}
             <br className="hidden md:block" />
@@ -202,6 +197,13 @@ export default function LandingPage() {
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="ml-2 transition-transform group-hover:translate-x-1"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
             </button>
           </Link>
+
+          <div className="mt-5 flex justify-center">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/8 border border-white/15 text-sm font-medium text-white/60 backdrop-blur-sm">
+              <LiveDot live={hasLiveData} />
+              {hasLiveData ? "Live stats · updates every 10s" : "The new social grid is live on Monad"}
+            </div>
+          </div>
 
           {/* Live NFT Stats Grid */}
           <motion.div
