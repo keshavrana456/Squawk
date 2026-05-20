@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -49,14 +49,21 @@ export default function PostCard({ post, onLike, onSave, onComment }: PostCardPr
   const { data: me } = useGetMe();
 
   const [showHeart, setShowHeart] = useState(false);
-  const [isLiked, setIsLiked] = useState(post.isLiked);
-  const [likesCount, setLikesCount] = useState(post.likesCount);
-  const [isSaved, setIsSaved] = useState(post.isSaved);
+  const [isLiked, setIsLiked] = useState(!!post.isLiked);
+  const [likesCount, setLikesCount] = useState(post.likesCount ?? 0);
+  const [isSaved, setIsSaved] = useState(!!post.isSaved);
   const [isMuted, setIsMuted] = useState(true);
   const [shareOpen, setShareOpen] = useState(false);
   const [showComments, setShowComments] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
+
+  // Sync from server whenever the post prop updates (e.g. React Query refetch)
+  useEffect(() => {
+    setIsLiked(!!post.isLiked);
+    setLikesCount(post.likesCount ?? 0);
+    setIsSaved(!!post.isSaved);
+  }, [post.isLiked, post.likesCount, post.isSaved]);
 
   const isOwner = me && (me as any).id === post.author.id;
   const getInitials = (name: string) => name ? name.charAt(0).toUpperCase() : "?";
