@@ -124,7 +124,7 @@ export default function PostCard({ post, onLike, onSave, onComment }: PostCardPr
   };
 
   return (
-    <div className="bg-card border-b border-border md:border md:rounded-2xl md:mb-6 overflow-hidden max-w-xl mx-auto" data-testid={`post-card-${post.id}`}>
+    <div className="bg-card border-b border-border md:border md:rounded-2xl md:mb-6 overflow-hidden w-full" data-testid={`post-card-${post.id}`}>
       {/* Header */}
       <div className="flex items-center justify-between p-4">
         <Link href={`/profile/${post.author.username}`} className="flex items-center gap-3 group" data-testid={`link-author-${post.author.username}`}>
@@ -160,7 +160,7 @@ export default function PostCard({ post, onLike, onSave, onComment }: PostCardPr
             <video 
               ref={videoRef}
               src={post.mediaUrl}
-              className="w-full h-full object-contain bg-black"
+              className="w-full h-full object-cover"
               autoPlay 
               muted={isMuted}
               loop 
@@ -178,7 +178,7 @@ export default function PostCard({ post, onLike, onSave, onComment }: PostCardPr
           <img 
             src={post.mediaUrl}
             alt={post.caption || "Post media"} 
-            className="w-full h-full object-contain bg-black"
+            className="w-full h-full object-cover"
             loading="lazy"
           />
         )}

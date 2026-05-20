@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { Link } from "wouter";
 import { useGetFeed, useGetFeedStats, useGetSuggestedUsers, useFollowUser, type Post, type UserSummary } from "@workspace/api-client-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -63,17 +63,18 @@ export default function HomePage() {
       queryKey: ["feed"],
       refetchInterval: POLL_INTERVAL,
       refetchOnWindowFocus: true,
-      select: (data) => {
-        const firstId = data?.posts?.[0]?.id ?? null;
-        if (latestPostIdRef.current === null) {
-          latestPostIdRef.current = firstId;
-        } else if (firstId !== null && firstId > latestPostIdRef.current) {
-          setNewPostsAvailable(true);
-        }
-        return data;
-      },
     },
   });
+
+  useEffect(() => {
+    const firstId = feedData?.posts?.[0]?.id ?? null;
+    if (latestPostIdRef.current === null) {
+      latestPostIdRef.current = firstId;
+    } else if (firstId !== null && firstId > (latestPostIdRef.current ?? 0)) {
+      setNewPostsAvailable(true);
+      latestPostIdRef.current = firstId;
+    }
+  }, [feedData]);
 
   const { data: stats } = useGetFeedStats({
     query: {

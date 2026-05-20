@@ -1,6 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { useUser } from "@clerk/react";
-import { Home, Compass, PlaySquare, PlusSquare, User } from "lucide-react";
+import { Home, Compass, PlaySquare, PlusSquare, User, Feather } from "lucide-react";
 import { useGetMe } from "@workspace/api-client-react";
 
 export default function BottomNav() {
@@ -13,6 +13,7 @@ export default function BottomNav() {
   const navItems = [
     { href: "/home", icon: Home, label: "Home" },
     { href: "/explore", icon: Compass, label: "Explore" },
+    { href: "/chirps", icon: Feather, label: "Chirps" },
     { href: "/reels", icon: PlaySquare, label: "Flow" },
     { href: "/upload", icon: PlusSquare, label: "Create" },
     { href: profileHref, icon: User, label: "Profile" },

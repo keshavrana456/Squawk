@@ -1,0 +1,156 @@
+Build and integrate advanced social media features into the Squawk app inspired by Instagram, X/Twitter, and modern realtime social platforms while keeping the existing parrot-themed branding and current UI style consistent.
+
+FEATURES TO ADD:
+
+CHIRPS SYSTEM (X/TWITTER-LIKE FEATURE)
+Add a new section called “Chirps”.
+Users can create short text-based posts with:
+text
+hashtags
+mentions (@username)
+emojis
+photos
+videos
+GIFs
+Allow users to:
+Rechirp posts
+Quote Chirp posts
+Add interactions:
+like
+comment
+rechirp
+share
+bookmark
+view count
+Create threaded conversations and replies similar to X/Twitter.
+Add trending hashtags and trending Chirps section.
+Add “What’s Chirping” sidebar for trending discussions.
+DIRECT CAMERA UPLOAD SYSTEM
+Add a floating upload button that directly opens the device camera.
+User should instantly be able to:
+capture photo/video
+upload directly as:
+story
+post
+chirp
+reel
+Add:
+front/back camera switch
+flash toggle
+retake option
+upload progress indicator
+filters and editing tools
+Camera experience must be smooth and mobile-first.
+STORY MENTION & RE-MENTION FEATURE
+Add Instagram-like story mentions.
+Users can mention people in stories using @username.
+Mentioned users should:
+receive notification
+get “Add to Your Story” option
+re-share/remention the story on their own story
+Mentioned story should preserve:
+original creator credit
+profile link
+timestamp
+Add animated mention stickers/tags.
+ADVANCED COMMENT SYSTEM
+Upgrade comment section with:
+like comment
+reply to comment
+nested replies
+emoji reactions
+mention users in comments
+pin comments
+delete/edit own comments
+Add threaded UI similar to Instagram/X.
+Show reply count under comments.
+Add realtime updates without refreshing.
+SHARE TO DMS FEATURE
+Add share button to every:
+post
+reel
+story
+chirp
+Clicking share should open:
+recent chats
+followers list
+search users
+User should be able to directly send content to people in DMs.
+Shared content preview should include:
+thumbnail
+username
+caption preview
+Add:
+“Send Separately”
+“Create Group”
+“Copy Link”
+external share support
+NOTIFICATION SYSTEM
+Add notifications for:
+likes
+comments
+replies
+mentions
+story mentions
+rechirps
+DM shares
+follows
+story rementions
+UI/UX REQUIREMENTS
+Smooth modern animations.
+Mobile-first responsive design.
+Fast loading and optimized rendering.
+Instagram + X inspired UI with original Squawk branding.
+Dark mode support.
+Premium polished experience.
+Keep consistent spacing, typography, and rounded modern UI.
+PROFILE & FEED IMPROVEMENTS
+Uploaded posts should instantly appear in feed and profile after successful upload.
+Add profile tabs:
+posts
+reels
+chirps
+tagged
+saved
+Improve search:
+search by username or name
+show own profile when searching own username
+live suggestions while typing
+BACKEND REQUIREMENTS
+Implement backend/database logic for:
+mentions
+rechirps
+threaded replies
+notifications
+story re-sharing
+media uploads
+realtime updates
+direct sharing to DMs
+TECH STACK REQUIREMENTS
+Recommended:
+React + Vite frontend
+Node.js backend
+Socket.io for realtime features
+PostgreSQL or Supabase database
+Cloudinary/Supabase storage
+Optimized media compression
+Lazy loading feeds
+PERFORMANCE OPTIMIZATION
+Stories and feed should load instantly.
+Optimize video uploads and rendering.
+Prevent unnecessary React rerenders.
+Add:
+skeleton loaders
+shimmer loading
+optimistic UI
+caching
+infinite scroll
+
+GOAL:
+Make Squawk feel like a premium next-generation social media platform combining:
+
+Instagram stories/reels
+X/Twitter-style Chirps
+realtime messaging
+fast social interactions
+while keeping the unique parrot-themed Squawk identity and branding.

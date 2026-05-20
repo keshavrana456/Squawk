@@ -10,6 +10,7 @@ import messagesRouter from "./messages";
 import notificationsRouter from "./notifications";
 import botRouter from "./bot";
 import nftRouter from "./nft";
+import chirpsRouter from "./chirps";
 
 const router: IRouter = Router();
 
@@ -24,5 +25,6 @@ router.use(messagesRouter);
 router.use(notificationsRouter);
 router.use(botRouter);
 router.use(nftRouter);
+router.use(chirpsRouter);
 
 export default router;

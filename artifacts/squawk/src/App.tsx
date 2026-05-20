@@ -24,6 +24,7 @@ import UploadPage from "./pages/UploadPage";
 import ProfilePage from "./pages/ProfilePage";
 import PostPage from "./pages/PostPage";
 import SettingsPage from "./pages/SettingsPage";
+import ChirpsPage from "./pages/ChirpsPage";
 
 const clerkPubKey = publishableKeyFromHost(
   window.location.hostname,
@@ -223,6 +224,7 @@ function Router() {
       <ProtectedRoute path="/explore" component={ExplorePage} />
       <ProtectedRoute path="/explore/hashtags/:tag" component={ExplorePage} />
       <ProtectedRoute path="/reels" component={ReelsPage} />
+      <ProtectedRoute path="/chirps" component={ChirpsPage} />
       <ProtectedRoute path="/messages" component={MessagesPage} />
       <ProtectedRoute path="/notifications" component={NotificationsPage} />
       <ProtectedRoute path="/upload" component={UploadPage} />
