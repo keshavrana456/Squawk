@@ -182,27 +182,41 @@ export default function ProfilePage() {
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-4xl mx-auto w-full min-h-[100dvh] bg-background pb-20">
       {/* Cover / Banner */}
-      <div
-        className="h-48 md:h-64 w-full relative border-b border-border overflow-hidden bg-gradient-to-br from-primary/20 via-pink-400/15 to-[#c084fc]/20"
-        style={isMe ? { cursor: "pointer" } : {}}
-        onClick={isMe ? () => bannerInputRef.current?.click() : undefined}
-      >
+      {isMe && (
+        <input
+          ref={bannerInputRef}
+          id="profile-banner-upload"
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={handleBannerUpload}
+        />
+      )}
+      <div className="h-48 md:h-64 w-full relative border-b border-border overflow-hidden bg-gradient-to-br from-primary/20 via-pink-400/15 to-[#c084fc]/20">
         {profile.coverUrl && <img src={profile.coverUrl} alt="Banner" className="absolute inset-0 w-full h-full object-cover" />}
         {isMe && (
           <>
-            <div className="absolute inset-0 bg-black/0 hover:bg-black/30 transition-colors flex items-center justify-center opacity-0 hover:opacity-100">
+            <label
+              htmlFor="profile-banner-upload"
+              className="absolute inset-0 flex items-center justify-center cursor-pointer bg-black/0 hover:bg-black/30 transition-colors opacity-0 hover:opacity-100"
+            >
               <div className="flex flex-col items-center gap-2 text-white">
                 {bannerUploading
                   ? <div className="w-7 h-7 border-2 border-white/40 border-t-white rounded-full animate-spin" />
                   : <><ImagePlus className="w-7 h-7" /><span className="text-sm font-semibold">Change Banner</span></>
                 }
               </div>
-            </div>
-            <div className="absolute bottom-3 right-3 btn-water text-white text-xs font-semibold px-3 py-1.5 rounded-full flex items-center gap-1.5" onClick={e => { e.stopPropagation(); bannerInputRef.current?.click(); }}>
-              <ImagePlus className="w-3.5 h-3.5" />
-              Edit banner
-            </div>
-            <input ref={bannerInputRef} type="file" accept="image/*" className="hidden" onChange={handleBannerUpload} />
+            </label>
+            <label
+              htmlFor="profile-banner-upload"
+              className="absolute bottom-3 right-3 btn-water cursor-pointer text-white text-xs font-semibold px-3 py-1.5 rounded-full flex items-center gap-1.5"
+            >
+              {bannerUploading
+                ? <div className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                : <ImagePlus className="w-3.5 h-3.5" />
+              }
+              {bannerUploading ? "Uploading..." : "Edit banner"}
+            </label>
           </>
         )}
       </div>
