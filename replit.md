@@ -1,12 +1,12 @@
-# [Project name]
+# Squawk
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+Squawk is a social media platform for the 10K Squad and Monad community — a Twitter/Instagram-style app with posts, reels, chirps, messages, explore, notifications, and user profiles.
 
 ## Run & Operate
 
-- `pnpm --filter @workspace/api-server run dev` — run the API server (port 5000)
+- `artifacts/squawk: web` workflow — frontend Vite dev server (port 19926)
+- `artifacts/api-server: API Server` workflow — Express API server (port 8080)
 - `pnpm run typecheck` — full typecheck across all packages
-- `pnpm run build` — typecheck + build all packages
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
 - Required env: `DATABASE_URL` — Postgres connection string
@@ -14,31 +14,40 @@ _Replace the heading above with the project's name, and this line with one sente
 ## Stack
 
 - pnpm workspaces, Node.js 24, TypeScript 5.9
-- API: Express 5
-- DB: PostgreSQL + Drizzle ORM
-- Validation: Zod (`zod/v4`), `drizzle-zod`
-- API codegen: Orval (from OpenAPI spec)
-- Build: esbuild (CJS bundle)
+- Frontend: React + Vite + Tailwind v4 + wouter + shadcn/ui (`artifacts/squawk/`)
+- API: Express 5 (`artifacts/api-server/`)
+- Auth: Clerk (Replit-managed, keys auto-provisioned)
+- DB: PostgreSQL + Drizzle ORM (`lib/db/`)
+- Validation: Zod, `drizzle-zod`
+- API codegen: Orval (from OpenAPI spec in `lib/api-spec/openapi.yaml`)
+- Build: esbuild (ESM bundle)
 
 ## Where things live
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+- `artifacts/squawk/src/App.tsx` — root router + Clerk provider
+- `artifacts/squawk/src/pages/` — all page components (Home, Explore, Reels, Chirps, Messages, Notifications, Profile, Settings, etc.)
+- `artifacts/squawk/src/components/` — shared UI components
+- `artifacts/api-server/src/routes/` — Express route handlers
+- `lib/api-spec/openapi.yaml` — OpenAPI spec (source of truth for all API contracts)
+- `lib/api-client-react/src/generated/` — auto-generated React Query hooks (do not edit)
+- `lib/db/src/` — Drizzle schema and migrations
 
 ## Architecture decisions
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+- Replit-managed Clerk auth with proxy middleware — `CLERK_PUBLISHABLE_KEY` and `CLERK_SECRET_KEY` are auto-provisioned
+- API routes served at `/api`, frontend at `/` via the shared reverse proxy
+- `publishableKeyFromHost()` used for multi-domain Clerk key resolution in both frontend and backend
+- Vercel serverless handler build step removed from `build.mjs` — Replit uses the ESM bundle only
 
 ## Product
 
-_Describe the high-level user-facing capabilities of this app once they exist._
-
-## User preferences
-
-_Populate as you build — explicit user instructions worth remembering across sessions._
+Social platform for the Monad/10K Squad community with: feed, explore, reels, chirps (short posts), DMs, notifications, user profiles with follow/unfollow, post upload with NFT minting, settings, and an animated splash screen.
 
 ## Gotchas
 
-_Populate as you build — sharp edges, "always run X before Y" rules._
+- Run `pnpm --filter @workspace/api-spec run codegen` after changing `lib/api-spec/openapi.yaml`
+- The `build.mjs` Vercel handler step was removed — do not re-add it
+- Clerk "development keys" warning in console is expected and normal during development
 
 ## Pointers
 
