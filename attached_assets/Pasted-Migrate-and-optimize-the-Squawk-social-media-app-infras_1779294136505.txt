@@ -1,0 +1,203 @@
+Migrate and optimize the Squawk social media app infrastructure using modern scalable services instead of temporary/local Replit storage.
+
+IMPORTANT:
+Do NOT store uploaded images, videos, stories, reels, or user data locally inside Replit filesystem because files disappear after restart/redeploy.
+
+Use the following production-ready stack:
+
+TECH STACK:
+
+* Frontend Hosting → Vercel
+* Database → Supabase PostgreSQL
+* Media Storage → Cloudinary
+* Realtime Features → Socket.io
+* Frontend → React + Vite
+* Backend → Node.js + Express
+
+DATABASE:
+Use Supabase PostgreSQL database for storing:
+
+* users
+* profiles
+* posts
+* chirps
+* reels
+* stories metadata
+* comments
+* likes
+* followers/following
+* messages
+* notifications
+* bookmarks
+* hashtags
+* mentions
+
+Create optimized database schema and relationships.
+
+AUTH INTEGRATION:
+The app is already using Clerk authentication.
+Requirements:
+
+* connect Clerk user IDs with Supabase database users
+* automatically create user profile after signup/login
+* sync profile updates properly
+* protect authenticated routes
+* use Clerk session/user data throughout app
+
+MEDIA STORAGE:
+Use Cloudinary for:
+
+* images
+* videos
+* reels
+* stories
+* profile photos
+* post uploads
+
+Requirements:
+
+* upload files directly to Cloudinary
+* store permanent Cloudinary URLs inside Supabase database
+* never store uploads locally
+* add image/video compression
+* add upload progress bar
+* support JPG, PNG, WEBP, MP4
+
+UPLOAD FLOW:
+User uploads media
+→ Backend uploads to Cloudinary
+→ Cloudinary returns permanent URL
+→ Save URL in Supabase
+→ Feed loads media using saved Cloudinary URL
+
+CHIRPS FEATURE:
+Add X/Twitter-style “Chirps” system:
+
+* text posts
+* hashtags
+* mentions
+* images/videos
+* replies
+* rechirp
+* quote chirp
+* bookmarks
+* trending chirps
+* threaded discussions
+* chirp likes/comments/share
+
+COMMENTS:
+Upgrade comments with:
+
+* nested replies
+* like comment
+* reply to comment
+* emoji reactions
+* mentions
+* edit/delete own comments
+* realtime updates
+
+STORIES:
+Add story system with:
+
+* upload from camera
+* mention users
+* remention stories
+* “Add to Your Story”
+* story viewers
+* story replies
+
+DIRECT CAMERA:
+Add mobile-first camera upload system:
+
+* open camera directly
+* capture image/video
+* upload as:
+
+  * post
+  * chirp
+  * reel
+  * story
+* add:
+
+  * front/back switch
+  * flash toggle
+  * retake option
+  * filters
+  * basic editing tools
+
+DM SHARE:
+Add ability to share:
+
+* posts
+* reels
+* stories
+* chirps
+  directly to DMs.
+
+Share modal should include:
+
+* recent chats
+* followers list
+* search users
+* copy link
+* external share support
+
+REALTIME FEATURES:
+Use Socket.io for:
+
+* live messages
+* typing indicators
+* realtime notifications
+* realtime comments
+* realtime likes
+* story updates
+* online status
+
+PERFORMANCE:
+Optimize app performance:
+
+* lazy loading
+* infinite scroll
+* skeleton loaders
+* optimistic UI
+* caching
+* media optimization
+* prevent unnecessary rerenders
+
+VERCEL DEPLOYMENT:
+Prepare app for Vercel deployment:
+
+* proper Vite build configuration
+* add vercel.json for React Router support
+* configure environment variables
+* production-ready setup
+
+Add this vercel.json:
+{
+"rewrites": [
+{
+"source": "/(.*)",
+"destination": "/index.html"
+}
+]
+}
+
+ENVIRONMENT VARIABLES:
+Support:
+
+* VITE_CLERK_PUBLISHABLE_KEY
+* SUPABASE_URL
+* SUPABASE_ANON_KEY
+* CLOUDINARY_CLOUD_NAME
+* CLOUDINARY_API_KEY
+* CLOUDINARY_API_SECRET
+
+GOAL:
+Transform Squawk into a scalable modern social media platform with:
+
+* Instagram-style stories/reels
+* X/Twitter-style Chirps
+* realtime messaging
+* modern social interactions
+* reliable cloud media storage
+* production-ready deployment infrastructure.
