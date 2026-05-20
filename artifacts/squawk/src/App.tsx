@@ -143,16 +143,40 @@ function ClerkQueryClientCacheInvalidator() {
 
 function AuthGuard({ children }: { children: React.ReactNode }) {
   const { isLoaded, isSignedIn } = useUser();
-  const { data: me, isLoading, error } = useGetMe({ query: { enabled: isSignedIn, retry: false } });
-  
+  const { data: me, isLoading, error, refetch } = useGetMe({ query: { enabled: !!isSignedIn, retry: false } });
+
+  // Still initialising Clerk or waiting for the first /api/users/me response
   if (!isLoaded || (isSignedIn && isLoading)) {
-    return <div className="min-h-screen bg-background flex items-center justify-center">
-      <div className="w-12 h-12 rounded-full border-4 border-primary/30 border-t-primary animate-spin" />
-    </div>;
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="w-12 h-12 rounded-full border-4 border-primary/30 border-t-primary animate-spin" />
+      </div>
+    );
   }
 
+  // No profile yet → onboarding
   if (isSignedIn && error && (error as any)?.status === 404) {
     return <OnboardingPage />;
+  }
+
+  // Server/DB error (503 / 500) → show a retry screen instead of a blank page
+  if (isSignedIn && error && (error as any)?.status !== 404) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4 p-4 text-center dark">
+        <div className="text-4xl">🦜</div>
+        <h2 className="text-xl font-bold text-foreground">Connection hiccup</h2>
+        <p className="text-muted-foreground text-sm max-w-xs">
+          Couldn't reach the server. Check your connection and try again.
+        </p>
+        <button
+          onClick={() => refetch()}
+          className="mt-2 px-6 py-2.5 rounded-full font-semibold text-white text-sm"
+          style={{ background: "linear-gradient(135deg, #ec4899, #9333ea)" }}
+        >
+          Retry
+        </button>
+      </div>
+    );
   }
 
   return <>{children}</>;

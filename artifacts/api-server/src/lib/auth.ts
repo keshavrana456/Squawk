@@ -15,8 +15,13 @@ export function requireAuth(req: Request, res: Response, next: NextFunction): vo
 }
 
 export async function resolveUser(clerkId: string) {
-  const [user] = await db.select().from(usersTable).where(eq(usersTable.clerkId, clerkId));
-  return user ?? null;
+  try {
+    const [user] = await db.select().from(usersTable).where(eq(usersTable.clerkId, clerkId));
+    return user ?? null;
+  } catch (err) {
+    console.error("resolveUser DB error:", err);
+    throw err;
+  }
 }
 
 export async function requireUser(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -26,11 +31,16 @@ export async function requireUser(req: Request, res: Response, next: NextFunctio
     res.status(401).json({ error: "Unauthorized" });
     return;
   }
-  const user = await resolveUser(clerkId);
-  if (!user) {
-    res.status(404).json({ error: "User not found — complete onboarding first" });
-    return;
+  try {
+    const user = await resolveUser(clerkId);
+    if (!user) {
+      res.status(404).json({ error: "User not found — complete onboarding first" });
+      return;
+    }
+    (req as any).currentUser = user;
+    next();
+  } catch (err) {
+    console.error("requireUser error:", err);
+    res.status(503).json({ error: "Service temporarily unavailable — please retry" });
   }
-  (req as any).currentUser = user;
-  next();
 }

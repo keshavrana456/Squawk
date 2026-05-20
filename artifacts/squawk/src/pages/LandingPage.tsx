@@ -137,21 +137,21 @@ export default function LandingPage() {
   return (
     <div className="min-h-[100dvh] bg-background text-foreground overflow-x-hidden flex flex-col relative dark">
 
-      {/* ── Nav ─────────────────────────────────────────────────────── */}
-      <nav className="w-full flex items-center justify-between p-6 md:px-12 relative z-20 bg-transparent">
-        <img src={`${BASE}/logo.png`} alt="Squawk" className="h-10 w-auto" />
-        <div className="flex gap-4 items-center">
-          <Link href="/sign-in" className="px-6 py-2 rounded-full font-medium text-white/70 hover:text-white hover:bg-white/5 transition-colors">
-            Log In
-          </Link>
-          <Link href="/sign-up" className="px-6 py-2 rounded-full font-bold text-white transition-all hover:scale-105 hover:shadow-[0_0_24px_4px_rgba(219,39,119,0.35)]" style={{ background: "linear-gradient(135deg, #ec4899, #9333ea)" }}>
-            Join Now
-          </Link>
-        </div>
-      </nav>
+      {/* ── Hero (nav lives inside so it overlays the banner image) ─── */}
+      <section className="relative flex flex-col items-center justify-center text-center px-4 pb-20 z-10 min-h-screen overflow-hidden">
 
-      {/* ── Hero ─────────────────────────────────────────────────────── */}
-      <section className="relative flex flex-col items-center justify-center text-center px-4 pt-8 pb-20 z-10 min-h-[88vh] overflow-hidden">
+        {/* Transparent nav — floats over the NFT banner */}
+        <nav className="absolute top-0 left-0 right-0 flex items-center justify-between p-6 md:px-12 z-20">
+          <img src={`${BASE}/logo.png`} alt="Squawk" className="h-10 w-auto" />
+          <div className="flex gap-4 items-center">
+            <Link href="/sign-in" className="px-6 py-2 rounded-full font-medium text-white/70 hover:text-white hover:bg-white/5 transition-colors">
+              Log In
+            </Link>
+            <Link href="/sign-up" className="px-6 py-2 rounded-full font-bold text-white transition-all hover:scale-105 hover:shadow-[0_0_24px_4px_rgba(219,39,119,0.35)]" style={{ background: "linear-gradient(135deg, #ec4899, #9333ea)" }}>
+              Join Now
+            </Link>
+          </div>
+        </nav>
 
         <div className="absolute inset-0 z-0">
           <img
