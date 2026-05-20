@@ -71,7 +71,7 @@ export default function PostPage() {
   const handleComment = () => {
     if (!commentText.trim()) return;
     createCommentMutation.mutate({
-      postId,
+      id: postId,
       data: { content: commentText.trim() },
     }, {
       onSuccess: () => {
