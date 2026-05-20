@@ -3,7 +3,8 @@ import { eq, and, desc, gt, sql, inArray } from "drizzle-orm";
 import { db, usersTable, storiesTable, storyViewsTable, followsTable } from "@workspace/db";
 import { requireUser } from "../lib/auth";
 import { buildUserSummary } from "../lib/userHelpers";
-import { CreateStoryBody, ViewStoryParams } from "@workspace/api-zod";
+import { ViewStoryParams } from "@workspace/api-zod";
+import { z } from "zod/v4";
 
 const router: IRouter = Router();
 
@@ -73,10 +74,17 @@ router.get("/stories", requireUser, async (req, res): Promise<void> => {
   res.json(result);
 });
 
+const CreateStoryBodyExtended = z.object({
+  mediaUrl: z.string(),
+  mediaType: z.enum(["image", "video"]),
+  caption: z.string().optional().nullable(),
+  objectFit: z.enum(["cover", "contain"]).optional().default("cover"),
+});
+
 // POST /stories
 router.post("/stories", requireUser, async (req, res): Promise<void> => {
   const currentUser = (req as any).currentUser as typeof usersTable.$inferSelect;
-  const parsed = CreateStoryBody.safeParse(req.body);
+  const parsed = CreateStoryBodyExtended.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
     return;
@@ -87,6 +95,8 @@ router.post("/stories", requireUser, async (req, res): Promise<void> => {
     authorId: currentUser.id,
     mediaUrl: parsed.data.mediaUrl,
     mediaType: parsed.data.mediaType,
+    caption: parsed.data.caption ?? null,
+    objectFit: parsed.data.objectFit ?? "cover",
     expiresAt,
   }).returning();
 
@@ -96,6 +106,8 @@ router.post("/stories", requireUser, async (req, res): Promise<void> => {
     author: buildUserSummary(currentUser),
     mediaUrl: story.mediaUrl,
     mediaType: story.mediaType,
+    caption: story.caption,
+    objectFit: story.objectFit,
     viewsCount: story.viewsCount,
     createdAt: story.createdAt.toISOString(),
     expiresAt: story.expiresAt.toISOString(),
