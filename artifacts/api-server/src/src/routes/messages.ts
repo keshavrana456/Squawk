@@ -168,6 +168,15 @@ router.get("/conversations/:id/messages", requireUser, async (req, res): Promise
   const params = GetMessagesParams.safeParse(req.params);
   if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
 
+  // Verify caller is a participant of this conversation
+  const [membership] = await db.select()
+    .from(conversationParticipantsTable)
+    .where(and(
+      eq(conversationParticipantsTable.conversationId, params.data.id),
+      eq(conversationParticipantsTable.userId, currentUser.id)
+    ));
+  if (!membership) { res.status(403).json({ error: "Forbidden" }); return; }
+
   const rows = await db.select({ msg: messagesTable, sender: usersTable })
     .from(messagesTable)
     .innerJoin(usersTable, eq(messagesTable.senderId, usersTable.id))
@@ -191,6 +200,15 @@ router.post("/conversations/:id/messages", requireUser, async (req, res): Promis
   const currentUser = (req as any).currentUser as typeof usersTable.$inferSelect;
   const params = SendMessageParams.safeParse(req.params);
   if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
+
+  // Verify caller is a participant of this conversation
+  const [membership] = await db.select()
+    .from(conversationParticipantsTable)
+    .where(and(
+      eq(conversationParticipantsTable.conversationId, params.data.id),
+      eq(conversationParticipantsTable.userId, currentUser.id)
+    ));
+  if (!membership) { res.status(403).json({ error: "Forbidden" }); return; }
 
   const body = SendMessageBody.safeParse(req.body);
   if (!body.success) { res.status(400).json({ error: body.error.message }); return; }
