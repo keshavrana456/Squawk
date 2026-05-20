@@ -17,9 +17,19 @@ export default function UploadFlow({ onSuccess }: { onSuccess?: () => void }) {
 
   const createPostMutation = useCreatePost();
 
+  const ALLOWED_VIDEO_TYPES = ["video/mp4", "video/webm", "video/quicktime", "video/avi", "video/x-msvideo", "video/x-matroska", "video/3gpp", "video/x-flv"];
+
+  const isAllowedFile = (f: File) =>
+    f.type.startsWith("image/") || ALLOWED_VIDEO_TYPES.includes(f.type);
+
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const selectedFile = e.target.files[0];
+      if (!isAllowedFile(selectedFile)) {
+        setError("Audio files are not allowed. Please upload an image or video (MP4, WebM, MOV).");
+        e.target.value = "";
+        return;
+      }
       setFile(selectedFile);
       setPreviewUrl(URL.createObjectURL(selectedFile));
       setError(null);
@@ -29,11 +39,14 @@ export default function UploadFlow({ onSuccess }: { onSuccess?: () => void }) {
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     const dropped = e.dataTransfer.files[0];
-    if (dropped && (dropped.type.startsWith("image/") || dropped.type.startsWith("video/"))) {
-      setFile(dropped);
-      setPreviewUrl(URL.createObjectURL(dropped));
-      setError(null);
+    if (!dropped) return;
+    if (!isAllowedFile(dropped)) {
+      setError("Audio files are not allowed. Please upload an image or video (MP4, WebM, MOV).");
+      return;
     }
+    setFile(dropped);
+    setPreviewUrl(URL.createObjectURL(dropped));
+    setError(null);
   };
 
   const handleTagInput = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -126,7 +139,7 @@ export default function UploadFlow({ onSuccess }: { onSuccess?: () => void }) {
             type="file"
             ref={fileInputRef}
             onChange={handleFileSelect}
-            accept="image/*,video/*"
+            accept="image/*,video/mp4,video/webm,video/quicktime,video/avi,video/x-msvideo,video/x-matroska"
             className="hidden"
           />
         </div>

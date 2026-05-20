@@ -31,10 +31,15 @@ const upload = multer({
   storage,
   limits: { fileSize: 100 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
-    if (file.mimetype.startsWith("image/") || file.mimetype.startsWith("video/")) {
+    const ALLOWED_VIDEO_TYPES = [
+      "video/mp4", "video/webm", "video/quicktime",
+      "video/avi", "video/x-msvideo", "video/x-matroska",
+      "video/3gpp", "video/x-flv",
+    ];
+    if (file.mimetype.startsWith("image/") || ALLOWED_VIDEO_TYPES.includes(file.mimetype)) {
       cb(null, true);
     } else {
-      cb(new Error("Only image and video files are allowed"));
+      cb(new Error("Only image and video files are allowed. Audio files are not permitted."));
     }
   },
 });

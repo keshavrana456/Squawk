@@ -150,8 +150,8 @@ export default function PostCard({ post, onLike, onSave, onComment }: PostCardPr
 
       {/* Media */}
       <div 
-        className="relative w-full bg-muted overflow-hidden cursor-pointer"
-        style={{ aspectRatio: post.mediaType === 'video' ? '9/16' : '4/5', maxHeight: post.mediaType === 'video' ? '75vh' : undefined }}
+        className="relative w-full bg-black overflow-hidden cursor-pointer"
+        style={{ aspectRatio: post.mediaType === 'video' ? '9/16' : '4/5', maxHeight: post.mediaType === 'video' ? '80vh' : undefined }}
         onDoubleClick={handleDoubleTap}
         data-testid="post-media"
       >
@@ -160,7 +160,7 @@ export default function PostCard({ post, onLike, onSave, onComment }: PostCardPr
             <video 
               ref={videoRef}
               src={post.mediaUrl}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-contain"
               autoPlay 
               muted={isMuted}
               loop 

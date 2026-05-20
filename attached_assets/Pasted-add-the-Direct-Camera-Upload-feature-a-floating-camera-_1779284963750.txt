@@ -1,0 +1,939 @@
+add the Direct Camera Upload feature — a floating camera button that lets you capture and post directly from your device camera as a post, chirp, story, or reel. Would you like me to do that?
+
+commenting is not hppening cant able to comment on chirp and posts , and make sure to show every mp 4 in flow function and frame is still same like old in which things are cutting in pc fix this to show all things in pc
+
+
+
+
+dont make any audio files to upload by user
+
+Migrate and optimize the Squawk social media app infrastructure using modern scalable services instead of temporary/local Replit storage.
+
+IMPORTANT:
+Do NOT store uploaded images, videos, stories, reels, or user data locally inside Replit filesystem because files disappear after restart/redeploy.
+
+Use the following production-ready stack:
+
+TECH STACK:
+
+* Frontend Hosting → Vercel
+* Database → Supabase PostgreSQL
+* Media Storage → Cloudinary
+* Realtime Features → Socket.io
+* Frontend → React + Vite
+* Backend → Node.js + Express
+
+DATABASE:
+Use Supabase PostgreSQL database for storing:
+
+* users
+* profiles
+* posts
+* chirps
+* reels
+* stories metadata
+* comments
+* likes
+* followers/following
+* messages
+* notifications
+* bookmarks
+* hashtags
+* mentions
+
+Create optimized database schema and relationships.
+
+AUTH INTEGRATION:
+The app is already using Clerk authentication.
+Requirements:
+
+* connect Clerk user IDs with Supabase database users
+* automatically create user profile after signup/login
+* sync profile updates properly
+* protect authenticated routes
+* use Clerk session/user data throughout app
+
+MEDIA STORAGE:
+Use Cloudinary for:
+
+* images
+* videos
+* reels
+* stories
+* profile photos
+* post uploads
+
+Requirements:
+
+* upload files directly to Cloudinary
+* store permanent Cloudinary URLs inside Supabase database
+* never store uploads locally
+* add image/video compression
+* add upload progress bar
+* support JPG, PNG, WEBP, MP4
+
+UPLOAD FLOW:
+User uploads media
+→ Backend uploads to Cloudinary
+→ Cloudinary returns permanent URL
+→ Save URL in Supabase
+→ Feed loads media using saved Cloudinary URL
+
+CHIRPS FEATURE:
+Add X/Twitter-style “Chirps” system:
+
+* text posts
+* hashtags
+* mentions
+* images/videos
+* replies
+* rechirp
+* quote chirp
+* bookmarks
+* trending chirps
+* threaded discussions
+* chirp likes/comments/share
+
+COMMENTS:
+Upgrade comments with:
+
+* nested replies
+* like comment
+* reply to comment
+* emoji reactions
+* mentions
+* edit/delete own comments
+* realtime updates
+
+STORIES:
+Add story system with:
+
+* upload from camera
+* mention users
+* remention stories
+* “Add to Your Story”
+* story viewers
+* story replies
+
+DIRECT CAMERA:
+Add mobile-first camera upload system:
+
+* open camera directly
+* capture image/video
+* upload as:
+
+  * post
+  * chirp
+  * reel
+  * story
+* add:
+
+  * front/back switch
+  * flash toggle
+  * retake option
+  * filters
+  * basic editing tools
+
+DM SHARE:
+Add ability to share:
+
+* posts
+* reels
+* stories
+* chirps
+  directly to DMs.
+
+Share modal should include:
+
+* recent chats
+* followers list
+* search users
+* copy link
+* external share support
+
+REALTIME FEATURES:
+Use Socket.io for:
+
+* live messages
+* typing indicators
+* realtime notifications
+* realtime comments
+* realtime likes
+* story updates
+* online status
+
+PERFORMANCE:
+Optimize app performance:
+
+* lazy loading
+* infinite scroll
+* skeleton loaders
+* optimistic UI
+* caching
+* media optimization
+* prevent unnecessary rerenders
+
+VERCEL DEPLOYMENT:
+Prepare app for Vercel deployment:
+
+* proper Vite build configuration
+* add vercel.json for React Router support
+* configure environment variables
+* production-ready setup
+
+Add this vercel.json:
+{
+"rewrites": [
+{
+"source": "/(.*)",
+"destination": "/index.html"
+}
+]
+}
+
+ENVIRONMENT VARIABLES:
+Support:
+
+* VITE_CLERK_PUBLISHABLE_KEY
+* SUPABASE_URL
+* SUPABASE_ANON_KEY
+* CLOUDINARY_CLOUD_NAME
+* CLOUDINARY_API_KEY
+* CLOUDINARY_API_SECRET
+
+GOAL:
+Transform Squawk into a scalable modern social media platform with:
+
+* Instagram-style stories/reels
+* X/Twitter-style Chirps
+* realtime messaging
+* modern social interactions
+* reliable cloud media storage
+* production-ready deployment infrastructure.
+
+
+Create a modern Instagram-style Story Upload system for the Squawk app with smooth UI, realtime updates, and premium mobile experience.
+
+STORY UPLOAD UI:
+
+* Add a horizontal stories section at the top of the home feed similar to Instagram.
+* First story card should be:
+
+  * user profile picture
+  * “Your Story”
+  * plus (+) icon
+* Clicking it should instantly open story upload options.
+
+UPLOAD OPTIONS:
+When user clicks “Your Story”:
+
+* open bottom sheet/modal with:
+
+  * Camera
+  * Gallery
+  * Text Story
+* Mobile-first fullscreen experience.
+
+DIRECT CAMERA FEATURE:
+
+* Open device camera directly inside app.
+* Support:
+
+  * photo capture
+  * video recording
+  * front/back camera switch
+  * flash toggle
+  * hold to record video
+  * tap to capture photo
+* Add smooth camera animations similar to Instagram.
+
+GALLERY UPLOAD:
+
+* Allow selecting:
+
+  * images
+  * videos
+* Support multiple aspect ratios.
+* Auto optimize and compress media before upload.
+
+STORY EDITOR:
+After selecting/capturing media, open fullscreen story editor.
+
+Add:
+
+* drag & resize text
+* emojis
+* GIFs
+* stickers
+* drawing tool
+* music support placeholder
+* mention users (@username)
+* hashtags
+* location tags
+* story filters
+* brightness/contrast controls
+* crop/zoom support
+
+MENTION FEATURE:
+
+* Users can mention other users in stories.
+* Mentioned users should:
+
+  * receive notification
+  * see “Add to Your Story”
+  * re-share story to their own story
+* Keep original creator attribution visible.
+
+UPLOAD EXPERIENCE:
+
+* Add upload progress bar.
+* Add smooth loading animation.
+* Show “Story Uploaded Successfully” toast.
+* Instantly update story feed after upload without refresh.
+
+STORY VIEWER:
+Create Instagram-like fullscreen story viewer:
+
+* tap left/right to navigate
+* hold to pause
+* progress bars at top
+* swipe down to close
+* smooth transitions
+* autoplay stories
+
+Add:
+
+* story replies
+* emoji quick reactions
+* story viewers list for owner
+* seen status
+* mute stories option
+
+BACKEND:
+
+* Upload media to Cloudinary
+* Store story metadata in Supabase
+* Save:
+
+  * userId
+  * mediaUrl
+  * caption
+  * mentions
+  * viewers
+  * createdAt
+  * expiresAt
+* Stories should auto expire after 24 hours.
+
+PERFORMANCE:
+
+* preload next story
+* lazy load media
+* compress uploads
+* prevent UI lag
+* optimize mobile responsiveness
+
+UI STYLE:
+
+* Instagram-inspired polished design
+* smooth modern animations
+* dark mode support
+* rounded modern UI
+* premium mobile experience
+* maintain Squawk branding and theme
+
+GOAL:
+Make Squawk stories feel as smooth, modern, and interactive as Instagram stories while keeping the app’s unique identity.
+
+
+Optimize the entire Squawk app UI to be fully responsive and adaptive across all devices including mobile phones, tablets, laptops, and desktop PCs.
+
+MAIN GOAL:
+Make every page, frame, modal, button, navbar, feed, popup, story viewer, reels section, profile page, comments section, messages, and upload screens automatically adjust according to screen size so that:
+
+* no buttons get cut off
+* no text overlaps
+* no options hide outside screen
+* no horizontal scrolling appears
+* all UI remains clean and usable on every device
+
+RESPONSIVE DESIGN REQUIREMENTS:
+
+GENERAL:
+
+* Use fully responsive layouts.
+* Use Flexbox and CSS Grid properly.
+* Avoid fixed widths/heights where unnecessary.
+* Use relative sizing:
+
+  * %
+  * rem
+  * vw/vh
+  * max-width
+  * min-width
+* Add proper spacing and padding for all screen sizes.
+
+BREAKPOINTS:
+Optimize UI for:
+
+* Mobile phones (320px–480px)
+* Large phones (481px–768px)
+* Tablets (769px–1024px)
+* Laptops (1025px–1440px)
+* Large desktops (1441px+)
+
+NAVBAR:
+
+* Mobile:
+
+  * compact bottom navbar
+  * icons properly centered
+  * prevent icons from overflowing
+* Desktop:
+
+  * sidebar or top navbar
+  * maintain spacing consistency
+
+FEED & POSTS:
+
+* Feed cards should resize automatically.
+* Images/videos should:
+
+  * fit screen correctly
+  * maintain aspect ratio
+  * never overflow containers
+* Captions and buttons should wrap properly.
+* Prevent media cropping issues on smaller screens.
+
+STORIES:
+
+* Stories row should become horizontally scrollable on mobile.
+* Story circles should resize according to screen width.
+* Story viewer should fully fit mobile and desktop screens.
+* Ensure controls remain visible.
+
+COMMENTS SECTION:
+
+* Replies and nested comments should not break layout.
+* Long usernames/text should wrap properly.
+* Like/reply buttons should stay aligned on small screens.
+
+MESSAGES & DMS:
+
+* Mobile:
+
+  * full-screen chat layout
+  * collapsible sidebar
+* Desktop:
+
+  * split-screen layout
+* Prevent message input from hiding behind keyboard on mobile.
+
+MODALS & POPUPS:
+
+* All modals should:
+
+  * auto-fit screen
+  * become scrollable if content is large
+  * never exceed viewport height
+* Add responsive padding/margins.
+
+UPLOAD SCREENS:
+
+* Camera/upload editor should fully adapt to:
+
+  * portrait mobile screens
+  * landscape screens
+  * desktop browsers
+* Ensure all editing tools/buttons remain visible.
+
+BUTTONS & ICONS:
+
+* Prevent buttons from:
+
+  * overlapping
+  * cutting outside frames
+  * becoming too small
+* Add responsive sizing for icons and text.
+* Ensure touch-friendly spacing on mobile.
+
+TEXT & TYPOGRAPHY:
+
+* Use responsive typography scaling.
+* Prevent text clipping.
+* Maintain readability on all screen sizes.
+
+PERFORMANCE:
+
+* Optimize rendering for mobile devices.
+* Prevent layout shifts.
+* Add smooth responsive transitions.
+* Avoid unnecessary rerenders.
+
+TAILWIND/CSS REQUIREMENTS:
+
+* Use responsive Tailwind breakpoints:
+
+  * sm
+  * md
+  * lg
+  * xl
+  * 2xl
+* Use:
+
+  * flex-wrap
+  * overflow-hidden carefully
+  * responsive containers
+  * max-width constraints
+  * min-h-screen where needed
+
+TESTING REQUIREMENTS:
+Ensure app works properly on:
+
+* iPhone screens
+* Android screens
+* tablets
+* laptop browsers
+* ultrawide monitors
+
+Fix all UI bugs where:
+
+* buttons disappear
+* elements overflow
+* options hide outside frames
+* layouts break on smaller screens
+
+GOAL:
+Make Squawk feel like a polished production-ready social media app with smooth responsive UI similar to Instagram, X, Threads, and modern premium social platforms across every device.
+   
+Redesign the Squawk comment section to work exactly like Instagram’s modern slide-up comments UI with smooth animations, realtime interactions, and responsive mobile experience.
+
+MAIN GOAL:
+Instead of opening comments inside the post card or another page, make comments open in a separate slide-up bottom sheet/modal just like Instagram.
+
+COMMENT MODAL BEHAVIOR:
+
+* Clicking the comment icon should:
+
+  * open a fullscreen/half-screen bottom sheet
+  * smoothly slide up from the bottom
+  * darken/blur background behind it
+* User should still partially see the post behind the comments modal.
+* Add smooth closing animation when swiping down or tapping outside.
+
+MOBILE EXPERIENCE:
+
+* On mobile:
+
+  * comments modal should feel native and smooth
+  * support drag-down gesture to close
+  * support touch scrolling
+  * keyboard should not cover input field
+* On desktop:
+
+  * modal should appear centered or bottom aligned elegantly
+
+LAYOUT:
+Top Section:
+
+* drag handle/bar like Instagram
+* comments count
+* close button
+
+Middle Section:
+
+* scrollable comments list
+* nested replies
+* profile picture
+* username
+* comment text
+* timestamps
+
+Bottom Section:
+
+* fixed comment input bar
+* emoji button
+* send button
+* mention support
+
+COMMENT FEATURES:
+Add:
+
+* like comment
+* reply to comment
+* nested replies
+* show/hide replies
+* emoji reactions
+* mention users
+* edit/delete own comment
+* pin comments
+* realtime comment updates
+
+UI DETAILS:
+
+* smooth rounded corners
+* glassmorphism or premium modern design
+* soft shadows
+* dark mode support
+* responsive spacing
+* Instagram-inspired clean layout
+
+ANIMATIONS:
+
+* smooth slide-up animation
+* smooth swipe-down close animation
+* animated reply opening
+* smooth keyboard transitions
+* loading skeletons for comments
+
+PERFORMANCE:
+
+* lazy load comments
+* virtual scrolling if needed
+* prevent lag with many comments
+* realtime updates without refreshing
+
+TECH IMPLEMENTATION:
+
+* Use bottom sheet/modal component
+* Lock background scroll while modal is open
+* Preserve feed scroll position after closing comments
+* Add responsive behavior for all devices
+
+EXTRA FEATURES:
+
+* Double tap comment to like
+* Long press for comment actions
+* Copy comment option
+* Share comment option
+* Translate comment placeholder
+
+GOAL:
+Make the Squawk comment experience feel premium, smooth, and modern exactly like Instagram comments while matching Squawk branding and realtime social interaction style.
+  
+Upgrade the Squawk video/reels/flow system to behave like Instagram Reels with realtime syncing, proper video handling, responsive interactions, and improved UI consistency.
+
+MAIN GOAL:
+Make videos upload, display, and interact smoothly across feed and Flow/Reels section just like Instagram.
+
+VIDEO UPLOAD & VISIBILITY:
+
+* Ensure every uploaded video becomes visible instantly after upload.
+* Support all major video formats:
+
+  * MP4
+  * MOV
+  * WEBM
+  * AVI
+  * MKV
+* Automatically process and optimize videos after upload.
+* Generate thumbnails automatically.
+* Videos should appear:
+
+  * in feed
+  * in profile
+  * in Flow/Reels section
+    immediately after successful upload without requiring refresh.
+
+VIDEO PLAYBACK:
+
+* Videos in feed should autoplay when visible.
+* Muted autoplay in feed.
+* Pause when scrolled away.
+* Maintain aspect ratio properly.
+* Prevent black screen/loading issues.
+
+FLOW/REELS NAVIGATION:
+If a user clicks any video from feed:
+
+* open the video inside the dedicated Flow/Reels viewer page like Instagram Reels.
+* Open directly to the selected video.
+* Allow vertical swipe navigation between videos.
+* Preserve smooth scrolling and transitions.
+
+COMMENT BUTTON BEHAVIOR:
+If user clicks comment button on any video:
+
+* instantly open the Instagram-style slide-up comments modal.
+* Do NOT navigate away from video.
+* Keep video visible behind comments modal.
+
+LIKE SYSTEM FIX:
+Fix current like state synchronization bug.
+
+Current issue:
+
+* user likes a video
+* opens video separately
+* like button incorrectly shows “not liked”
+
+Required fix:
+
+* globally sync like state across:
+
+  * feed
+  * reels viewer
+  * profile
+  * comments
+* liked videos should instantly reflect correct state everywhere.
+* Use realtime state updates and optimistic UI.
+
+THREE DOTS MENU:
+Add Instagram-style three dots options menu on posts/videos.
+
+IMPORTANT:
+
+* Show delete option ONLY for owner of the post/video.
+* Non-owners should NOT see delete option.
+
+Owner options:
+
+* Delete
+* Edit caption
+* Turn comments off
+* Copy link
+* Share
+
+Non-owner options:
+
+* Report
+* Not interested
+* Copy link
+* Share
+
+DELETE FEATURE:
+
+* Add delete confirmation modal.
+* Instantly remove deleted post from:
+
+  * feed
+  * profile
+  * reels/flow section
+  * saved posts
+    without refresh.
+
+TOP NAVBAR REDESIGN:
+
+* Remove current home button from top-left.
+* Place Squawk app logo in the center of the top navbar like Instagram.
+* Keep layout balanced and responsive.
+
+Navbar layout:
+LEFT:
+
+* optional notifications/search icon
+
+CENTER:
+
+* Squawk logo
+
+RIGHT:
+
+* messages/profile/upload icons
+
+UI/UX REQUIREMENTS:
+
+* Smooth premium animations.
+* Instagram-inspired polished design.
+* Responsive on:
+
+  * mobile
+  * tablet
+  * desktop
+* Prevent buttons/icons from overlapping or cutting off.
+* Maintain consistent spacing and sizing.
+
+PERFORMANCE:
+
+* Lazy load videos.
+* Preload next reel/video.
+* Optimize rendering for mobile devices.
+* Compress videos before upload.
+* Prevent lag during scrolling/swiping.
+
+BACKEND REQUIREMENTS:
+
+* Properly store:
+
+  * likes
+  * comments
+  * saves
+  * video URLs
+  * thumbnails
+  * ownership info
+* Sync all interactions in realtime.
+
+GOAL:
+Make Squawk’s Flow/Reels experience feel smooth, modern, and premium like Instagram Reels with reliable uploads, synced likes/comments, responsive UI, and polished social interactions.
+
+
+Fix all current Chirps system issues in the Squawk app and make Chirps fully functional like modern X/Twitter posts with working media uploads, comments, replies, and sharing.
+
+MAIN GOAL:
+Repair the entire Chirps posting and interaction system so users can properly:
+
+* upload videos
+* upload GIFs
+* comment/reply on chirps
+* share chirps
+* view realtime updates
+
+1. FIX VIDEO & GIF UPLOADS IN CHIRPS
+   Current issue:
+
+* users cannot upload videos or GIFs inside Chirps.
+
+Required fixes:
+
+* Allow Chirps to support:
+
+  * images
+  * GIFs
+  * MP4 videos
+  * MOV videos
+  * WEBM videos
+* Fix media upload API and frontend handling.
+* Ensure uploaded media instantly appears after posting.
+* Add upload progress indicator.
+* Add loading state while media uploads.
+* Properly render:
+
+  * GIF autoplay
+  * video preview
+  * video thumbnail
+* Optimize uploaded media before saving.
+
+Cloudinary Requirements:
+
+* Upload Chirp media to Cloudinary.
+* Save permanent Cloudinary URLs in database.
+* Prevent temporary blob/local URLs.
+
+2. FIX CHIRP COMMENTS / REPLIES
+   Current issue:
+
+* user replies/comments are not appearing after posting.
+
+Required fixes:
+
+* Fix comment submission logic.
+* Ensure comments save properly in database.
+* Instantly display newly added comments without refresh.
+* Add optimistic UI updates.
+* Sync comments globally across app.
+
+Comment features:
+
+* nested replies
+* realtime updates
+* comment count updates
+* mention support
+* emoji support
+
+3. FIX SHARE BUTTON IN CHIRPS
+   Current issue:
+
+* share button does not work.
+
+Required behavior:
+When user clicks share button:
+
+* open Instagram/X-style share modal.
+
+Share modal should include:
+
+* recent chats
+* followers list
+* search users
+* copy link
+* external share option
+* share to DMs
+
+Allow users to directly send Chirps into app messages.
+
+4. FIX REALTIME STATE SYNC
+   Ensure:
+
+* likes
+* comments
+* shares
+* reposts
+* bookmarks
+  update instantly everywhere in app.
+
+Example:
+If user likes/comment on Chirp:
+
+* feed updates immediately
+* profile updates immediately
+* Chirp detail page updates immediately
+
+5. CHIRP MEDIA VIEWER
+   If user clicks media inside Chirp:
+
+* open fullscreen media viewer.
+* Support:
+
+  * image zoom
+  * GIF autoplay
+  * video playback
+  * swipe navigation
+
+6. BACKEND FIXES
+   Verify and repair:
+
+* API routes
+* media upload endpoints
+* database save logic
+* realtime sync logic
+* Clerk user mapping
+* Supabase insert/update queries
+
+Ensure Chirps properly store:
+
+* text
+* mediaUrl
+* mediaType
+* userId
+* likes
+* comments
+* reposts
+* createdAt
+
+7. ERROR HANDLING
+   Add proper error handling for:
+
+* failed uploads
+* failed comments
+* failed shares
+* invalid media formats
+* oversized files
+
+Show user-friendly toast notifications.
+
+8. PERFORMANCE
+
+* Compress videos/GIFs before upload.
+* Lazy load Chirp media.
+* Prevent rerender lag.
+* Optimize feed rendering.
+
+9. UI/UX IMPROVEMENTS
+
+* Smooth animations.
+* Premium responsive layout.
+* Instagram/X inspired interactions.
+* Prevent buttons from freezing or disappearing.
+* Ensure all actions work on:
+
+  * mobile
+  * tablet
+  * desktop
+
+GOAL:
+Make the Chirps system fully functional, responsive, and production-ready with reliable media uploads, working replies/comments, realtime interactions, and modern social sharing behavior similar to X/Twitter and Threads.
+ and add when try to share posts or flows show friends aswell so post can be send easily to dms in app.
+
+
+ask for api in last ill provide you .
+
+
