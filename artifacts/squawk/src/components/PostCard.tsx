@@ -1,21 +1,37 @@
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
-import { Heart, MessageCircle, Send, Bookmark, MoreHorizontal, BadgeCheck, Volume2, VolumeX } from "lucide-react";
+import {
+  Heart, MessageCircle, Send, Bookmark, MoreHorizontal,
+  BadgeCheck, Volume2, VolumeX, PlaySquare, Trash2,
+  Link2, Flag, EyeOff, Copy,
+} from "lucide-react";
 import { ShareSheet } from "@/components/ShareSheet";
+import CommentsSheet from "@/components/CommentsSheet";
 import { formatDistanceToNow } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
-import { 
-  useLikePost, 
+import {
+  useLikePost,
   useSavePost,
+  useDeletePost,
+  useGetMe,
   getGetFeedQueryKey,
   getGetUserPostsQueryKey,
   getListPostsQueryKey,
-  type Post
+  type Post,
 } from "@workspace/api-client-react";
-
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
+  DropdownMenuSeparator, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel,
+  AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
+  AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { useRef } from "react";
 
 interface PostCardProps {
   post: Post;
@@ -29,48 +45,60 @@ export default function PostCard({ post, onLike, onSave, onComment }: PostCardPr
   const queryClient = useQueryClient();
   const likeMutation = useLikePost();
   const saveMutation = useSavePost();
-  
+  const deleteMutation = useDeletePost();
+  const { data: me } = useGetMe();
+
   const [showHeart, setShowHeart] = useState(false);
   const [isLiked, setIsLiked] = useState(post.isLiked);
   const [likesCount, setLikesCount] = useState(post.likesCount);
   const [isSaved, setIsSaved] = useState(post.isSaved);
   const [isMuted, setIsMuted] = useState(true);
   const [shareOpen, setShareOpen] = useState(false);
+  const [showComments, setShowComments] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
-  const getInitials = (name: string) => name ? name.charAt(0).toUpperCase() : '?';
+  const isOwner = me && (me as any).id === post.author.id;
+  const getInitials = (name: string) => name ? name.charAt(0).toUpperCase() : "?";
   const avatarColor = `hsl(${post.author.username.length * 50 % 360}, 70%, 50%)`;
+
+  const patchCache = (isLikedVal: boolean, likesCountVal: number) => {
+    const patchPosts = (posts: any[]) =>
+      posts.map((p: any) =>
+        p.id === post.id ? { ...p, isLiked: isLikedVal, likesCount: likesCountVal } : p
+      );
+    queryClient.setQueriesData({ queryKey: ["feed"] }, (old: any) =>
+      old?.posts ? { ...old, posts: patchPosts(old.posts) } : old
+    );
+    queryClient.setQueriesData({ queryKey: getGetFeedQueryKey() }, (old: any) =>
+      old?.posts ? { ...old, posts: patchPosts(old.posts) } : old
+    );
+    queryClient.setQueriesData({ queryKey: getGetUserPostsQueryKey(post.author.username) }, (old: any) =>
+      Array.isArray(old) ? patchPosts(old) : old
+    );
+    queryClient.setQueriesData({ queryKey: getListPostsQueryKey() }, (old: any) =>
+      old?.items ? { ...old, items: patchPosts(old.items) } : old
+    );
+  };
 
   const handleLike = () => {
     if (likeMutation.isPending) return;
     const newLiked = !isLiked;
+    const newCount = likesCount + (newLiked ? 1 : -1);
     setIsLiked(newLiked);
-    setLikesCount(prev => newLiked ? prev + 1 : prev - 1);
+    setLikesCount(newCount);
+    patchCache(newLiked, newCount);
 
     likeMutation.mutate({ id: post.id }, {
       onSuccess: (data) => {
         setIsLiked(data.isLiked);
         setLikesCount(data.likesCount);
-        const patchPosts = (posts: any[]) =>
-          posts.map((p: any) =>
-            p.id === post.id ? { ...p, isLiked: data.isLiked, likesCount: data.likesCount } : p
-          );
-        queryClient.setQueriesData({ queryKey: ["feed"] }, (old: any) =>
-          old?.posts ? { ...old, posts: patchPosts(old.posts) } : old
-        );
-        queryClient.setQueriesData({ queryKey: getGetFeedQueryKey() }, (old: any) =>
-          old?.posts ? { ...old, posts: patchPosts(old.posts) } : old
-        );
-        queryClient.setQueriesData({ queryKey: getGetUserPostsQueryKey(post.author.username) }, (old: any) =>
-          Array.isArray(old) ? patchPosts(old) : old
-        );
-        queryClient.setQueriesData({ queryKey: getListPostsQueryKey() }, (old: any) =>
-          old?.items ? { ...old, items: patchPosts(old.items) } : old
-        );
+        patchCache(data.isLiked, data.likesCount);
       },
       onError: () => {
         setIsLiked(!newLiked);
-        setLikesCount(prev => !newLiked ? prev + 1 : prev - 1);
+        setLikesCount(likesCount);
+        patchCache(!newLiked, likesCount);
       },
     });
 
@@ -81,9 +109,21 @@ export default function PostCard({ post, onLike, onSave, onComment }: PostCardPr
     const newSaved = !isSaved;
     setIsSaved(newSaved);
     saveMutation.mutate({ id: post.id }, {
-      onError: () => setIsSaved(!newSaved)
+      onError: () => setIsSaved(!newSaved),
     });
     if (onSave) onSave();
+  };
+
+  const handleDelete = () => {
+    deleteMutation.mutate({ id: post.id }, {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ["feed"] });
+        queryClient.invalidateQueries({ queryKey: getGetFeedQueryKey() });
+        queryClient.invalidateQueries({ queryKey: getListPostsQueryKey() });
+        queryClient.invalidateQueries({ queryKey: getGetUserPostsQueryKey(post.author.username) });
+      },
+    });
+    setShowDeleteConfirm(false);
   };
 
   const handleDoubleTap = () => {
@@ -92,16 +132,16 @@ export default function PostCard({ post, onLike, onSave, onComment }: PostCardPr
     setTimeout(() => setShowHeart(false), 1000);
   };
 
-  const handleShare = () => {
-    setShareOpen(true);
-  };
-
   const handleMuteToggle = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setIsMuted(m => {
+    setIsMuted((m) => {
       if (videoRef.current) videoRef.current.muted = !m;
       return !m;
     });
+  };
+
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(`${window.location.origin}/post/${post.id}`).catch(() => {});
   };
 
   const renderCaption = (text: string | null, hashtags: string[]) => {
@@ -112,8 +152,8 @@ export default function PostCard({ post, onLike, onSave, onComment }: PostCardPr
         {text}
         {hashtags.length > 0 && (
           <div className="mt-1 flex flex-wrap gap-1">
-            {hashtags.map(tag => (
-              <Link key={tag} href={`/explore/hashtags/${tag}`} className="text-primary hover:underline" data-testid={`link-hashtag-${tag}`}>
+            {hashtags.map((tag) => (
+              <Link key={tag} href={`/explore/hashtags/${tag}`} className="text-primary hover:underline">
                 #{tag}
               </Link>
             ))}
@@ -124,135 +164,216 @@ export default function PostCard({ post, onLike, onSave, onComment }: PostCardPr
   };
 
   return (
-    <div className="bg-card border-b border-border md:border md:rounded-2xl md:mb-6 overflow-hidden w-full" data-testid={`post-card-${post.id}`}>
-      {/* Header */}
-      <div className="flex items-center justify-between p-4">
-        <Link href={`/profile/${post.author.username}`} className="flex items-center gap-3 group" data-testid={`link-author-${post.author.username}`}>
-          <Avatar className="w-10 h-10 border border-border group-hover:border-primary transition-colors">
-            <AvatarImage src={post.author.avatarUrl || ''} />
-            <AvatarFallback style={{ backgroundColor: avatarColor, color: 'white' }}>
-              {getInitials(post.author.displayName)}
-            </AvatarFallback>
-          </Avatar>
-          <div className="flex flex-col">
-            <div className="flex items-center gap-1">
-              <span className="font-semibold text-foreground group-hover:text-primary transition-colors">{post.author.username}</span>
-              {(post.author as any).isFounder && <BadgeCheck className="w-4 h-4 text-pink-500" title="Founder" />}
-              {post.author.isVerified && !((post.author as any).isFounder) && <BadgeCheck className="w-4 h-4 text-primary" />}
+    <>
+      <div className="bg-card border-b border-border md:border md:rounded-2xl md:mb-6 overflow-hidden w-full" data-testid={`post-card-${post.id}`}>
+        {/* Header */}
+        <div className="flex items-center justify-between p-4">
+          <Link href={`/profile/${post.author.username}`} className="flex items-center gap-3 group" data-testid={`link-author-${post.author.username}`}>
+            <Avatar className="w-10 h-10 border border-border group-hover:border-primary transition-colors">
+              <AvatarImage src={post.author.avatarUrl || ""} />
+              <AvatarFallback style={{ backgroundColor: avatarColor, color: "white" }}>
+                {getInitials(post.author.displayName)}
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex flex-col">
+              <div className="flex items-center gap-1">
+                <span className="font-semibold text-foreground group-hover:text-primary transition-colors">{post.author.username}</span>
+                {(post.author as any).isFounder && <BadgeCheck className="w-4 h-4 text-pink-500" />}
+                {post.author.isVerified && !((post.author as any).isFounder) && <BadgeCheck className="w-4 h-4 text-primary" />}
+              </div>
+              <span className="text-xs text-muted-foreground">{formatDistanceToNow(new Date(post.createdAt))} ago</span>
             </div>
-            <span className="text-xs text-muted-foreground">{formatDistanceToNow(new Date(post.createdAt))} ago</span>
-          </div>
-        </Link>
-        <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
-          <MoreHorizontal className="w-5 h-5" />
-        </Button>
-      </div>
-
-      {/* Media */}
-      <div 
-        className="relative w-full bg-black overflow-hidden cursor-pointer"
-        style={{ aspectRatio: post.mediaType === 'video' ? '9/16' : '4/5', maxHeight: post.mediaType === 'video' ? '80vh' : undefined }}
-        onDoubleClick={handleDoubleTap}
-        data-testid="post-media"
-      >
-        {post.mediaType === 'video' ? (
-          <>
-            <video 
-              ref={videoRef}
-              src={post.mediaUrl}
-              className="w-full h-full object-contain"
-              autoPlay 
-              muted={isMuted}
-              loop 
-              playsInline
-            />
-            <button
-              onClick={handleMuteToggle}
-              className="absolute bottom-3 right-3 p-2 rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors z-10"
-              aria-label={isMuted ? "Unmute" : "Mute"}
-            >
-              {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-            </button>
-          </>
-        ) : (
-          <img 
-            src={post.mediaUrl}
-            alt={post.caption || "Post media"} 
-            className="w-full h-full object-cover"
-            loading="lazy"
-          />
-        )}
-        
-        <AnimatePresence>
-          {showHeart && (
-            <motion.div 
-              initial={{ scale: 0, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 1.5, opacity: 0 }}
-              transition={{ type: "spring", stiffness: 300, damping: 20 }}
-              className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none"
-            >
-              <Heart className="w-32 h-32 text-primary fill-primary drop-shadow-[0_0_20px_rgba(124,58,237,0.5)]" />
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-
-      {/* Actions */}
-      <div className="p-4">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-4">
-            <button 
-              onClick={handleLike} 
-              className={`transition-colors hover:opacity-70 ${isLiked ? 'text-primary' : 'text-foreground'}`}
-              data-testid="button-like"
-            >
-              <Heart className={`w-7 h-7 ${isLiked ? 'fill-primary' : ''}`} />
-            </button>
-            <button 
-              onClick={() => { if(onComment) onComment(); else setLocation(`/post/${post.id}`); }} 
-              className="text-foreground transition-colors hover:opacity-70"
-              data-testid="button-comment"
-            >
-              <MessageCircle className="w-7 h-7" />
-            </button>
-            <button 
-              onClick={handleShare} 
-              className="text-foreground transition-colors hover:opacity-70" 
-              data-testid="button-share"
-              aria-label="Share post"
-            >
-              <Send className="w-7 h-7" />
-            </button>
-          </div>
-          <button 
-            onClick={handleSave} 
-            className={`transition-colors hover:opacity-70 ${isSaved ? 'text-primary' : 'text-foreground'}`}
-            data-testid="button-save"
-          >
-            <Bookmark className={`w-7 h-7 ${isSaved ? 'fill-primary' : ''}`} />
-          </button>
-        </div>
-
-        <div className="font-semibold text-sm mb-1">
-          {likesCount} likes
-        </div>
-
-        {renderCaption(post.caption, post.hashtags)}
-
-        {post.commentsCount > 0 && (
-          <Link href={`/post/${post.id}`} className="text-sm text-muted-foreground mt-2 inline-block hover:underline" data-testid="link-comments">
-            View all {post.commentsCount} comments
           </Link>
-        )}
+
+          {/* Three-dot menu */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
+                <MoreHorizontal className="w-5 h-5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              {isOwner ? (
+                <>
+                  <DropdownMenuItem onClick={() => setShowDeleteConfirm(true)} className="text-destructive focus:text-destructive cursor-pointer">
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Delete post
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleCopyLink} className="cursor-pointer">
+                    <Copy className="w-4 h-4 mr-2" />
+                    Copy link
+                  </DropdownMenuItem>
+                </>
+              ) : (
+                <>
+                  <DropdownMenuItem className="cursor-pointer">
+                    <Flag className="w-4 h-4 mr-2" />
+                    Report
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="cursor-pointer">
+                    <EyeOff className="w-4 h-4 mr-2" />
+                    Not interested
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleCopyLink} className="cursor-pointer">
+                    <Copy className="w-4 h-4 mr-2" />
+                    Copy link
+                  </DropdownMenuItem>
+                </>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+
+        {/* Media */}
+        <div
+          className="relative w-full overflow-hidden cursor-pointer"
+          style={{
+            aspectRatio: post.mediaType === "video" ? "9/16" : "4/5",
+            maxHeight: post.mediaType === "video" ? "80vh" : undefined,
+            backgroundColor: post.mediaType === "video" ? "#000" : undefined,
+          }}
+          onDoubleClick={handleDoubleTap}
+          data-testid="post-media"
+        >
+          {post.mediaType === "video" ? (
+            <>
+              <video
+                ref={videoRef}
+                src={post.mediaUrl}
+                className="w-full h-full object-contain"
+                autoPlay
+                muted={isMuted}
+                loop
+                playsInline
+              />
+              {/* Mute toggle */}
+              <button
+                onClick={handleMuteToggle}
+                className="absolute bottom-3 right-3 p-2 rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors z-10"
+                aria-label={isMuted ? "Unmute" : "Mute"}
+              >
+                {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+              </button>
+              {/* Open in Flow button */}
+              <button
+                onClick={(e) => { e.stopPropagation(); setLocation(`/reels?id=${post.id}`); }}
+                className="absolute top-3 left-3 flex items-center gap-1.5 bg-black/55 backdrop-blur-sm text-white text-xs font-semibold px-2.5 py-1.5 rounded-full hover:bg-black/70 transition-colors z-10"
+              >
+                <PlaySquare className="w-3.5 h-3.5" />
+                Open in Flow
+              </button>
+            </>
+          ) : (
+            <img
+              src={post.mediaUrl}
+              alt={post.caption || "Post media"}
+              className="w-full h-full object-cover"
+              loading="lazy"
+            />
+          )}
+
+          <AnimatePresence>
+            {showHeart && (
+              <motion.div
+                initial={{ scale: 0, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 1.5, opacity: 0 }}
+                transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none"
+              >
+                <Heart className="w-32 h-32 text-primary fill-primary drop-shadow-[0_0_20px_rgba(124,58,237,0.5)]" />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* Actions */}
+        <div className="p-4">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-4">
+              <button
+                onClick={handleLike}
+                className={`transition-colors hover:opacity-70 ${isLiked ? "text-primary" : "text-foreground"}`}
+                data-testid="button-like"
+              >
+                <Heart className={`w-7 h-7 ${isLiked ? "fill-primary" : ""}`} />
+              </button>
+              <button
+                onClick={() => {
+                  if (onComment) onComment();
+                  else setShowComments(true);
+                }}
+                className="text-foreground transition-colors hover:opacity-70"
+                data-testid="button-comment"
+              >
+                <MessageCircle className="w-7 h-7" />
+              </button>
+              <button
+                onClick={() => setShareOpen(true)}
+                className="text-foreground transition-colors hover:opacity-70"
+                data-testid="button-share"
+              >
+                <Send className="w-7 h-7" />
+              </button>
+            </div>
+            <button
+              onClick={handleSave}
+              className={`transition-colors hover:opacity-70 ${isSaved ? "text-primary" : "text-foreground"}`}
+              data-testid="button-save"
+            >
+              <Bookmark className={`w-7 h-7 ${isSaved ? "fill-primary" : ""}`} />
+            </button>
+          </div>
+
+          <div className="font-semibold text-sm mb-1">{likesCount.toLocaleString()} likes</div>
+
+          {renderCaption(post.caption, post.hashtags)}
+
+          {post.commentsCount > 0 && (
+            <button
+              onClick={() => setShowComments(true)}
+              className="text-sm text-muted-foreground mt-2 inline-block hover:underline"
+              data-testid="link-comments"
+            >
+              View all {post.commentsCount} comments
+            </button>
+          )}
+        </div>
       </div>
 
-      <ShareSheet
-        open={shareOpen}
-        onOpenChange={setShareOpen}
+      {/* Slide-up comments modal */}
+      <CommentsSheet
         postId={post.id}
-        caption={post.caption}
+        commentsCount={post.commentsCount}
+        isOpen={showComments}
+        onClose={() => setShowComments(false)}
       />
-    </div>
+
+      {/* Share sheet */}
+      <ShareSheet open={shareOpen} onOpenChange={setShareOpen} postId={post.id} caption={post.caption} />
+
+      {/* Delete confirmation */}
+      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this post?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete your post and all its likes and comments. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }

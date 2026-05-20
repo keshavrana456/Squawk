@@ -1,0 +1,159 @@
+Optimize the entire Squawk app UI to be fully responsive and adaptive across all devices including mobile phones, tablets, laptops, and desktop PCs.
+
+MAIN GOAL:
+Make every page, frame, modal, button, navbar, feed, popup, story viewer, reels section, profile page, comments section, messages, and upload screens automatically adjust according to screen size so that:
+
+* no buttons get cut off
+* no text overlaps
+* no options hide outside screen
+* no horizontal scrolling appears
+* all UI remains clean and usable on every device
+
+RESPONSIVE DESIGN REQUIREMENTS:
+
+GENERAL:
+
+* Use fully responsive layouts.
+* Use Flexbox and CSS Grid properly.
+* Avoid fixed widths/heights where unnecessary.
+* Use relative sizing:
+
+  * %
+  * rem
+  * vw/vh
+  * max-width
+  * min-width
+* Add proper spacing and padding for all screen sizes.
+
+BREAKPOINTS:
+Optimize UI for:
+
+* Mobile phones (320px–480px)
+* Large phones (481px–768px)
+* Tablets (769px–1024px)
+* Laptops (1025px–1440px)
+* Large desktops (1441px+)
+
+NAVBAR:
+
+* Mobile:
+
+  * compact bottom navbar
+  * icons properly centered
+  * prevent icons from overflowing
+* Desktop:
+
+  * sidebar or top navbar
+  * maintain spacing consistency
+
+FEED & POSTS:
+
+* Feed cards should resize automatically.
+* Images/videos should:
+
+  * fit screen correctly
+  * maintain aspect ratio
+  * never overflow containers
+* Captions and buttons should wrap properly.
+* Prevent media cropping issues on smaller screens.
+
+STORIES:
+
+* Stories row should become horizontally scrollable on mobile.
+* Story circles should resize according to screen width.
+* Story viewer should fully fit mobile and desktop screens.
+* Ensure controls remain visible.
+
+COMMENTS SECTION:
+
+* Replies and nested comments should not break layout.
+* Long usernames/text should wrap properly.
+* Like/reply buttons should stay aligned on small screens.
+
+MESSAGES & DMS:
+
+* Mobile:
+
+  * full-screen chat layout
+  * collapsible sidebar
+* Desktop:
+
+  * split-screen layout
+* Prevent message input from hiding behind keyboard on mobile.
+
+MODALS & POPUPS:
+
+* All modals should:
+
+  * auto-fit screen
+  * become scrollable if content is large
+  * never exceed viewport height
+* Add responsive padding/margins.
+
+UPLOAD SCREENS:
+
+* Camera/upload editor should fully adapt to:
+
+  * portrait mobile screens
+  * landscape screens
+  * desktop browsers
+* Ensure all editing tools/buttons remain visible.
+
+BUTTONS & ICONS:
+
+* Prevent buttons from:
+
+  * overlapping
+  * cutting outside frames
+  * becoming too small
+* Add responsive sizing for icons and text.
+* Ensure touch-friendly spacing on mobile.
+
+TEXT & TYPOGRAPHY:
+
+* Use responsive typography scaling.
+* Prevent text clipping.
+* Maintain readability on all screen sizes.
+
+PERFORMANCE:
+
+* Optimize rendering for mobile devices.
+* Prevent layout shifts.
+* Add smooth responsive transitions.
+* Avoid unnecessary rerenders.
+
+TAILWIND/CSS REQUIREMENTS:
+
+* Use responsive Tailwind breakpoints:
+
+  * sm
+  * md
+  * lg
+  * xl
+  * 2xl
+* Use:
+
+  * flex-wrap
+  * overflow-hidden carefully
+  * responsive containers
+  * max-width constraints
+  * min-h-screen where needed
+
+TESTING REQUIREMENTS:
+Ensure app works properly on:
+
+* iPhone screens
+* Android screens
+* tablets
+* laptop browsers
+* ultrawide monitors
+
+Fix all UI bugs where:
+
+* buttons disappear
+* elements overflow
+* options hide outside frames
+* layouts break on smaller screens
+
+GOAL:
+Make Squawk feel like a polished production-ready social media app with smooth responsive UI similar to Instagram, X, Threads, and modern premium social platforms across every device.

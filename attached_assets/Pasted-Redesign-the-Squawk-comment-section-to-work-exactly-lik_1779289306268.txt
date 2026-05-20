@@ -1,0 +1,104 @@
+Redesign the Squawk comment section to work exactly like Instagram’s modern slide-up comments UI with smooth animations, realtime interactions, and responsive mobile experience.
+
+MAIN GOAL:
+Instead of opening comments inside the post card or another page, make comments open in a separate slide-up bottom sheet/modal just like Instagram.
+
+COMMENT MODAL BEHAVIOR:
+
+* Clicking the comment icon should:
+
+  * open a fullscreen/half-screen bottom sheet
+  * smoothly slide up from the bottom
+  * darken/blur background behind it
+* User should still partially see the post behind the comments modal.
+* Add smooth closing animation when swiping down or tapping outside.
+
+MOBILE EXPERIENCE:
+
+* On mobile:
+
+  * comments modal should feel native and smooth
+  * support drag-down gesture to close
+  * support touch scrolling
+  * keyboard should not cover input field
+* On desktop:
+
+  * modal should appear centered or bottom aligned elegantly
+
+LAYOUT:
+Top Section:
+
+* drag handle/bar like Instagram
+* comments count
+* close button
+
+Middle Section:
+
+* scrollable comments list
+* nested replies
+* profile picture
+* username
+* comment text
+* timestamps
+
+Bottom Section:
+
+* fixed comment input bar
+* emoji button
+* send button
+* mention support
+
+COMMENT FEATURES:
+Add:
+
+* like comment
+* reply to comment
+* nested replies
+* show/hide replies
+* emoji reactions
+* mention users
+* edit/delete own comment
+* pin comments
+* realtime comment updates
+
+UI DETAILS:
+
+* smooth rounded corners
+* glassmorphism or premium modern design
+* soft shadows
+* dark mode support
+* responsive spacing
+* Instagram-inspired clean layout
+
+ANIMATIONS:
+
+* smooth slide-up animation
+* smooth swipe-down close animation
+* animated reply opening
+* smooth keyboard transitions
+* loading skeletons for comments
+
+PERFORMANCE:
+
+* lazy load comments
+* virtual scrolling if needed
+* prevent lag with many comments
+* realtime updates without refreshing
+
+TECH IMPLEMENTATION:
+
+* Use bottom sheet/modal component
+* Lock background scroll while modal is open
+* Preserve feed scroll position after closing comments
+* Add responsive behavior for all devices
+
+EXTRA FEATURES:
+
+* Double tap comment to like
+* Long press for comment actions
+* Copy comment option
+* Share comment option
+* Translate comment placeholder
+
+GOAL:
+Make the Squawk comment experience feel premium, smooth, and modern exactly like Instagram comments while matching Squawk branding and realtime social interaction style.

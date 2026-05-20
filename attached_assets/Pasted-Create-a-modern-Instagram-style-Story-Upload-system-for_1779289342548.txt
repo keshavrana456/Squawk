@@ -1,0 +1,131 @@
+Create a modern Instagram-style Story Upload system for the Squawk app with smooth UI, realtime updates, and premium mobile experience.
+
+STORY UPLOAD UI:
+
+* Add a horizontal stories section at the top of the home feed similar to Instagram.
+* First story card should be:
+
+  * user profile picture
+  * “Your Story”
+  * plus (+) icon
+* Clicking it should instantly open story upload options.
+
+UPLOAD OPTIONS:
+When user clicks “Your Story”:
+
+* open bottom sheet/modal with:
+
+  * Camera
+  * Gallery
+  * Text Story
+* Mobile-first fullscreen experience.
+
+DIRECT CAMERA FEATURE:
+
+* Open device camera directly inside app.
+* Support:
+
+  * photo capture
+  * video recording
+  * front/back camera switch
+  * flash toggle
+  * hold to record video
+  * tap to capture photo
+* Add smooth camera animations similar to Instagram.
+
+GALLERY UPLOAD:
+
+* Allow selecting:
+
+  * images
+  * videos
+* Support multiple aspect ratios.
+* Auto optimize and compress media before upload.
+
+STORY EDITOR:
+After selecting/capturing media, open fullscreen story editor.
+
+Add:
+
+* drag & resize text
+* emojis
+* GIFs
+* stickers
+* drawing tool
+* music support placeholder
+* mention users (@username)
+* hashtags
+* location tags
+* story filters
+* brightness/contrast controls
+* crop/zoom support
+
+MENTION FEATURE:
+
+* Users can mention other users in stories.
+* Mentioned users should:
+
+  * receive notification
+  * see “Add to Your Story”
+  * re-share story to their own story
+* Keep original creator attribution visible.
+
+UPLOAD EXPERIENCE:
+
+* Add upload progress bar.
+* Add smooth loading animation.
+* Show “Story Uploaded Successfully” toast.
+* Instantly update story feed after upload without refresh.
+
+STORY VIEWER:
+Create Instagram-like fullscreen story viewer:
+
+* tap left/right to navigate
+* hold to pause
+* progress bars at top
+* swipe down to close
+* smooth transitions
+* autoplay stories
+
+Add:
+
+* story replies
+* emoji quick reactions
+* story viewers list for owner
+* seen status
+* mute stories option
+
+BACKEND:
+
+* Upload media to Cloudinary
+* Store story metadata in Supabase
+* Save:
+
+  * userId
+  * mediaUrl
+  * caption
+  * mentions
+  * viewers
+  * createdAt
+  * expiresAt
+* Stories should auto expire after 24 hours.
+
+PERFORMANCE:
+
+* preload next story
+* lazy load media
+* compress uploads
+* prevent UI lag
+* optimize mobile responsiveness
+
+UI STYLE:
+
+* Instagram-inspired polished design
+* smooth modern animations
+* dark mode support
+* rounded modern UI
+* premium mobile experience
+* maintain Squawk branding and theme
+
+GOAL:
+Make Squawk stories feel as smooth, modern, and interactive as Instagram stories while keeping the app’s unique identity.

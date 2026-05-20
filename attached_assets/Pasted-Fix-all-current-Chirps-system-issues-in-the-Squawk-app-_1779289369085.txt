@@ -1,0 +1,165 @@
+Fix all current Chirps system issues in the Squawk app and make Chirps fully functional like modern X/Twitter posts with working media uploads, comments, replies, and sharing.
+
+MAIN GOAL:
+Repair the entire Chirps posting and interaction system so users can properly:
+
+* upload videos
+* upload GIFs
+* comment/reply on chirps
+* share chirps
+* view realtime updates
+
+1. FIX VIDEO & GIF UPLOADS IN CHIRPS
+   Current issue:
+
+* users cannot upload videos or GIFs inside Chirps.
+
+Required fixes:
+
+* Allow Chirps to support:
+
+  * images
+  * GIFs
+  * MP4 videos
+  * MOV videos
+  * WEBM videos
+* Fix media upload API and frontend handling.
+* Ensure uploaded media instantly appears after posting.
+* Add upload progress indicator.
+* Add loading state while media uploads.
+* Properly render:
+
+  * GIF autoplay
+  * video preview
+  * video thumbnail
+* Optimize uploaded media before saving.
+
+Cloudinary Requirements:
+
+* Upload Chirp media to Cloudinary.
+* Save permanent Cloudinary URLs in database.
+* Prevent temporary blob/local URLs.
+
+2. FIX CHIRP COMMENTS / REPLIES
+   Current issue:
+
+* user replies/comments are not appearing after posting.
+
+Required fixes:
+
+* Fix comment submission logic.
+* Ensure comments save properly in database.
+* Instantly display newly added comments without refresh.
+* Add optimistic UI updates.
+* Sync comments globally across app.
+
+Comment features:
+
+* nested replies
+* realtime updates
+* comment count updates
+* mention support
+* emoji support
+
+3. FIX SHARE BUTTON IN CHIRPS
+   Current issue:
+
+* share button does not work.
+
+Required behavior:
+When user clicks share button:
+
+* open Instagram/X-style share modal.
+
+Share modal should include:
+
+* recent chats
+* followers list
+* search users
+* copy link
+* external share option
+* share to DMs
+
+Allow users to directly send Chirps into app messages.
+
+4. FIX REALTIME STATE SYNC
+   Ensure:
+
+* likes
+* comments
+* shares
+* reposts
+* bookmarks
+  update instantly everywhere in app.
+
+Example:
+If user likes/comment on Chirp:
+
+* feed updates immediately
+* profile updates immediately
+* Chirp detail page updates immediately
+
+5. CHIRP MEDIA VIEWER
+   If user clicks media inside Chirp:
+
+* open fullscreen media viewer.
+* Support:
+
+  * image zoom
+  * GIF autoplay
+  * video playback
+  * swipe navigation
+
+6. BACKEND FIXES
+   Verify and repair:
+
+* API routes
+* media upload endpoints
+* database save logic
+* realtime sync logic
+* Clerk user mapping
+* Supabase insert/update queries
+
+Ensure Chirps properly store:
+
+* text
+* mediaUrl
+* mediaType
+* userId
+* likes
+* comments
+* reposts
+* createdAt
+
+7. ERROR HANDLING
+   Add proper error handling for:
+
+* failed uploads
+* failed comments
+* failed shares
+* invalid media formats
+* oversized files
+
+Show user-friendly toast notifications.
+
+8. PERFORMANCE
+
+* Compress videos/GIFs before upload.
+* Lazy load Chirp media.
+* Prevent rerender lag.
+* Optimize feed rendering.
+
+9. UI/UX IMPROVEMENTS
+
+* Smooth animations.
+* Premium responsive layout.
+* Instagram/X inspired interactions.
+* Prevent buttons from freezing or disappearing.
+* Ensure all actions work on:
+
+  * mobile
+  * tablet
+  * desktop
+
+GOAL:
+Make the Chirps system fully functional, responsive, and production-ready with reliable media uploads, working replies/comments, realtime interactions, and modern social sharing behavior similar to X/Twitter and Threads.

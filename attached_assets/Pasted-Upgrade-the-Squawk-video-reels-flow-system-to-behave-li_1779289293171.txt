@@ -1,0 +1,154 @@
+Upgrade the Squawk video/reels/flow system to behave like Instagram Reels with realtime syncing, proper video handling, responsive interactions, and improved UI consistency.
+
+MAIN GOAL:
+Make videos upload, display, and interact smoothly across feed and Flow/Reels section just like Instagram.
+
+VIDEO UPLOAD & VISIBILITY:
+
+* Ensure every uploaded video becomes visible instantly after upload.
+* Support all major video formats:
+
+  * MP4
+  * MOV
+  * WEBM
+  * AVI
+  * MKV
+* Automatically process and optimize videos after upload.
+* Generate thumbnails automatically.
+* Videos should appear:
+
+  * in feed
+  * in profile
+  * in Flow/Reels section
+    immediately after successful upload without requiring refresh.
+
+VIDEO PLAYBACK:
+
+* Videos in feed should autoplay when visible.
+* Muted autoplay in feed.
+* Pause when scrolled away.
+* Maintain aspect ratio properly.
+* Prevent black screen/loading issues.
+
+FLOW/REELS NAVIGATION:
+If a user clicks any video from feed:
+
+* open the video inside the dedicated Flow/Reels viewer page like Instagram Reels.
+* Open directly to the selected video.
+* Allow vertical swipe navigation between videos.
+* Preserve smooth scrolling and transitions.
+
+COMMENT BUTTON BEHAVIOR:
+If user clicks comment button on any video:
+
+* instantly open the Instagram-style slide-up comments modal.
+* Do NOT navigate away from video.
+* Keep video visible behind comments modal.
+
+LIKE SYSTEM FIX:
+Fix current like state synchronization bug.
+
+Current issue:
+
+* user likes a video
+* opens video separately
+* like button incorrectly shows “not liked”
+
+Required fix:
+
+* globally sync like state across:
+
+  * feed
+  * reels viewer
+  * profile
+  * comments
+* liked videos should instantly reflect correct state everywhere.
+* Use realtime state updates and optimistic UI.
+
+THREE DOTS MENU:
+Add Instagram-style three dots options menu on posts/videos.
+
+IMPORTANT:
+
+* Show delete option ONLY for owner of the post/video.
+* Non-owners should NOT see delete option.
+
+Owner options:
+
+* Delete
+* Edit caption
+* Turn comments off
+* Copy link
+* Share
+
+Non-owner options:
+
+* Report
+* Not interested
+* Copy link
+* Share
+
+DELETE FEATURE:
+
+* Add delete confirmation modal.
+* Instantly remove deleted post from:
+
+  * feed
+  * profile
+  * reels/flow section
+  * saved posts
+    without refresh.
+
+TOP NAVBAR REDESIGN:
+
+* Remove current home button from top-left.
+* Place Squawk app logo in the center of the top navbar like Instagram.
+* Keep layout balanced and responsive.
+
+Navbar layout:
+LEFT:
+
+* optional notifications/search icon
+
+CENTER:
+
+* Squawk logo
+
+RIGHT:
+
+* messages/profile/upload icons
+
+UI/UX REQUIREMENTS:
+
+* Smooth premium animations.
+* Instagram-inspired polished design.
+* Responsive on:
+
+  * mobile
+  * tablet
+  * desktop
+* Prevent buttons/icons from overlapping or cutting off.
+* Maintain consistent spacing and sizing.
+
+PERFORMANCE:
+
+* Lazy load videos.
+* Preload next reel/video.
+* Optimize rendering for mobile devices.
+* Compress videos before upload.
+* Prevent lag during scrolling/swiping.
+
+BACKEND REQUIREMENTS:
+
+* Properly store:
+
+  * likes
+  * comments
+  * saves
+  * video URLs
+  * thumbnails
+  * ownership info
+* Sync all interactions in realtime.
+
+GOAL:
+Make Squawk’s Flow/Reels experience feel smooth, modern, and premium like Instagram Reels with reliable uploads, synced likes/comments, responsive UI, and polished social interactions.
