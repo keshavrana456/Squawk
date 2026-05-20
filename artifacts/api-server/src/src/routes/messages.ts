@@ -5,6 +5,7 @@ import { requireUser } from "../lib/auth";
 import { buildUserSummary } from "../lib/userHelpers";
 import { GetMessagesParams, SendMessageParams, SendMessageBody } from "@workspace/api-zod";
 import { z } from "zod";
+import { emitToConversation, emitToUser } from "../lib/socket";
 
 const router: IRouter = Router();
 
@@ -220,7 +221,22 @@ router.post("/conversations/:id/messages", requireUser, async (req, res): Promis
     mediaUrl: body.data.mediaUrl ?? null,
   }).returning();
 
-  res.status(201).json(buildMessageResponse(msg, currentUser));
+  const msgResponse = buildMessageResponse(msg, currentUser);
+
+  // Real-time: broadcast to everyone in the conversation room
+  emitToConversation(String(params.data.id), "new_message", msgResponse);
+
+  // Also notify all participants so their conversation list updates
+  const participants = await db.select({ userId: conversationParticipantsTable.userId })
+    .from(conversationParticipantsTable)
+    .where(eq(conversationParticipantsTable.conversationId, params.data.id));
+  for (const p of participants) {
+    if (p.userId !== currentUser.id) {
+      emitToUser(String(p.userId), "conversation_updated", { conversationId: params.data.id });
+    }
+  }
+
+  res.status(201).json(msgResponse);
 });
 
 export default router;

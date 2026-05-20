@@ -9,6 +9,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useGetMe } from "@workspace/api-client-react";
 import { ThemeProvider } from "@/contexts/ThemeContext";
+import { SocketProvider } from "@/contexts/SocketContext";
 import { AnimatePresence } from "framer-motion";
 import SplashScreen from "./components/SplashScreen";
 
@@ -260,7 +261,9 @@ function ClerkProviderWithRoutes() {
     >
       <QueryClientProvider client={queryClient}>
         <ClerkQueryClientCacheInvalidator />
-        <Router />
+        <SocketProvider>
+          <Router />
+        </SocketProvider>
       </QueryClientProvider>
     </ClerkProvider>
   );
