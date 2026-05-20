@@ -237,8 +237,8 @@ export default function PostCard({ post, onLike, onSave, onComment }: PostCardPr
         <div
           className="relative w-full overflow-hidden"
           style={{
-            aspectRatio: post.mediaType === "video" ? "9/16" : "4/5",
-            maxHeight: post.mediaType === "video" ? "80vh" : undefined,
+            aspectRatio: post.mediaType === "video" ? "16/9" : undefined,
+            maxHeight: post.mediaType === "video" ? "560px" : "600px",
             backgroundColor: post.mediaType === "video" ? "#000" : undefined,
           }}
           onDoubleClick={handleDoubleTap}
@@ -278,7 +278,8 @@ export default function PostCard({ post, onLike, onSave, onComment }: PostCardPr
             <img
               src={post.mediaUrl}
               alt={post.caption || "Post media"}
-              className="w-full h-full object-cover cursor-pointer"
+              className="w-full object-cover cursor-pointer"
+              style={{ maxHeight: "600px", objectFit: "cover", display: "block" }}
               loading="lazy"
             />
           )}

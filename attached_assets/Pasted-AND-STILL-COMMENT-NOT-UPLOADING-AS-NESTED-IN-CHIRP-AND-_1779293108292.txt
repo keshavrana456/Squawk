@@ -1,0 +1,409 @@
+AND STILL COMMENT NOT UPLOADING AS NESTED IN CHIRP
+
+AND MAKE THE POST AND VIDEO SIZE ORIGNAL IN FEED AND IN MY PROFILE
+
+AFTER UPLOADING THE STORY IT COMING INTO ITS ORIGNAL FORM NOT THE ONE I EDITED IN STORY ,FIX IT.
+
+Redesign and optimize the entire Squawk app layout to behave like Instagram’s fully responsive UI across mobile phones, tablets, laptops, and desktop PCs.
+
+MAIN GOAL:
+Make the app automatically adapt to every screen size so all frames, buttons, feeds, reels, stories, comments, modals, and navigation fit perfectly without:
+
+* buttons getting cut off
+* text overlapping
+* frames overflowing
+* icons hiding
+* horizontal scrolling
+* broken layouts
+
+The app should feel smooth and premium on both mobile and desktop exactly like Instagram.
+
+RESPONSIVE LAYOUT SYSTEM:
+Create a fully adaptive responsive layout system using:
+
+* Flexbox
+* CSS Grid
+* responsive containers
+* fluid spacing
+* dynamic sizing
+
+Avoid fixed widths/heights unless necessary.
+
+Use:
+
+* max-width
+* min-width
+* width: 100%
+* responsive padding/margins
+* viewport units
+* flexible grids
+
+BREAKPOINTS:
+Optimize UI for:
+
+* Small mobile (320px+)
+* Standard mobile
+* Large mobile
+* Tablet
+* Laptop
+* Desktop
+* Ultrawide monitors
+
+NAVBAR RESPONSIVENESS:
+MOBILE:
+
+* Bottom navigation bar like Instagram
+* Proper spacing between icons
+* Fixed positioning
+* Prevent overlap with keyboard
+
+DESKTOP:
+
+* Left sidebar or responsive top navbar
+* Keep consistent spacing
+* Center content like Instagram desktop layout
+
+TOP NAVBAR:
+
+* Place Squawk logo in center
+* Responsive icons on left/right
+* Keep alignment balanced on all devices
+
+FEED RESPONSIVENESS:
+
+* Center feed on desktop
+* Proper max width similar to Instagram
+* Auto resize posts/videos
+* Prevent media overflow
+* Maintain proper aspect ratios
+
+POSTS & VIDEOS:
+
+* Videos/images should scale properly
+* Prevent cropping issues
+* Reels should fit fullscreen on mobile
+* Desktop reels should remain centered
+* Ensure controls stay visible
+
+STORIES SECTION:
+
+* Horizontally scrollable on mobile
+* Proper story circle sizing
+* Responsive story spacing
+* Prevent clipping on small screens
+
+COMMENTS MODAL:
+
+* Slide-up modal on mobile
+* Responsive centered modal on desktop
+* Scrollable comments area
+* Fixed input at bottom
+* Keyboard-safe spacing
+
+MESSAGES / DMS:
+MOBILE:
+
+* Fullscreen chat layout
+* Auto-hide sidebar
+
+DESKTOP:
+
+* Split-screen layout like Instagram web
+* Sidebar + chat window
+
+Prevent:
+
+* input hiding behind keyboard
+* overflowing messages
+* broken chat widths
+
+UPLOAD & CAMERA SCREENS:
+
+* Camera should adapt to portrait and landscape
+* Keep all controls visible
+* Prevent editing tools from going outside screen
+* Responsive upload editor
+
+BUTTONS & ICONS:
+
+* Touch-friendly sizing on mobile
+* Responsive scaling
+* Prevent overlap/cutoff
+* Proper spacing between actions
+
+TYPOGRAPHY:
+
+* Responsive font sizes
+* Prevent text clipping
+* Proper line wrapping
+* Readable on every screen size
+
+MODALS & POPUPS:
+
+* Fully responsive
+* Never exceed screen height
+* Add internal scrolling if content is large
+* Smooth transitions
+
+PERFORMANCE:
+
+* Prevent layout shifts
+* Optimize rendering on mobile devices
+* Smooth responsive transitions
+* Lazy load media/components
+
+TAILWIND/CSS REQUIREMENTS:
+Use responsive Tailwind classes:
+
+* sm:
+* md:
+* lg:
+* xl:
+* 2xl:
+
+Use:
+
+* flex-wrap
+* overflow handling
+* responsive spacing
+* aspect-ratio utilities
+* container max widths
+
+INSTAGRAM-LIKE STRUCTURE:
+DESKTOP:
+
+* centered feed
+* side spacing
+* clean balanced layout
+
+MOBILE:
+
+* edge-to-edge immersive experience
+* smooth gesture-friendly UI
+* fullscreen reels/stories
+
+TESTING:
+Ensure perfect responsiveness on:
+
+* iPhone
+* Android
+* tablets
+* laptop browsers
+* large monitors
+
+Fix every issue where:
+
+* frames break
+* buttons hide
+* icons overflow
+* elements overlap
+* UI cuts outside screen
+
+GOAL:
+Make Squawk feel like a premium production-ready social media app with Instagram-level responsive design, adaptive layouts, and smooth UI across all devices.
+
+
+
+Migrate and optimize the Squawk social media app infrastructure using modern scalable services instead of temporary/local Replit storage.
+
+IMPORTANT:
+Do NOT store uploaded images, videos, stories, reels, or user data locally inside Replit filesystem because files disappear after restart/redeploy.
+
+Use the following production-ready stack:
+
+TECH STACK:
+
+* Frontend Hosting → Vercel
+* Database → Supabase PostgreSQL
+* Media Storage → Cloudinary
+* Realtime Features → Socket.io
+* Frontend → React + Vite
+* Backend → Node.js + Express
+
+DATABASE:
+Use Supabase PostgreSQL database for storing:
+
+* users
+* profiles
+* posts
+* chirps
+* reels
+* stories metadata
+* comments
+* likes
+* followers/following
+* messages
+* notifications
+* bookmarks
+* hashtags
+* mentions
+
+Create optimized database schema and relationships.
+
+AUTH INTEGRATION:
+The app is already using Clerk authentication.
+Requirements:
+
+* connect Clerk user IDs with Supabase database users
+* automatically create user profile after signup/login
+* sync profile updates properly
+* protect authenticated routes
+* use Clerk session/user data throughout app
+
+MEDIA STORAGE:
+Use Cloudinary for:
+
+* images
+* videos
+* reels
+* stories
+* profile photos
+* post uploads
+
+Requirements:
+
+* upload files directly to Cloudinary
+* store permanent Cloudinary URLs inside Supabase database
+* never store uploads locally
+* add image/video compression
+* add upload progress bar
+* support JPG, PNG, WEBP, MP4
+
+UPLOAD FLOW:
+User uploads media
+→ Backend uploads to Cloudinary
+→ Cloudinary returns permanent URL
+→ Save URL in Supabase
+→ Feed loads media using saved Cloudinary URL
+
+CHIRPS FEATURE:
+Add X/Twitter-style “Chirps” system:
+
+* text posts
+* hashtags
+* mentions
+* images/videos
+* replies
+* rechirp
+* quote chirp
+* bookmarks
+* trending chirps
+* threaded discussions
+* chirp likes/comments/share
+
+COMMENTS:
+Upgrade comments with:
+
+* nested replies
+* like comment
+* reply to comment
+* emoji reactions
+* mentions
+* edit/delete own comments
+* realtime updates
+
+STORIES:
+Add story system with:
+
+* upload from camera
+* mention users
+* remention stories
+* “Add to Your Story”
+* story viewers
+* story replies
+
+DIRECT CAMERA:
+Add mobile-first camera upload system:
+
+* open camera directly
+* capture image/video
+* upload as:
+
+  * post
+  * chirp
+  * reel
+  * story
+* add:
+
+  * front/back switch
+  * flash toggle
+  * retake option
+  * filters
+  * basic editing tools
+
+DM SHARE:
+Add ability to share:
+
+* posts
+* reels
+* stories
+* chirps
+  directly to DMs.
+
+Share modal should include:
+
+* recent chats
+* followers list
+* search users
+* copy link
+* external share support
+
+REALTIME FEATURES:
+Use Socket.io for:
+
+* live messages
+* typing indicators
+* realtime notifications
+* realtime comments
+* realtime likes
+* story updates
+* online status
+
+PERFORMANCE:
+Optimize app performance:
+
+* lazy loading
+* infinite scroll
+* skeleton loaders
+* optimistic UI
+* caching
+* media optimization
+* prevent unnecessary rerenders
+
+VERCEL DEPLOYMENT:
+Prepare app for Vercel deployment:
+
+* proper Vite build configuration
+* add vercel.json for React Router support
+* configure environment variables
+* production-ready setup
+
+Add this vercel.json:
+{
+"rewrites": [
+{
+"source": "/(.*)",
+"destination": "/index.html"
+}
+]
+}
+
+ENVIRONMENT VARIABLES:
+Support:
+
+* VITE_CLERK_PUBLISHABLE_KEY
+* SUPABASE_URL
+* SUPABASE_ANON_KEY
+* CLOUDINARY_CLOUD_NAME
+* CLOUDINARY_API_KEY
+* CLOUDINARY_API_SECRET
+
+GOAL:
+Transform Squawk into a scalable modern social media platform with:
+
+* Instagram-style stories/reels
+* X/Twitter-style Chirps
+* realtime messaging
+* modern social interactions
+* reliable cloud media storage
+* production-ready deployment infrastructure.

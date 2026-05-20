@@ -28,21 +28,28 @@ export default function Sidebar() {
   ];
 
   return (
-    <aside className="hidden md:flex flex-col w-64 border-r border-border bg-card/50 backdrop-blur-xl h-full p-4 justify-between sticky top-0">
+    <aside className="hidden md:flex flex-col border-r border-border bg-card/50 backdrop-blur-xl h-full justify-between sticky top-0 w-16 lg:w-64 p-2 lg:p-4 shrink-0">
       <div>
-        <Link href="/home" className="flex items-center gap-3 px-4 py-4 mb-8" data-testid="link-logo">
-          <img src={import.meta.env.BASE_URL.replace(/\/$/, "") + "/logo.png"} alt="Squawk Logo" className="h-9 w-auto" />
+        <Link href="/home" className="flex items-center justify-center lg:justify-start gap-3 px-2 lg:px-4 py-4 mb-4 lg:mb-8" data-testid="link-logo">
+          <img src={import.meta.env.BASE_URL.replace(/\/$/, "") + "/logo.png"} alt="Squawk Logo" className="h-8 w-auto" />
         </Link>
         <nav className="space-y-1">
           {navItems.map((item) => {
             const isActive = location === item.href || (item.href.startsWith("/profile/") && location.startsWith("/profile/"));
             return (
               <Link key={item.href} href={item.href} className="block" data-testid={`link-${item.label.toLowerCase()}`}>
-                <div className={`flex items-center gap-4 px-4 py-3 rounded-2xl transition-all duration-200 group cursor-pointer ${isActive ? "bg-primary/10 text-primary font-semibold" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}>
-                  <item.icon className={`w-6 h-6 transition-transform ${isActive ? "scale-110" : "group-hover:scale-110"}`} />
-                  <span className="text-lg">{item.label}</span>
+                <div className={`flex items-center gap-0 lg:gap-4 justify-center lg:justify-start px-2 lg:px-4 py-3 rounded-2xl transition-all duration-200 group cursor-pointer ${isActive ? "bg-primary/10 text-primary font-semibold" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}>
+                  <div className="relative shrink-0">
+                    <item.icon className={`w-6 h-6 transition-transform ${isActive ? "scale-110" : "group-hover:scale-110"}`} />
+                    {item.badge ? (
+                      <span className="lg:hidden absolute -top-1 -right-1 bg-primary text-primary-foreground text-[9px] font-black w-4 h-4 flex items-center justify-center rounded-full">
+                        {item.badge > 9 ? "9+" : item.badge}
+                      </span>
+                    ) : null}
+                  </div>
+                  <span className="hidden lg:block text-lg">{item.label}</span>
                   {item.badge ? (
-                    <span className="ml-auto bg-primary text-primary-foreground text-xs font-black px-2 py-0.5 rounded-full min-w-[22px] text-center">
+                    <span className="hidden lg:block ml-auto bg-primary text-primary-foreground text-xs font-black px-2 py-0.5 rounded-full min-w-[22px] text-center">
                       {item.badge > 99 ? "99+" : item.badge}
                     </span>
                   ) : null}
@@ -57,29 +64,29 @@ export default function Sidebar() {
         {/* Theme toggle */}
         <button
           onClick={toggle}
-          className="w-full flex items-center gap-4 px-4 py-3 rounded-2xl text-muted-foreground hover:bg-muted hover:text-foreground transition-all cursor-pointer group"
+          className="w-full flex items-center justify-center lg:justify-start gap-0 lg:gap-4 px-2 lg:px-4 py-3 rounded-2xl text-muted-foreground hover:bg-muted hover:text-foreground transition-all cursor-pointer group"
           title={theme === "dark" ? "Switch to Light Mode" : "Switch to Dark Mode"}
         >
           {theme === "dark"
-            ? <Sun className="w-6 h-6 group-hover:text-yellow-400 transition-colors" />
-            : <Moon className="w-6 h-6 group-hover:text-primary transition-colors" />
+            ? <Sun className="w-6 h-6 shrink-0 group-hover:text-yellow-400 transition-colors" />
+            : <Moon className="w-6 h-6 shrink-0 group-hover:text-primary transition-colors" />
           }
-          <span className="text-lg">{theme === "dark" ? "Light Mode" : "Dark Mode"}</span>
+          <span className="hidden lg:block text-lg">{theme === "dark" ? "Light Mode" : "Dark Mode"}</span>
         </button>
 
         <Link href="/settings" className="block" data-testid="link-settings">
-          <div className="flex items-center gap-4 px-4 py-3 rounded-2xl text-muted-foreground hover:bg-muted hover:text-foreground transition-all cursor-pointer">
-            <Settings className="w-6 h-6" />
-            <span className="text-lg">Settings</span>
+          <div className="flex items-center justify-center lg:justify-start gap-0 lg:gap-4 px-2 lg:px-4 py-3 rounded-2xl text-muted-foreground hover:bg-muted hover:text-foreground transition-all cursor-pointer">
+            <Settings className="w-6 h-6 shrink-0" />
+            <span className="hidden lg:block text-lg">Settings</span>
           </div>
         </Link>
         <button
           onClick={() => signOut({ redirectUrl: "/" })}
-          className="w-full flex items-center gap-4 px-4 py-3 rounded-2xl text-destructive hover:bg-destructive/10 transition-all cursor-pointer"
+          className="w-full flex items-center justify-center lg:justify-start gap-0 lg:gap-4 px-2 lg:px-4 py-3 rounded-2xl text-destructive hover:bg-destructive/10 transition-all cursor-pointer"
           data-testid="button-logout"
         >
-          <LogOut className="w-6 h-6" />
-          <span className="text-lg">Log out</span>
+          <LogOut className="w-6 h-6 shrink-0" />
+          <span className="hidden lg:block text-lg">Log out</span>
         </button>
       </div>
     </aside>

@@ -8,6 +8,7 @@ export const storiesTable = pgTable("stories", {
   mediaType: text("media_type").notNull().$type<"image" | "video">(),
   caption: text("caption"),
   objectFit: text("object_fit").notNull().default("cover").$type<"cover" | "contain">(),
+  textLayers: text("text_layers"),
   viewsCount: integer("views_count").notNull().default(0),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),

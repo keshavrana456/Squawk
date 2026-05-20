@@ -172,10 +172,19 @@ export default function StoryUploadModal({ open, onClose, onSuccess }: StoryUplo
       const captionLayer = textLayers.find(t => t.text.trim() && !/^\p{Emoji}/u.test(t.text.trim()));
       const caption = captionLayer?.text.trim() || null;
 
+      // Serialize all text layers for storage
+      const textLayersJson = textLayers.length > 0 ? JSON.stringify(textLayers) : null;
+
       const storyRes = await fetch("/api/stories", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mediaUrl, mediaType: file.type.startsWith("video/") ? "video" : "image", caption, objectFit }),
+        body: JSON.stringify({
+          mediaUrl,
+          mediaType: file.type.startsWith("video/") ? "video" : "image",
+          caption,
+          objectFit,
+          textLayers: textLayersJson,
+        }),
       });
       if (!storyRes.ok) throw new Error("Failed to post story");
 

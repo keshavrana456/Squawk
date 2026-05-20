@@ -61,6 +61,7 @@ router.get("/stories", requireUser, async (req, res): Promise<void> => {
       isViewed,
       objectFit: story.objectFit ?? "cover",
       caption: story.caption ?? null,
+      textLayers: story.textLayers ?? null,
     });
   }
 
@@ -81,6 +82,7 @@ const CreateStoryBodyExtended = z.object({
   mediaType: z.enum(["image", "video"]),
   caption: z.string().optional().nullable(),
   objectFit: z.enum(["cover", "contain"]).optional().default("cover"),
+  textLayers: z.string().optional().nullable(),
 });
 
 // POST /stories
@@ -99,6 +101,7 @@ router.post("/stories", requireUser, async (req, res): Promise<void> => {
     mediaType: parsed.data.mediaType,
     caption: parsed.data.caption ?? null,
     objectFit: parsed.data.objectFit ?? "cover",
+    textLayers: parsed.data.textLayers ?? null,
     expiresAt,
   }).returning();
 
@@ -110,6 +113,7 @@ router.post("/stories", requireUser, async (req, res): Promise<void> => {
     mediaType: story.mediaType,
     caption: story.caption,
     objectFit: story.objectFit,
+    textLayers: story.textLayers ?? null,
     viewsCount: story.viewsCount,
     createdAt: story.createdAt.toISOString(),
     expiresAt: story.expiresAt.toISOString(),

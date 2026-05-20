@@ -28,6 +28,16 @@ function StoryViewer({ groups, startIndex, onClose }: { groups: StoryGroup[]; st
   const caption: string | null = (currentStory as any)?.caption ?? null;
   const TICK = 50;
 
+  type TextLayer = {
+    id: string; text: string; x: number; y: number;
+    fontSize: number; color: string; bgStyle: "none" | "black" | "white";
+  };
+  const textLayers: TextLayer[] = (() => {
+    const raw = (currentStory as any)?.textLayers;
+    if (!raw) return [];
+    try { return JSON.parse(raw) as TextLayer[]; } catch { return []; }
+  })();
+
   const goNext = useCallback(() => {
     if (storyIndex < (currentGroup?.stories.length ?? 1) - 1) {
       setStoryIndex(i => i + 1);
@@ -157,8 +167,32 @@ function StoryViewer({ groups, startIndex, onClose }: { groups: StoryGroup[]; st
             />
           )}
 
-          {/* Caption overlay */}
-          {caption && (
+          {/* Text layers overlay */}
+          {textLayers.map(layer => (
+            <div
+              key={layer.id}
+              className="absolute pointer-events-none select-none"
+              style={{
+                left: `${layer.x}%`,
+                top: `${layer.y}%`,
+                transform: "translate(-50%, -50%)",
+                zIndex: 15,
+              }}
+            >
+              <div
+                className={`px-2 py-1 rounded-lg text-center max-w-[200px] break-words ${
+                  layer.bgStyle === "black" ? "bg-black/70 backdrop-blur-sm" :
+                  layer.bgStyle === "white" ? "bg-white/80" : ""
+                }`}
+                style={{ fontSize: `${layer.fontSize}px`, color: layer.color, lineHeight: 1.3 }}
+              >
+                {layer.text}
+              </div>
+            </div>
+          ))}
+
+          {/* Caption overlay (fallback if no text layers) */}
+          {caption && textLayers.length === 0 && (
             <div className="absolute bottom-16 left-0 right-0 flex justify-center px-4 z-10">
               <div className="bg-black/50 backdrop-blur-md rounded-xl px-4 py-2 max-w-[85%] text-center">
                 <p className="text-white text-sm font-medium leading-snug break-words">{caption}</p>
