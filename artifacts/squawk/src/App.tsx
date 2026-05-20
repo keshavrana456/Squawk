@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { ClerkProvider, SignIn, SignUp, Show, useClerk, useUser, useSignIn, useSignUp, AuthenticateWithRedirectCallback } from '@clerk/react';
+import { ClerkProvider, Show, useClerk, useUser, useSignIn, useSignUp, AuthenticateWithRedirectCallback } from '@clerk/react';
 import { publishableKeyFromHost } from '@clerk/react/internal';
 import { shadcn } from '@clerk/themes';
 import { Switch, Route, useLocation, Router as WouterRouter, Redirect } from 'wouter';
@@ -220,33 +220,200 @@ function SsoCallbackPage() {
   );
 }
 
-function SignInPage() {
+const inputCls = "w-full rounded-lg border border-border bg-input px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition";
+const btnCls = "w-full h-10 rounded-lg font-semibold text-sm text-white transition-all hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2";
+const gradientBg = { background: "linear-gradient(135deg, #ec4899, #9333ea)" };
+
+function AuthCard({ children, title, subtitle }: { children: React.ReactNode; title: string; subtitle?: string }) {
+  return (
+    <div className="w-full max-w-[440px] rounded-2xl border border-border bg-card shadow-2xl p-8">
+      <div className="flex justify-center mb-5">
+        <img src={`${basePath || ""}/logo.png`} alt="Squawk" className="h-14 w-auto" />
+      </div>
+      <h1 className="text-xl font-bold text-foreground text-center mb-1">{title}</h1>
+      {subtitle && <p className="text-sm text-muted-foreground text-center mb-6">{subtitle}</p>}
+      {children}
+    </div>
+  );
+}
+
+function ErrorMsg({ msg }: { msg: string }) {
+  if (!msg) return null;
+  return <p className="text-xs text-red-400 mt-1 text-center">{msg}</p>;
+}
+
+function EmailSignUpForm() {
+  const { signUp, setActive } = useSignUp();
+  const [, setLocation] = useLocation();
+  const [step, setStep] = useState<"details" | "verify">("details");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [code, setCode] = useState("");
+
+  const handleCreate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!signUp) return;
+    setLoading(true);
+    setError("");
+    try {
+      await signUp.create({ firstName, lastName, emailAddress: email, password });
+      await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
+      setStep("verify");
+    } catch (err: any) {
+      setError(err?.errors?.[0]?.longMessage ?? err?.errors?.[0]?.message ?? "Sign up failed. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerify = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!signUp) return;
+    setLoading(true);
+    setError("");
+    try {
+      const result = await signUp.attemptEmailAddressVerification({ code });
+      if (result.status === "complete") {
+        await setActive!({ session: result.createdSessionId });
+        setLocation("/home");
+      } else {
+        setError("Verification incomplete. Please try again.");
+      }
+    } catch (err: any) {
+      setError(err?.errors?.[0]?.longMessage ?? err?.errors?.[0]?.message ?? "Invalid code. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (step === "verify") {
+    return (
+      <AuthCard title="Check your email" subtitle={`We sent a 6-digit code to ${email}`}>
+        <form onSubmit={handleVerify} className="flex flex-col gap-3 mt-4">
+          <input
+            className={inputCls}
+            placeholder="Enter verification code"
+            value={code}
+            onChange={e => setCode(e.target.value)}
+            maxLength={6}
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            autoFocus
+            required
+          />
+          <ErrorMsg msg={error} />
+          <button type="submit" disabled={loading || code.length < 6} style={gradientBg} className={btnCls}>
+            {loading ? <span className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" /> : "Verify email"}
+          </button>
+          <button type="button" onClick={() => { setStep("details"); setError(""); setCode(""); }} className="text-xs text-muted-foreground hover:text-foreground text-center mt-1 transition">
+            ← Back
+          </button>
+        </form>
+      </AuthCard>
+    );
+  }
+
+  return (
+    <AuthCard title="Create your account" subtitle="Join the 10K Squad community">
+      <form onSubmit={handleCreate} className="flex flex-col gap-3 mt-2">
+        <div className="flex gap-2">
+          <input className={inputCls} placeholder="First name" value={firstName} onChange={e => setFirstName(e.target.value)} autoComplete="given-name" required />
+          <input className={inputCls} placeholder="Last name" value={lastName} onChange={e => setLastName(e.target.value)} autoComplete="family-name" required />
+        </div>
+        <input className={inputCls} type="email" placeholder="Email address" value={email} onChange={e => setEmail(e.target.value)} autoComplete="email" required />
+        <input className={inputCls} type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} autoComplete="new-password" minLength={8} required />
+        <ErrorMsg msg={error} />
+        <button type="submit" disabled={loading} style={gradientBg} className={`${btnCls} mt-1`}>
+          {loading ? <span className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" /> : "Continue"}
+        </button>
+        <p className="text-xs text-muted-foreground text-center mt-1">
+          Already have an account?{" "}
+          <a href={`${basePath}/sign-in`} className="text-primary hover:underline">Sign in</a>
+        </p>
+      </form>
+    </AuthCard>
+  );
+}
+
+function EmailSignInForm() {
+  const { signIn, setActive } = useSignIn();
+  const [, setLocation] = useLocation();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!signIn) return;
+    setLoading(true);
+    setError("");
+    try {
+      const result = await signIn.create({ identifier: email, password });
+      if (result.status === "complete") {
+        await setActive!({ session: result.createdSessionId });
+        setLocation("/home");
+      } else {
+        setError("Sign in incomplete. Please try again.");
+      }
+    } catch (err: any) {
+      setError(err?.errors?.[0]?.longMessage ?? err?.errors?.[0]?.message ?? "Invalid email or password.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <AuthCard title="Welcome back" subtitle="Sign in to your Squawk account">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-3 mt-2">
+        <input className={inputCls} type="email" placeholder="Email address" value={email} onChange={e => setEmail(e.target.value)} autoComplete="email" required autoFocus />
+        <input className={inputCls} type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} autoComplete="current-password" required />
+        <ErrorMsg msg={error} />
+        <button type="submit" disabled={loading} style={gradientBg} className={`${btnCls} mt-1`}>
+          {loading ? <span className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" /> : "Sign in"}
+        </button>
+        <p className="text-xs text-muted-foreground text-center mt-1">
+          Don't have an account?{" "}
+          <a href={`${basePath}/sign-up`} className="text-primary hover:underline">Sign up</a>
+        </p>
+      </form>
+    </AuthCard>
+  );
+}
+
+function AuthPageShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-[100dvh] items-center justify-center bg-background px-4 relative overflow-hidden dark">
-      <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
-        <div className="absolute -top-[20%] -left-[10%] w-[50%] h-[50%] rounded-full bg-primary/15 blur-[120px]" />
-        <div className="absolute bottom-[0%] -right-[10%] w-[50%] h-[50%] rounded-full bg-secondary/15 blur-[120px]" />
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute -top-[20%] -left-[10%] w-[55%] h-[55%] rounded-full bg-primary/15 blur-[130px]" />
+        <div className="absolute bottom-0 -right-[10%] w-[50%] h-[50%] rounded-full bg-secondary/15 blur-[120px]" />
       </div>
-      <div className="relative z-10 w-full flex flex-col items-center">
-        <OAuthButtons mode="sign-in" />
-        <SignIn routing="path" path={`${basePath}/sign-in`} signUpUrl={`${basePath}/sign-up`} />
+      <div className="relative z-10 w-full flex flex-col items-center gap-3">
+        {children}
       </div>
     </div>
   );
 }
 
+function SignInPage() {
+  return (
+    <AuthPageShell>
+      <OAuthButtons mode="sign-in" />
+      <EmailSignInForm />
+    </AuthPageShell>
+  );
+}
+
 function SignUpPage() {
   return (
-    <div className="flex min-h-[100dvh] items-center justify-center bg-background px-4 relative overflow-hidden dark">
-      <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
-        <div className="absolute -top-[20%] -right-[10%] w-[50%] h-[50%] rounded-full bg-primary/15 blur-[120px]" />
-        <div className="absolute bottom-[0%] -left-[10%] w-[50%] h-[50%] rounded-full bg-secondary/15 blur-[120px]" />
-      </div>
-      <div className="relative z-10 w-full flex flex-col items-center">
-        <OAuthButtons mode="sign-up" />
-        <SignUp routing="path" path={`${basePath}/sign-up`} signInUrl={`${basePath}/sign-in`} />
-      </div>
-    </div>
+    <AuthPageShell>
+      <OAuthButtons mode="sign-up" />
+      <EmailSignUpForm />
+    </AuthPageShell>
   );
 }
 
