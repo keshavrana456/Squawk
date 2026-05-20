@@ -130,11 +130,16 @@ function ChirpCard({ chirp, onReply }: { chirp: ChirpData; onReply?: (chirp: Chi
     rechirpMut.mutate(chirp.id);
   };
 
-  const handleShare = () => {
+  const handleShare = async () => {
+    const url = `${window.location.origin}/chirps/${chirp.id}`;
     if (navigator.share) {
-      navigator.share({ title: `@${chirp.author.username} on Squawk`, text: chirp.content, url: window.location.href });
+      try {
+        await navigator.share({ title: `@${chirp.author.username} on Squawk`, text: chirp.content, url });
+      } catch {
+        // Share cancelled or failed — silently ignore
+      }
     } else {
-      navigator.clipboard.writeText(`${window.location.origin}/chirps/${chirp.id}`);
+      navigator.clipboard.writeText(url).catch(() => {});
     }
   };
 

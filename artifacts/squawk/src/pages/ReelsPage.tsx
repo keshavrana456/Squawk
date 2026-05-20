@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useListPosts, useLikePost, useSavePost, useGetPostComments, useCreateComment, type Post } from "@workspace/api-client-react";
-import { Heart, MessageCircle, Bookmark, Volume2, VolumeX, MoreHorizontal, X, Send } from "lucide-react";
+import { Heart, MessageCircle, Bookmark, Volume2, VolumeX, MoreHorizontal, X, Send, PlusCircle } from "lucide-react";
+import StoryUploadModal from "@/components/StoryUploadModal";
 import { Link } from "wouter";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { motion, AnimatePresence } from "framer-motion";
@@ -111,24 +112,43 @@ export default function ReelsPage() {
   );
 
   if (!reels.length) return (
-    <div className="flex flex-col items-center justify-center h-full min-h-screen bg-black gap-4 text-white/40 p-8 text-center">
-      <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="opacity-30">
+    <div className="flex flex-col items-center justify-center h-full min-h-screen bg-black gap-6 p-8 text-center">
+      <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-white/20">
         <rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"/>
         <line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/>
         <line x1="2" y1="12" x2="22" y2="12"/>
         <line x1="2" y1="7" x2="7" y2="7"/><line x1="2" y1="17" x2="7" y2="17"/>
         <line x1="17" y1="17" x2="22" y2="17"/><line x1="17" y1="7" x2="22" y2="7"/>
       </svg>
-      <p className="text-lg font-bold text-white/50">No Flow videos yet</p>
-      <p className="text-sm text-white/30 max-w-xs">Be the first to post a video to Flow. Upload a video from the Create page.</p>
+      <div>
+        <p className="text-lg font-bold text-white/60 mb-1">No Flow videos yet</p>
+        <p className="text-sm text-white/30 max-w-xs">Be the first to post a video</p>
+      </div>
+      <Link href="/upload">
+        <button className="flex items-center gap-2 px-6 py-3 rounded-full bg-gradient-to-r from-primary to-[#c084fc] text-white font-semibold text-sm hover:opacity-90 transition-opacity">
+          <PlusCircle className="w-5 h-5" />
+          Upload a Video
+        </button>
+      </Link>
     </div>
   );
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="h-[100dvh] w-full bg-black snap-y snap-mandatory overflow-y-auto no-scrollbar">
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="h-[100dvh] w-full bg-black snap-y snap-mandatory overflow-y-auto no-scrollbar relative">
       {reels.map((post: any) => (
         <Reel key={post.id} post={post} muted={muted} setMuted={setMuted} />
       ))}
+
+      {/* Floating upload button */}
+      <Link href="/upload">
+        <button
+          className="fixed bottom-24 right-4 md:bottom-6 md:right-6 z-40 flex items-center gap-2 px-4 py-3 rounded-full bg-gradient-to-r from-primary to-[#c084fc] text-white font-semibold text-sm shadow-lg hover:opacity-90 transition-opacity"
+          title="Upload a video"
+        >
+          <PlusCircle className="w-5 h-5" />
+          <span className="hidden md:inline">Upload</span>
+        </button>
+      </Link>
     </motion.div>
   );
 }

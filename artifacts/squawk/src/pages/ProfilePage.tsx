@@ -5,7 +5,8 @@ import {
   useGetUserFollowers, useGetUserFollowing,
   type Post, type UserSummary,
 } from "@workspace/api-client-react";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import StoryUploadModal from "@/components/StoryUploadModal";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { BadgeCheck, Grid, Film, X, ImagePlus, Crown, Settings, PlusCircle, Bookmark } from "lucide-react";
@@ -115,6 +116,7 @@ export default function ProfilePage() {
   const [isLoadingSaved, setIsLoadingSaved] = useState(false);
 
   const bannerInputRef = useRef<HTMLInputElement>(null);
+  const [showStoryUpload, setShowStoryUpload] = useState(false);
   const [bannerUploading, setBannerUploading] = useState(false);
   const [founderToggling, setFounderToggling] = useState(false);
 
@@ -220,7 +222,7 @@ export default function ProfilePage() {
             {/* Story add button */}
             {isMe && (
               <button
-                onClick={() => navigate("/upload")}
+                onClick={() => setShowStoryUpload(true)}
                 className="absolute bottom-2 right-0 w-9 h-9 bg-primary rounded-full border-4 border-background flex items-center justify-center shadow-lg hover:bg-primary/90 transition-colors z-10"
                 title="Add to story"
               >
@@ -366,6 +368,12 @@ export default function ProfilePage() {
           />
         )}
       </AnimatePresence>
+
+      <StoryUploadModal
+        open={showStoryUpload}
+        onClose={() => setShowStoryUpload(false)}
+        onSuccess={() => setShowStoryUpload(false)}
+      />
     </motion.div>
   );
 }
