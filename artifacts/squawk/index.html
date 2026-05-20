@@ -4,18 +4,32 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
     <title>Squawk</title>
-    <meta name="description" content="Squawk — built on Replit. Update this description to reflect the app." />
+    <meta name="description" content="Squawk — the social home of the 10K Squad." />
     <meta name="robots" content="index, follow" />
     <meta property="og:title" content="Squawk" />
-    <meta property="og:description" content="Squawk — built on Replit. Update this description to reflect the app." />
+    <meta property="og:description" content="Squawk — the social home of the 10K Squad." />
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Squawk" />
-    <meta name="twitter:description" content="Squawk — built on Replit. Update this description to reflect the app." />
+    <meta name="twitter:description" content="Squawk — the social home of the 10K Squad." />
     <link rel="icon" type="image/png" href="/logo.png" />
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- DNS / connection warm-up -->
+    <link rel="preconnect" href="https://clerk.bursting-blowfish-29.accounts.dev" crossorigin />
+    <link rel="preconnect" href="https://bursting-blowfish-29.clerk.accounts.dev" crossorigin />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+    <!-- Outfit is the font used by Clerk appearance + UI — load it directly -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Inline critical dark background so there's no white flash before React mounts -->
+    <style>
+      html, body, #root { background: hsl(268, 40%, 10%); margin: 0; padding: 0; }
+    </style>
   </head>
   <body>
     <div id="root"></div>

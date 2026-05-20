@@ -13,19 +13,32 @@ import { SocketProvider } from "@/contexts/SocketContext";
 import { AnimatePresence } from "framer-motion";
 import SplashScreen from "./components/SplashScreen";
 
+import { lazy, Suspense } from "react";
 import AppLayout from "./components/layout/AppLayout";
+
+// Eagerly loaded — needed immediately on first paint
 import LandingPage from "./pages/LandingPage";
-import HomePage from "./pages/HomePage";
 import OnboardingPage from "./pages/OnboardingPage";
-import ExplorePage from "./pages/ExplorePage";
-import ReelsPage from "./pages/ReelsPage";
-import MessagesPage from "./pages/MessagesPage";
-import NotificationsPage from "./pages/NotificationsPage";
-import UploadPage from "./pages/UploadPage";
-import ProfilePage from "./pages/ProfilePage";
-import PostPage from "./pages/PostPage";
-import SettingsPage from "./pages/SettingsPage";
-import ChirpsPage from "./pages/ChirpsPage";
+
+// Lazily loaded — only fetched after auth, reducing initial bundle size
+const HomePage = lazy(() => import("./pages/HomePage"));
+const ExplorePage = lazy(() => import("./pages/ExplorePage"));
+const ReelsPage = lazy(() => import("./pages/ReelsPage"));
+const MessagesPage = lazy(() => import("./pages/MessagesPage"));
+const NotificationsPage = lazy(() => import("./pages/NotificationsPage"));
+const UploadPage = lazy(() => import("./pages/UploadPage"));
+const ProfilePage = lazy(() => import("./pages/ProfilePage"));
+const PostPage = lazy(() => import("./pages/PostPage"));
+const SettingsPage = lazy(() => import("./pages/SettingsPage"));
+const ChirpsPage = lazy(() => import("./pages/ChirpsPage"));
+
+function PageLoader() {
+  return (
+    <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="w-10 h-10 rounded-full border-4 border-primary/30 border-t-primary animate-spin" />
+    </div>
+  );
+}
 
 const clerkPubKey = publishableKeyFromHost(
   window.location.hostname,
@@ -319,7 +332,9 @@ function ProtectedRoute({ component: Component, ...rest }: any) {
       <Show when="signed-in">
         <AuthGuard>
           <AppLayout>
-            <Component />
+            <Suspense fallback={<PageLoader />}>
+              <Component />
+            </Suspense>
           </AppLayout>
         </AuthGuard>
       </Show>
