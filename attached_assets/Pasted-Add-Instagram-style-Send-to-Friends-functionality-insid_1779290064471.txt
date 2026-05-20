@@ -1,0 +1,110 @@
+Add Instagram-style “Send to Friends” functionality inside the share button for posts, reels, stories, and Chirps in the Squawk app.
+
+MAIN GOAL:
+When a user clicks the share button on any post/reel/story/chirp, allow them to directly send that content to friends inside DMs just like Instagram.
+
+SHARE BUTTON BEHAVIOR:
+
+* Clicking share icon should open a modern slide-up share modal.
+* Modal should animate smoothly from bottom.
+* Background should blur/darken.
+
+SHARE MODAL FEATURES:
+Top Section:
+
+* “Share” title
+* close button
+* search bar for users
+
+Middle Section:
+Show:
+
+* recent chats
+* followers/following
+* suggested friends
+* group chats
+
+Each user card should include:
+
+* profile picture
+* username
+* online status
+* selectable checkbox/button
+
+Bottom Section:
+Options:
+
+* Send Separately
+* Create Group
+* Copy Link
+* External Share
+
+DM SHARING:
+When user selects a friend and clicks send:
+
+* instantly send the post/reel/story/chirp inside DM conversation.
+* shared content should appear as preview card inside chat.
+
+SHARED CONTENT CARD:
+Display:
+
+* thumbnail/media preview
+* username of creator
+* caption preview
+* clickable link to original post
+
+If recipient clicks shared post:
+
+* open original post/reel/chirp/story directly.
+
+REALTIME FEATURES:
+
+* message should send instantly without refresh.
+* realtime updates using Socket.io.
+* show “Sent” confirmation animation/toast.
+* update latest chat preview automatically.
+
+SUPPORTED CONTENT:
+Allow sharing:
+
+* posts
+* reels
+* stories
+* chirps
+* videos
+* GIFs
+* profiles
+
+UI/UX REQUIREMENTS:
+
+* Instagram-inspired premium design
+* responsive on mobile and desktop
+* smooth animations
+* rounded modern cards
+* dark mode support
+* touch-friendly interactions
+
+BACKEND REQUIREMENTS:
+Store shared messages in database with:
+
+* senderId
+* receiverId
+* postId/contentId
+* contentType
+* timestamp
+
+Ensure proper relationship mapping between:
+
+* users
+* chats
+* shared content
+
+PERFORMANCE:
+
+* lazy load conversations
+* optimize share modal rendering
+* prevent duplicate sends
+* preload recent chats
+
+GOAL:
+Make Squawk’s share system feel exactly like Instagram DM sharing where users can instantly send posts/reels/chirps/stories to friends directly inside chats with realtime interaction and polished UX.
