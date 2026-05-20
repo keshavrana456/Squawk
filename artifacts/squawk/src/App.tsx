@@ -169,20 +169,20 @@ function OAuthSection({ mode }: { mode: "sign-in" | "sign-up" }) {
 
   return (
     <>
-      <div className="flex flex-col gap-2.5 mt-2">
+      <div className="flex items-center justify-center gap-3 mt-2">
         {OAUTH_PROVIDERS.map((p) => (
           <button
             key={p.id}
             onClick={() => handleOAuth(p.id)}
             disabled={loadingProvider !== null}
-            className="flex items-center justify-center gap-3 w-full h-10 rounded-lg border border-border bg-muted/30 hover:bg-muted/60 transition-colors text-sm font-medium text-foreground disabled:opacity-50 disabled:cursor-not-allowed"
+            title={`Continue with ${p.label}`}
+            className="flex items-center justify-center w-12 h-12 rounded-xl border border-border bg-muted/30 hover:bg-muted/60 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loadingProvider === p.id ? (
               <span className="w-4 h-4 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
             ) : (
               p.icon
             )}
-            Continue with {p.label}
           </button>
         ))}
       </div>
@@ -245,7 +245,12 @@ function EmailSignUpForm() {
     setLoading(true);
     setError("");
     try {
-      await signUp.create({ firstName, lastName, emailAddress: email, password });
+      const created = await signUp.create({ firstName, lastName, emailAddress: email, password });
+      if (created.status === "complete") {
+        await setActive!({ session: created.createdSessionId });
+        window.location.href = `${window.location.origin}${basePath}/home`;
+        return;
+      }
       await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
       setStep("verify");
     } catch (err: any) {
@@ -264,13 +269,13 @@ function EmailSignUpForm() {
       const result = await signUp.attemptEmailAddressVerification({ code });
       if (result.status === "complete") {
         await setActive!({ session: result.createdSessionId });
-        setLocation("/home");
+        window.location.href = `${window.location.origin}${basePath}/home`;
       } else {
         setError("Verification incomplete. Please try again.");
+        setLoading(false);
       }
     } catch (err: any) {
       setError(err?.errors?.[0]?.longMessage ?? err?.errors?.[0]?.message ?? "Invalid code. Please try again.");
-    } finally {
       setLoading(false);
     }
   };
@@ -313,6 +318,7 @@ function EmailSignUpForm() {
         <input className={inputCls} type="email" placeholder="Email address" value={email} onChange={e => setEmail(e.target.value)} autoComplete="email" required />
         <input className={inputCls} type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} autoComplete="new-password" minLength={8} required />
         <ErrorMsg msg={error} />
+        <div id="clerk-captcha" />
         <button type="submit" disabled={loading} style={gradientBg} className={`${btnCls} mt-1`}>
           {loading ? <span className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" /> : "Continue"}
         </button>
@@ -342,7 +348,7 @@ function EmailSignInForm() {
       const result = await signIn.create({ identifier: email, password });
       if (result.status === "complete") {
         await setActive!({ session: result.createdSessionId });
-        setLocation("/home");
+        window.location.href = `${window.location.origin}${basePath}/home`;
       } else {
         setError("Sign in incomplete. Please try again.");
       }

@@ -30,6 +30,29 @@
     <style>
       html, body, #root { background: hsl(268, 40%, 10%); margin: 0; padding: 0; }
     </style>
+
+    <!-- Suppress MetaMask / wallet extension errors BEFORE Vite's overlay listener installs -->
+    <script>
+      (function () {
+        function isBrowserExtensionError(msg, stack, src) {
+          var s = stack || '', m = msg || '', f = src || '';
+          return s.includes('chrome-extension://') || s.includes('moz-extension://') ||
+                 f.includes('chrome-extension://') || f.includes('moz-extension://') ||
+                 m.includes('MetaMask') || m.includes('ethereum') || m.includes('Web3');
+        }
+        window.addEventListener('error', function (e) {
+          if (isBrowserExtensionError(e.message, e.error && e.error.stack, e.filename)) {
+            e.preventDefault(); e.stopImmediatePropagation();
+          }
+        }, true);
+        window.addEventListener('unhandledrejection', function (e) {
+          var r = e.reason || {};
+          if (isBrowserExtensionError(r.message, r.stack, '')) {
+            e.preventDefault(); e.stopImmediatePropagation();
+          }
+        }, true);
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
