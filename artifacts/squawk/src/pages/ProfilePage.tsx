@@ -9,10 +9,10 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import StoryUploadModal from "@/components/StoryUploadModal";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { BadgeCheck, Grid, Film, X, ImagePlus, Crown, Settings, PlusCircle, Bookmark } from "lucide-react";
+import { BadgeCheck, Grid, Film, X, ImagePlus, Crown, Settings, PlusCircle, Bookmark, BarChart2, TrendingUp, Users, Layers, Activity, ExternalLink } from "lucide-react";
 import PostGrid from "@/components/PostGrid";
 import { motion, AnimatePresence } from "framer-motion";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
 
 async function uploadFile(file: File): Promise<string> {
   const formData = new FormData();
@@ -118,6 +118,18 @@ export default function ProfilePage() {
   const bannerInputRef = useRef<HTMLInputElement>(null);
   const [showStoryUpload, setShowStoryUpload] = useState(false);
   const [bannerUploading, setBannerUploading] = useState(false);
+  const [show10kStats, setShow10kStats] = useState(false);
+
+  const { data: nftStats, isLoading: nftLoading } = useQuery<any>({
+    queryKey: ["nftStats"],
+    queryFn: async () => {
+      const res = await fetch("/api/nft/stats");
+      if (!res.ok) throw new Error("Failed to fetch NFT stats");
+      return res.json();
+    },
+    enabled: show10kStats,
+    staleTime: 60_000,
+  });
   const [founderToggling, setFounderToggling] = useState(false);
 
   const isAppOwner = (me as any)?.id === 1;
@@ -247,10 +259,18 @@ export default function ProfilePage() {
 
           <div className="flex gap-3 md:pb-4 z-10 w-full md:w-auto flex-wrap">
             {isMe ? (
-              <div className="flex gap-2 w-full md:w-auto">
+              <div className="flex gap-2 w-full md:w-auto flex-wrap">
                 <Link href="/settings" className="flex-1 md:flex-initial">
                   <Button variant="secondary" className="w-full md:w-36 font-semibold rounded-full border border-border btn-water">Edit Profile</Button>
                 </Link>
+                <Button
+                  variant="secondary"
+                  onClick={() => setShow10kStats(true)}
+                  className="rounded-full border border-border btn-water px-4 flex items-center gap-2 font-semibold text-sm shrink-0"
+                >
+                  <BarChart2 className="w-4 h-4 text-primary" />
+                  10K Squad
+                </Button>
                 <Link href="/settings">
                   <Button variant="ghost" size="icon" className="rounded-full border border-border btn-water shrink-0">
                     <Settings className="w-4 h-4" />
@@ -388,6 +408,153 @@ export default function ProfilePage() {
         onClose={() => setShowStoryUpload(false)}
         onSuccess={() => setShowStoryUpload(false)}
       />
+
+      {/* 10K Squad Stats Modal */}
+      <AnimatePresence>
+        {show10kStats && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-end md:items-center justify-center p-0 md:p-4"
+            onClick={() => setShow10kStats(false)}
+          >
+            <motion.div
+              initial={{ y: 60, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 60, opacity: 0 }}
+              transition={{ type: "spring", damping: 28, stiffness: 300 }}
+              className="w-full md:max-w-md bg-card border border-border rounded-t-3xl md:rounded-3xl overflow-hidden shadow-2xl"
+              onClick={e => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-border">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-primary to-[#c084fc] flex items-center justify-center shadow-lg">
+                    <BarChart2 className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h2 className="font-bold text-foreground text-base">10K Squad Stats</h2>
+                    <p className="text-xs text-muted-foreground">Live NFT data · Monad</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShow10kStats(false)}
+                  className="w-8 h-8 rounded-full bg-muted flex items-center justify-center hover:bg-muted/70 transition-colors"
+                >
+                  <X className="w-4 h-4 text-muted-foreground" />
+                </button>
+              </div>
+
+              <div className="p-5">
+                {nftLoading ? (
+                  <div className="flex flex-col items-center justify-center py-12 gap-3">
+                    <div className="w-8 h-8 border-3 border-primary border-t-transparent rounded-full animate-spin" />
+                    <p className="text-sm text-muted-foreground">Fetching on-chain data…</p>
+                  </div>
+                ) : nftStats ? (
+                  <>
+                    {/* Primary stats grid */}
+                    <div className="grid grid-cols-2 gap-3 mb-3">
+                      <div className="bg-gradient-to-br from-primary/15 to-[#c084fc]/10 border border-primary/20 rounded-2xl p-4">
+                        <div className="flex items-center gap-1.5 mb-2">
+                          <TrendingUp className="w-3.5 h-3.5 text-primary" />
+                          <span className="text-xs font-medium text-muted-foreground">Floor Price</span>
+                        </div>
+                        <p className="text-2xl font-bold text-foreground">
+                          {nftStats.floorPrice != null
+                            ? `${Number(nftStats.floorPrice).toLocaleString(undefined, { maximumFractionDigits: 2 })}`
+                            : "—"}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-0.5">{nftStats.floorPriceSymbol ?? "MON"}</p>
+                      </div>
+
+                      <div className="bg-muted/40 border border-border rounded-2xl p-4">
+                        <div className="flex items-center gap-1.5 mb-2">
+                          <Users className="w-3.5 h-3.5 text-primary" />
+                          <span className="text-xs font-medium text-muted-foreground">Holders</span>
+                        </div>
+                        <p className="text-2xl font-bold text-foreground">
+                          {nftStats.numOwners != null ? nftStats.numOwners.toLocaleString() : "—"}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-0.5">unique wallets</p>
+                      </div>
+
+                      <div className="bg-muted/40 border border-border rounded-2xl p-4">
+                        <div className="flex items-center gap-1.5 mb-2">
+                          <Activity className="w-3.5 h-3.5 text-primary" />
+                          <span className="text-xs font-medium text-muted-foreground">24h Volume</span>
+                        </div>
+                        <p className="text-xl font-bold text-foreground">
+                          {nftStats.volume24h != null
+                            ? Number(nftStats.volume24h).toLocaleString(undefined, { maximumFractionDigits: 0 })
+                            : "—"}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-0.5">MON</p>
+                      </div>
+
+                      <div className="bg-muted/40 border border-border rounded-2xl p-4">
+                        <div className="flex items-center gap-1.5 mb-2">
+                          <Layers className="w-3.5 h-3.5 text-primary" />
+                          <span className="text-xs font-medium text-muted-foreground">Total Supply</span>
+                        </div>
+                        <p className="text-xl font-bold text-foreground">
+                          {nftStats.totalSupply.toLocaleString()}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-0.5">NFTs minted</p>
+                      </div>
+                    </div>
+
+                    {/* Secondary stats row */}
+                    <div className="bg-muted/30 border border-border rounded-2xl px-4 py-3 flex items-center justify-between mb-4">
+                      <div className="text-center">
+                        <p className="text-xs text-muted-foreground mb-0.5">7d Volume</p>
+                        <p className="font-bold text-foreground text-sm">
+                          {nftStats.volume7d != null
+                            ? Number(nftStats.volume7d).toLocaleString(undefined, { maximumFractionDigits: 0 }) + " MON"
+                            : "—"}
+                        </p>
+                      </div>
+                      <div className="w-px h-8 bg-border" />
+                      <div className="text-center">
+                        <p className="text-xs text-muted-foreground mb-0.5">Total Sales</p>
+                        <p className="font-bold text-foreground text-sm">
+                          {nftStats.totalSales != null ? nftStats.totalSales.toLocaleString() : "—"}
+                        </p>
+                      </div>
+                      <div className="w-px h-8 bg-border" />
+                      <div className="text-center">
+                        <p className="text-xs text-muted-foreground mb-0.5">Total Volume</p>
+                        <p className="font-bold text-foreground text-sm">
+                          {nftStats.totalVolume != null
+                            ? Number(nftStats.totalVolume).toLocaleString(undefined, { maximumFractionDigits: 0 }) + " MON"
+                            : "—"}
+                        </p>
+                      </div>
+                    </div>
+
+                    <a
+                      href="https://opensea.io/collection/the-10k-squad"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-center gap-2 w-full py-3 rounded-2xl bg-gradient-to-r from-primary to-[#c084fc] text-white font-semibold text-sm hover:opacity-90 transition-opacity"
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                      View on OpenSea
+                    </a>
+                  </>
+                ) : (
+                  <div className="text-center py-10">
+                    <BarChart2 className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
+                    <p className="text-sm text-muted-foreground">Could not load NFT stats</p>
+                    <p className="text-xs text-muted-foreground/60 mt-1">Try again later</p>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }
