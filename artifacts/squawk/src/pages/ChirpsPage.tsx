@@ -242,13 +242,64 @@ function ChirpComposer({ me, replyTo, onClose, onPosted }: {
   me: any; replyTo?: ChirpData | null; onClose?: () => void; onPosted?: () => void;
 }) {
   const [content, setContent] = useState(replyTo ? `@${replyTo.author.username} ` : "");
+  const [mediaUrl, setMediaUrl] = useState<string | null>(null);
+  const [mediaType, setMediaType] = useState<string | null>(null);
+  const [mediaPreview, setMediaPreview] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const createMut = useCreateChirp();
 
   useEffect(() => { textareaRef.current?.focus(); }, []);
 
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const allowed = ["image/jpeg","image/png","image/gif","image/webp","video/mp4","video/quicktime","video/webm","video/x-msvideo","video/x-matroska"];
+    if (!allowed.includes(file.type)) {
+      alert("Unsupported file type. Please use JPG, PNG, GIF, WEBP, MP4, MOV, or WEBM.");
+      return;
+    }
+    if (file.size > 100 * 1024 * 1024) {
+      alert("File too large. Maximum size is 100MB.");
+      return;
+    }
+
+    // Show local preview immediately
+    const preview = URL.createObjectURL(file);
+    setMediaPreview(preview);
+    setMediaType(file.type.startsWith("video/") ? "video" : "image");
+    setUploading(true);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch("/api/storage/upload", { method: "POST", body: formData, credentials: "include" });
+      if (!res.ok) throw new Error("Upload failed");
+      const { mediaUrl: url } = await res.json();
+      setMediaUrl(url);
+    } catch {
+      alert("Upload failed. Please try again.");
+      setMediaPreview(null);
+      setMediaType(null);
+    } finally {
+      setUploading(false);
+    }
+
+    // Reset file input so same file can be reselected
+    e.target.value = "";
+  };
+
+  const removeMedia = () => {
+    setMediaUrl(null);
+    setMediaType(null);
+    setMediaPreview(null);
+  };
+
   const handlePost = () => {
-    if (!content.trim()) return;
+    if (!content.trim() && !mediaUrl) return;
+    if (uploading) return;
     const hashtags = [...content.matchAll(/#(\w+)/g)].map(m => m[1]);
     const mentions = [...content.matchAll(/@(\w+)/g)].map(m => m[1]);
     createMut.mutate({
@@ -256,9 +307,14 @@ function ChirpComposer({ me, replyTo, onClose, onPosted }: {
       hashtags,
       mentions,
       parentId: replyTo?.id ?? undefined,
+      mediaUrl: mediaUrl ?? undefined,
+      mediaType: mediaType ?? undefined,
     } as any, {
       onSuccess: () => {
         setContent("");
+        setMediaUrl(null);
+        setMediaType(null);
+        setMediaPreview(null);
         onPosted?.();
         onClose?.();
       },
@@ -291,9 +347,50 @@ function ChirpComposer({ me, replyTo, onClose, onPosted }: {
           className="bg-transparent border-0 shadow-none focus-visible:ring-0 p-0 text-lg resize-none min-h-[80px] placeholder:text-muted-foreground/60"
           onKeyDown={e => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) handlePost(); }}
         />
+
+        {/* Media preview */}
+        {mediaPreview && (
+          <div className="relative mt-2 rounded-2xl overflow-hidden border border-border w-full max-h-72">
+            {mediaType === "video" ? (
+              <video src={mediaPreview} className="w-full max-h-72 object-cover" controls playsInline />
+            ) : (
+              <img src={mediaPreview} alt="attachment" className="w-full max-h-72 object-cover" />
+            )}
+            {uploading && (
+              <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                <div className="flex flex-col items-center gap-2">
+                  <div className="w-7 h-7 border-3 border-white border-t-transparent rounded-full animate-spin" />
+                  <span className="text-white text-xs font-medium">Uploading…</span>
+                </div>
+              </div>
+            )}
+            {!uploading && (
+              <button
+                onClick={removeMedia}
+                className="absolute top-2 right-2 w-7 h-7 bg-black/70 rounded-full flex items-center justify-center text-white hover:bg-black/90 transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+        )}
+
         <div className="flex items-center justify-between mt-2 pt-3 border-t border-border">
           <div className="flex items-center gap-1">
-            <button className="p-2 text-primary hover:bg-primary/10 rounded-full transition-colors">
+            {/* Hidden file input */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/gif,image/webp,video/mp4,video/quicktime,video/webm"
+              className="hidden"
+              onChange={handleFileSelect}
+            />
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={!!mediaPreview}
+              className="p-2 text-primary hover:bg-primary/10 rounded-full transition-colors disabled:opacity-40"
+              title="Attach image or video"
+            >
               <ImageIcon className="w-5 h-5" />
             </button>
             <button className="p-2 text-primary hover:bg-primary/10 rounded-full transition-colors">
@@ -312,10 +409,10 @@ function ChirpComposer({ me, replyTo, onClose, onPosted }: {
             <Button
               size="sm"
               onClick={handlePost}
-              disabled={!content.trim() || charCount > maxChars || createMut.isPending}
+              disabled={(!content.trim() && !mediaUrl) || charCount > maxChars || createMut.isPending || uploading}
               className="rounded-full px-5 font-bold bg-gradient-to-r from-primary to-[#c084fc] border-0 text-white hover:opacity-90"
             >
-              {createMut.isPending ? "Posting…" : replyTo ? "Reply" : "Chirp"}
+              {createMut.isPending ? "Posting…" : uploading ? "Uploading…" : replyTo ? "Reply" : "Chirp"}
             </Button>
           </div>
         </div>
