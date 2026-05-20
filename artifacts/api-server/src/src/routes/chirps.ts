@@ -12,7 +12,7 @@ const router: IRouter = Router();
 async function buildChirpWithMeta(chirp: typeof chirpsTable.$inferSelect, author: typeof usersTable.$inferSelect, currentUserId?: number) {
   const [likesResult, commentsResult, rechirpsResult, isLikedResult, isSavedResult, followResult] = await Promise.all([
     db.select({ count: sql<number>`count(*)::int` }).from(chirpLikesTable).where(eq(chirpLikesTable.chirpId, chirp.id)),
-    db.select({ count: sql<number>`count(*)::int` }).from(chirpCommentsTable).where(eq(chirpCommentsTable.chirpId, chirp.id)),
+    db.select({ count: sql<number>`count(*)::int` }).from(chirpsTable).where(eq(chirpsTable.parentId, chirp.id)),
     db.select({ count: sql<number>`count(*)::int` }).from(chirpsTable).where(eq(chirpsTable.rechirpOfId, chirp.id)),
     currentUserId
       ? db.select().from(chirpLikesTable).where(and(eq(chirpLikesTable.userId, currentUserId), eq(chirpLikesTable.chirpId, chirp.id)))
