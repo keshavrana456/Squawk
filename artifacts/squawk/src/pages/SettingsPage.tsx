@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useGetMe, useUpdateMyProfile, getGetMeQueryKey, getGetUserByUsernameQueryKey } from "@workspace/api-client-react";
 import { useClerk } from "@clerk/react";
 import { useQueryClient } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import { Camera, LogOut, Check, ImagePlus, Moon, Sun, Info, Mail, Shield, ChevronRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -25,6 +26,7 @@ export default function SettingsPage() {
   const queryClient = useQueryClient();
   const { signOut } = useClerk();
   const { theme, toggle: toggleTheme } = useTheme();
+  const [, setLocation] = useLocation();
 
   const [displayName, setDisplayName] = useState("");
   const [bio, setBio] = useState("");
@@ -92,7 +94,10 @@ export default function SettingsPage() {
       setAvatarFile(null);
       setBannerFile(null);
       setSaved(true);
-      setTimeout(() => setSaved(false), 3000);
+      setTimeout(() => {
+        setSaved(false);
+        if (me?.username) setLocation(`/profile/${me.username}`);
+      }, 1000);
     } catch (e: any) {
       console.error(e);
       setSaveError(e?.message || "Something went wrong — please try again.");
