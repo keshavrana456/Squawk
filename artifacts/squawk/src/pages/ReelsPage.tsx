@@ -27,7 +27,7 @@ import { MessageCircle } from "lucide-react";
 
 export default function ReelsPage() {
   const { data: postsData, isLoading } = useListPosts();
-  const rawPosts = (postsData as any)?.items || [];
+  const rawPosts = (postsData as any)?.posts || [];
   const reels = rawPosts.filter((p: Post) => p.mediaType === "video");
   const [muted, setMuted] = useState(true);
 
