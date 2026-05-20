@@ -510,7 +510,9 @@ export const GetActiveStoriesResponseItem = zod.object({
   "viewsCount": zod.number(),
   "createdAt": zod.coerce.date(),
   "expiresAt": zod.coerce.date(),
-  "isViewed": zod.boolean()
+  "isViewed": zod.boolean(),
+  "objectFit": zod.enum(['cover', 'contain']).optional(),
+  "caption": zod.string().nullish()
 })),
   "hasUnviewed": zod.boolean()
 })

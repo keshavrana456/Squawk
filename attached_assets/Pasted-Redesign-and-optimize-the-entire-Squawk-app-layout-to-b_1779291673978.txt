@@ -1,0 +1,197 @@
+Redesign and optimize the entire Squawk app layout to behave like Instagram’s fully responsive UI across mobile phones, tablets, laptops, and desktop PCs.
+
+MAIN GOAL:
+Make the app automatically adapt to every screen size so all frames, buttons, feeds, reels, stories, comments, modals, and navigation fit perfectly without:
+
+* buttons getting cut off
+* text overlapping
+* frames overflowing
+* icons hiding
+* horizontal scrolling
+* broken layouts
+
+The app should feel smooth and premium on both mobile and desktop exactly like Instagram.
+
+RESPONSIVE LAYOUT SYSTEM:
+Create a fully adaptive responsive layout system using:
+
+* Flexbox
+* CSS Grid
+* responsive containers
+* fluid spacing
+* dynamic sizing
+
+Avoid fixed widths/heights unless necessary.
+
+Use:
+
+* max-width
+* min-width
+* width: 100%
+* responsive padding/margins
+* viewport units
+* flexible grids
+
+BREAKPOINTS:
+Optimize UI for:
+
+* Small mobile (320px+)
+* Standard mobile
+* Large mobile
+* Tablet
+* Laptop
+* Desktop
+* Ultrawide monitors
+
+NAVBAR RESPONSIVENESS:
+MOBILE:
+
+* Bottom navigation bar like Instagram
+* Proper spacing between icons
+* Fixed positioning
+* Prevent overlap with keyboard
+
+DESKTOP:
+
+* Left sidebar or responsive top navbar
+* Keep consistent spacing
+* Center content like Instagram desktop layout
+
+TOP NAVBAR:
+
+* Place Squawk logo in center
+* Responsive icons on left/right
+* Keep alignment balanced on all devices
+
+FEED RESPONSIVENESS:
+
+* Center feed on desktop
+* Proper max width similar to Instagram
+* Auto resize posts/videos
+* Prevent media overflow
+* Maintain proper aspect ratios
+
+POSTS & VIDEOS:
+
+* Videos/images should scale properly
+* Prevent cropping issues
+* Reels should fit fullscreen on mobile
+* Desktop reels should remain centered
+* Ensure controls stay visible
+
+STORIES SECTION:
+
+* Horizontally scrollable on mobile
+* Proper story circle sizing
+* Responsive story spacing
+* Prevent clipping on small screens
+
+COMMENTS MODAL:
+
+* Slide-up modal on mobile
+* Responsive centered modal on desktop
+* Scrollable comments area
+* Fixed input at bottom
+* Keyboard-safe spacing
+
+MESSAGES / DMS:
+MOBILE:
+
+* Fullscreen chat layout
+* Auto-hide sidebar
+
+DESKTOP:
+
+* Split-screen layout like Instagram web
+* Sidebar + chat window
+
+Prevent:
+
+* input hiding behind keyboard
+* overflowing messages
+* broken chat widths
+
+UPLOAD & CAMERA SCREENS:
+
+* Camera should adapt to portrait and landscape
+* Keep all controls visible
+* Prevent editing tools from going outside screen
+* Responsive upload editor
+
+BUTTONS & ICONS:
+
+* Touch-friendly sizing on mobile
+* Responsive scaling
+* Prevent overlap/cutoff
+* Proper spacing between actions
+
+TYPOGRAPHY:
+
+* Responsive font sizes
+* Prevent text clipping
+* Proper line wrapping
+* Readable on every screen size
+
+MODALS & POPUPS:
+
+* Fully responsive
+* Never exceed screen height
+* Add internal scrolling if content is large
+* Smooth transitions
+
+PERFORMANCE:
+
+* Prevent layout shifts
+* Optimize rendering on mobile devices
+* Smooth responsive transitions
+* Lazy load media/components
+
+TAILWIND/CSS REQUIREMENTS:
+Use responsive Tailwind classes:
+
+* sm:
+* md:
+* lg:
+* xl:
+* 2xl:
+
+Use:
+
+* flex-wrap
+* overflow handling
+* responsive spacing
+* aspect-ratio utilities
+* container max widths
+
+INSTAGRAM-LIKE STRUCTURE:
+DESKTOP:
+
+* centered feed
+* side spacing
+* clean balanced layout
+
+MOBILE:
+
+* edge-to-edge immersive experience
+* smooth gesture-friendly UI
+* fullscreen reels/stories
+
+TESTING:
+Ensure perfect responsiveness on:
+
+* iPhone
+* Android
+* tablets
+* laptop browsers
+* large monitors
+
+Fix every issue where:
+
+* frames break
+* buttons hide
+* icons overflow
+* elements overlap
+* UI cuts outside screen
+
+GOAL:
+Make Squawk feel like a premium production-ready social media app with Instagram-level responsive design, adaptive layouts, and smooth UI across all devices.

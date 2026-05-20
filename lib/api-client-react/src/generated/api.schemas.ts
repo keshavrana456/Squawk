@@ -169,6 +169,14 @@ export const StoryMediaType = {
   video: 'video',
 } as const;
 
+export type StoryObjectFit = typeof StoryObjectFit[keyof typeof StoryObjectFit];
+
+
+export const StoryObjectFit = {
+  cover: 'cover',
+  contain: 'contain',
+} as const;
+
 export interface Story {
   id: number;
   authorId: number;
@@ -179,6 +187,8 @@ export interface Story {
   createdAt: string;
   expiresAt: string;
   isViewed: boolean;
+  objectFit?: StoryObjectFit;
+  caption?: string | null;
 }
 
 export interface StoryGroup {

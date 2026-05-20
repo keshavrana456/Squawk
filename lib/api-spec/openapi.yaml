@@ -1221,6 +1221,12 @@ components:
           format: date-time
         isViewed:
           type: boolean
+        objectFit:
+          type: string
+          enum: [cover, contain]
+        caption:
+          type: string
+          nullable: true
 
     StoryGroup:
       type: object

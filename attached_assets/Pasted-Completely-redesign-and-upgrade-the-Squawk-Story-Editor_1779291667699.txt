@@ -1,0 +1,183 @@
+Completely redesign and upgrade the Squawk Story Editor and Story Upload system to work like Instagram Stories with proper media fitting, draggable elements, resizing tools, layered editing, and advanced interactive story features.
+
+MAIN GOAL:
+Fix story stretching issues and create a premium Instagram-style story editor where users can freely edit stories before uploading.
+
+FIX STORY STRETCHING ISSUE:
+Current issue:
+
+* uploaded images/videos stretch after upload
+* aspect ratios break
+* media becomes zoomed or distorted
+
+Required fixes:
+
+* Preserve original aspect ratio of all uploaded media.
+* Use proper object-fit handling:
+
+  * contain
+  * cover
+  * smart crop
+* Prevent stretching on:
+
+  * mobile
+  * desktop
+  * story viewer
+* Support portrait and landscape media correctly.
+* Add safe-area boundaries similar to Instagram.
+
+MEDIA FITTING SYSTEM:
+Allow users to manually adjust media by:
+
+* pinch to zoom
+* drag to reposition
+* rotate media
+* resize media
+* crop manually
+* fit fullscreen
+* center media automatically
+
+Support:
+
+* images
+* videos
+* GIFs
+
+STORY EDITOR (INSTAGRAM-LIKE):
+After selecting/capturing media, open a fullscreen advanced story editor.
+
+Add support for:
+
+* draggable text
+* resizable text
+* rotating text
+* moving stickers freely
+* layered editing
+* add photo over photo
+* add video over image
+* multiple draggable media layers
+
+TEXT FEATURES:
+Add:
+
+* move text anywhere
+* resize text using pinch
+* rotate text
+* multiple fonts
+* text background styles
+* gradient text
+* text shadows
+* animated text effects
+* emoji support
+
+MEDIA LAYERS:
+Allow users to:
+
+* place image over image
+* place GIF over image
+* place stickers anywhere
+* stack multiple elements
+
+Each layer should support:
+
+* drag
+* resize
+* rotate
+* reorder layers
+* delete individually
+
+DELETE BY DRAGGING:
+Add Instagram-style delete bin/trash feature.
+
+Behavior:
+
+* when dragging any text/photo/sticker:
+
+  * show animated trash bin at bottom
+* dropping element into bin deletes it
+* add smooth animations and vibration feedback
+
+STICKERS & ELEMENTS:
+Add:
+
+* emojis
+* GIFs
+* mentions
+* hashtags
+* polls placeholder
+* location tags
+* music placeholder
+* time/date stickers
+
+DRAWING TOOLS:
+Add:
+
+* pen tool
+* marker tool
+* neon brush
+* eraser
+* color picker
+
+VIDEO STORY FEATURES:
+
+* trim video
+* mute/unmute
+* resize video
+* reposition video
+* preserve aspect ratio
+* smooth playback preview
+
+STORY PREVIEW:
+Before upload:
+
+* show fullscreen preview
+* allow editing again
+* smooth transitions
+
+UPLOAD EXPERIENCE:
+
+* preserve final edited layout exactly
+* prevent compression distortion
+* prevent stretching after upload
+* maintain positioning of all elements
+
+RESPONSIVE DESIGN:
+
+* editor must work perfectly on:
+
+  * mobile
+  * tablet
+  * desktop
+* prevent tools/buttons from hiding
+* keep editing controls accessible
+
+PERFORMANCE:
+
+* smooth drag performance
+* optimized rendering
+* prevent lag while editing
+* lazy load assets/stickers
+* compress media efficiently
+
+UI/UX:
+
+* Instagram-inspired premium editor
+* modern animations
+* glassmorphism controls
+* smooth gestures
+* dark mode support
+
+BACKEND:
+
+* save story composition properly
+* preserve:
+
+  * media positions
+  * text positions
+  * layers
+  * scaling
+  * rotations
+* render uploaded story exactly as edited
+
+GOAL:
+Make Squawk Stories feel like a modern premium Instagram Story editor with advanced editing tools, draggable layers, proper aspect ratio handling, and smooth interactive editing experience without any stretching issues.

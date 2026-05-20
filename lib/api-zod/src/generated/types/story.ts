@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { StoryMediaType } from './storyMediaType';
+import type { StoryObjectFit } from './storyObjectFit';
 import type { UserSummary } from './userSummary';
 
 export interface Story {
@@ -18,4 +19,6 @@ export interface Story {
   createdAt: Date;
   expiresAt: Date;
   isViewed: boolean;
+  objectFit?: StoryObjectFit;
+  caption?: string | null;
 }

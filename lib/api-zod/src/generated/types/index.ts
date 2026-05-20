@@ -43,6 +43,7 @@ export * from './storyGroup';
 export * from './storyInput';
 export * from './storyInputMediaType';
 export * from './storyMediaType';
+export * from './storyObjectFit';
 export * from './successResponse';
 export * from './unreadCount';
 export * from './uploadUrlRequest';

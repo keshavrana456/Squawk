@@ -59,6 +59,8 @@ router.get("/stories", requireUser, async (req, res): Promise<void> => {
       createdAt: story.createdAt.toISOString(),
       expiresAt: story.expiresAt.toISOString(),
       isViewed,
+      objectFit: story.objectFit ?? "cover",
+      caption: story.caption ?? null,
     });
   }
 

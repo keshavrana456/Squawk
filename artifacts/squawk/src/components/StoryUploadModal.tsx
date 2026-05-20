@@ -1,5 +1,5 @@
-import { useState, useRef } from "react";
-import { X, UploadCloud, Type, AlignCenter, Maximize2, Minimize2, Send } from "lucide-react";
+import { useState, useRef, useCallback } from "react";
+import { X, UploadCloud, Type, Minimize2, Maximize2, Send, Smile } from "lucide-react";
 import { useGetMe } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -11,10 +11,29 @@ interface StoryUploadModalProps {
   onSuccess?: () => void;
 }
 
-function renderCaptionWithMentions(text: string) {
-  const parts = text.split(/(@\w+)/g);
+interface DraggableText {
+  id: string;
+  text: string;
+  x: number; // 0–100 percent
+  y: number; // 0–100 percent
+  fontSize: number;
+  color: string;
+  bgStyle: "none" | "black" | "white";
+}
+
+const EMOJI_STRIP = ["😂", "🔥", "💜", "✨", "👀", "😍", "🚀", "🎉", "💯", "🤣", "❤️", "👑", "🌊", "🎶", "😎"];
+
+const TEXT_COLORS = ["#ffffff", "#000000", "#a855f7", "#ec4899", "#f97316", "#22c55e", "#3b82f6", "#facc15"];
+const BG_STYLES: { label: string; value: DraggableText["bgStyle"] }[] = [
+  { label: "None", value: "none" },
+  { label: "Dark", value: "black" },
+  { label: "Light", value: "white" },
+];
+
+function renderCaption(text: string) {
+  const parts = text.split(/(@\w+|#\w+)/g);
   return parts.map((part, i) =>
-    part.startsWith("@")
+    part.startsWith("@") || part.startsWith("#")
       ? <span key={i} className="text-primary font-semibold">{part}</span>
       : <span key={i}>{part}</span>
   );
@@ -28,23 +47,25 @@ export default function StoryUploadModal({ open, onClose, onSuccess }: StoryUplo
   const [preview, setPreview] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
-
   const [objectFit, setObjectFit] = useState<"cover" | "contain">("cover");
-  const [caption, setCaption] = useState("");
-  const [showTextInput, setShowTextInput] = useState(false);
-  const [captionInput, setCaptionInput] = useState("");
 
+  // Text layers
+  const [textLayers, setTextLayers] = useState<DraggableText[]>([]);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingText, setEditingText] = useState("");
+  const [editColor, setEditColor] = useState("#ffffff");
+  const [editBg, setEditBg] = useState<DraggableText["bgStyle"]>("none");
+  const [showEmojiStrip, setShowEmojiStrip] = useState(false);
+
+  // Drag state
+  const dragging = useRef<{ id: string; startX: number; startY: number; origX: number; origY: number } | null>(null);
+  const canvasRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const reset = () => {
-    setFile(null);
-    setPreview(null);
-    setError(null);
-    setUploading(false);
-    setObjectFit("cover");
-    setCaption("");
-    setCaptionInput("");
-    setShowTextInput(false);
+    setFile(null); setPreview(null); setError(null); setUploading(false);
+    setObjectFit("cover"); setTextLayers([]); setEditingId(null);
+    setEditingText(""); setShowEmojiStrip(false);
   };
 
   const handleClose = () => { reset(); onClose(); };
@@ -60,26 +81,86 @@ export default function StoryUploadModal({ open, onClose, onSuccess }: StoryUplo
           setError("Videos must be 15 seconds or shorter.");
           URL.revokeObjectURL(url);
         } else {
-          setFile(f);
-          setPreview(url);
+          setFile(f); setPreview(url);
         }
       };
       vid.src = url;
     } else {
-      setFile(f);
-      setPreview(URL.createObjectURL(f));
+      setFile(f); setPreview(URL.createObjectURL(f));
     }
   };
 
-  const applyCaption = () => {
-    setCaption(captionInput.trim());
-    setShowTextInput(false);
+  // ── Text layer management ────────────────────────────────────────────────────
+  const addTextLayer = () => {
+    const id = Math.random().toString(36).slice(2);
+    setTextLayers(prev => [...prev, {
+      id, text: "", x: 50, y: 50, fontSize: 22, color: editColor, bgStyle: editBg,
+    }]);
+    setEditingId(id);
+    setEditingText("");
   };
 
+  const commitEdit = () => {
+    if (!editingId) return;
+    if (!editingText.trim()) {
+      setTextLayers(prev => prev.filter(t => t.id !== editingId));
+    } else {
+      setTextLayers(prev => prev.map(t =>
+        t.id === editingId ? { ...t, text: editingText, color: editColor, bgStyle: editBg } : t
+      ));
+    }
+    setEditingId(null);
+    setEditingText("");
+  };
+
+  const openEditLayer = (layer: DraggableText) => {
+    setEditingId(layer.id);
+    setEditingText(layer.text);
+    setEditColor(layer.color);
+    setEditBg(layer.bgStyle);
+  };
+
+  const deleteLayer = (id: string) => setTextLayers(prev => prev.filter(t => t.id !== id));
+
+  // ── Drag ────────────────────────────────────────────────────────────────────
+  const onPointerDown = useCallback((e: React.PointerEvent, id: string) => {
+    e.stopPropagation();
+    const layer = textLayers.find(t => t.id === id);
+    if (!layer) return;
+    dragging.current = { id, startX: e.clientX, startY: e.clientY, origX: layer.x, origY: layer.y };
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+  }, [textLayers]);
+
+  const onPointerMove = useCallback((e: React.PointerEvent) => {
+    if (!dragging.current || !canvasRef.current) return;
+    const rect = canvasRef.current.getBoundingClientRect();
+    const dx = ((e.clientX - dragging.current.startX) / rect.width) * 100;
+    const dy = ((e.clientY - dragging.current.startY) / rect.height) * 100;
+    const newX = Math.max(5, Math.min(95, dragging.current.origX + dx));
+    const newY = Math.max(5, Math.min(95, dragging.current.origY + dy));
+    setTextLayers(prev => prev.map(t =>
+      t.id === dragging.current!.id ? { ...t, x: newX, y: newY } : t
+    ));
+  }, []);
+
+  const onPointerUp = useCallback(() => {
+    dragging.current = null;
+  }, []);
+
+  // ── Emoji sticker ────────────────────────────────────────────────────────────
+  const addEmoji = (emoji: string) => {
+    const id = Math.random().toString(36).slice(2);
+    setTextLayers(prev => [...prev, {
+      id, text: emoji, x: 50 + Math.random() * 20 - 10, y: 40 + Math.random() * 20 - 10,
+      fontSize: 40, color: "#ffffff", bgStyle: "none",
+    }]);
+    setShowEmojiStrip(false);
+  };
+
+  // ── Upload ───────────────────────────────────────────────────────────────────
   const handlePost = async () => {
     if (!file) return;
-    setUploading(true);
-    setError(null);
+    setUploading(true); setError(null);
     try {
       const form = new FormData();
       form.append("file", file);
@@ -87,22 +168,19 @@ export default function StoryUploadModal({ open, onClose, onSuccess }: StoryUplo
       if (!res.ok) throw new Error("Upload failed");
       const { mediaUrl } = await res.json();
 
+      // Build caption from first text layer (non-emoji)
+      const captionLayer = textLayers.find(t => t.text.trim() && !/^\p{Emoji}/u.test(t.text.trim()));
+      const caption = captionLayer?.text.trim() || null;
+
       const storyRes = await fetch("/api/stories", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          mediaUrl,
-          mediaType: file.type.startsWith("video/") ? "video" : "image",
-          caption: caption || null,
-          objectFit,
-        }),
+        body: JSON.stringify({ mediaUrl, mediaType: file.type.startsWith("video/") ? "video" : "image", caption, objectFit }),
       });
       if (!storyRes.ok) throw new Error("Failed to post story");
 
       await queryClient.invalidateQueries({ queryKey: ["getStories"] });
-      reset();
-      onSuccess?.();
-      onClose();
+      reset(); onSuccess?.(); onClose();
     } catch (e: any) {
       setError(e?.message || "Something went wrong");
       setUploading(false);
@@ -123,11 +201,17 @@ export default function StoryUploadModal({ open, onClose, onSuccess }: StoryUplo
             initial={{ scale: 0.96, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.96, opacity: 0 }}
-            className={`relative flex flex-col bg-black shadow-2xl overflow-hidden ${file ? "w-full max-w-sm rounded-2xl" : "w-full max-w-sm rounded-3xl bg-card border border-border"}`}
+            className={`relative flex flex-col bg-black shadow-2xl overflow-hidden ${
+              file ? "w-full max-w-sm rounded-2xl" : "w-full max-w-sm rounded-3xl bg-card border border-border"
+            }`}
+            style={file ? { maxHeight: "min(100dvh, 780px)" } : undefined}
             onClick={e => e.stopPropagation()}
           >
+
             {/* ── TOP BAR ── */}
-            <div className={`flex items-center justify-between px-4 py-3 ${file ? "absolute top-0 left-0 right-0 z-20 bg-gradient-to-b from-black/60 to-transparent" : "border-b border-border bg-card"}`}>
+            <div className={`flex items-center justify-between px-4 py-3 ${
+              file ? "absolute top-0 left-0 right-0 z-20 bg-gradient-to-b from-black/70 to-transparent" : "border-b border-border bg-card"
+            }`}>
               <button
                 onClick={handleClose}
                 className="w-8 h-8 rounded-full bg-black/50 flex items-center justify-center hover:bg-black/70 transition-colors"
@@ -160,7 +244,7 @@ export default function StoryUploadModal({ open, onClose, onSuccess }: StoryUplo
               )}
             </div>
 
-            {/* ── PICK MEDIA (no file yet) ── */}
+            {/* ── PICK MEDIA ── */}
             {!file && (
               <div className="p-5 space-y-4 bg-card">
                 <div
@@ -182,87 +266,179 @@ export default function StoryUploadModal({ open, onClose, onSuccess }: StoryUplo
               </div>
             )}
 
-            {/* ── EDITOR VIEW (file selected) ── */}
+            {/* ── EDITOR ── */}
             {file && preview && (
-              <div className="relative">
-                {/* Media canvas — 9:16 */}
-                <div className="relative w-full aspect-[9/16] bg-black overflow-hidden">
+              <div className="relative flex flex-col" style={{ height: "min(calc(100dvh - 120px), 660px)" }}>
+
+                {/* Media canvas */}
+                <div
+                  ref={canvasRef}
+                  className="relative flex-1 bg-black overflow-hidden select-none"
+                  onPointerMove={onPointerMove}
+                  onPointerUp={onPointerUp}
+                  onPointerLeave={onPointerUp}
+                >
+                  {/* Blurred bg for contain mode */}
+                  {objectFit === "contain" && (
+                    <div className="absolute inset-0 overflow-hidden">
+                      {file.type.startsWith("video/") ? (
+                        <video src={preview} className="w-full h-full object-cover scale-110 blur-xl opacity-50" muted autoPlay loop playsInline />
+                      ) : (
+                        <img src={preview} className="w-full h-full object-cover scale-110 blur-xl opacity-50" alt="" />
+                      )}
+                    </div>
+                  )}
+
+                  {/* Main media */}
                   {file.type.startsWith("video/") ? (
                     <video
                       src={preview}
-                      className={`w-full h-full ${objectFit === "cover" ? "object-cover" : "object-contain"}`}
+                      className={`absolute inset-0 w-full h-full ${objectFit === "cover" ? "object-cover" : "object-contain"}`}
                       muted autoPlay loop playsInline
                     />
                   ) : (
                     <img
                       src={preview}
-                      className={`w-full h-full ${objectFit === "cover" ? "object-cover" : "object-contain"}`}
+                      className={`absolute inset-0 w-full h-full ${objectFit === "cover" ? "object-cover" : "object-contain"}`}
                       alt="Story preview"
                     />
                   )}
 
-                  {/* Caption overlay */}
-                  {caption && !showTextInput && (
-                    <div
-                      className="absolute bottom-20 left-0 right-0 flex items-center justify-center px-4"
-                      onClick={() => { setCaptionInput(caption); setShowTextInput(true); }}
+                  {/* Text layers */}
+                  {textLayers.map(layer => (
+                    <motion.div
+                      key={layer.id}
+                      className="absolute cursor-grab active:cursor-grabbing touch-none select-none"
+                      style={{ left: `${layer.x}%`, top: `${layer.y}%`, transform: "translate(-50%, -50%)", zIndex: 10 }}
+                      onPointerDown={e => onPointerDown(e, layer.id)}
+                      onDoubleClick={() => openEditLayer(layer)}
                     >
-                      <div className="bg-black/50 backdrop-blur-md rounded-xl px-4 py-2 max-w-[85%] text-center cursor-pointer">
-                        <p className="text-white text-sm font-medium leading-snug break-words">
-                          {renderCaptionWithMentions(caption)}
-                        </p>
+                      <div
+                        className={`px-2 py-1 rounded-lg text-center max-w-[200px] break-words ${
+                          layer.bgStyle === "black" ? "bg-black/70 backdrop-blur-sm" :
+                          layer.bgStyle === "white" ? "bg-white/80" : ""
+                        }`}
+                        style={{ fontSize: `${layer.fontSize}px`, color: layer.color, lineHeight: 1.3 }}
+                      >
+                        {layer.text}
                       </div>
-                    </div>
-                  )}
+                    </motion.div>
+                  ))}
 
-                  {/* Inline text editor */}
-                  {showTextInput && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/40 z-10">
-                      <div className="w-4/5 flex flex-col items-center gap-3">
+                  {/* Emoji strip */}
+                  <AnimatePresence>
+                    {showEmojiStrip && (
+                      <motion.div
+                        initial={{ y: 80, opacity: 0 }}
+                        animate={{ y: 0, opacity: 1 }}
+                        exit={{ y: 80, opacity: 0 }}
+                        className="absolute bottom-14 left-0 right-0 z-20 px-3 py-2 flex gap-2 overflow-x-auto no-scrollbar bg-black/60 backdrop-blur-md"
+                      >
+                        {EMOJI_STRIP.map(e => (
+                          <button
+                            key={e}
+                            className="text-2xl shrink-0 hover:scale-125 transition-transform"
+                            onClick={() => addEmoji(e)}
+                          >
+                            {e}
+                          </button>
+                        ))}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  {/* Text editor overlay */}
+                  <AnimatePresence>
+                    {editingId && (
+                      <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/50 gap-3 px-4"
+                      >
+                        {/* Text style controls */}
+                        <div className="flex items-center gap-2 flex-wrap justify-center">
+                          {TEXT_COLORS.map(c => (
+                            <button
+                              key={c}
+                              className={`w-7 h-7 rounded-full border-2 transition-transform ${editColor === c ? "scale-125 border-white" : "border-transparent"}`}
+                              style={{ backgroundColor: c }}
+                              onClick={() => setEditColor(c)}
+                            />
+                          ))}
+                        </div>
+
+                        <div className="flex gap-2">
+                          {BG_STYLES.map(s => (
+                            <button
+                              key={s.value}
+                              onClick={() => setEditBg(s.value)}
+                              className={`px-3 py-1 rounded-full text-white text-xs font-medium border transition-all ${
+                                editBg === s.value ? "border-white bg-white/20" : "border-white/30 bg-white/5"
+                              }`}
+                            >
+                              {s.label}
+                            </button>
+                          ))}
+                        </div>
+
                         <textarea
                           autoFocus
-                          value={captionInput}
-                          onChange={e => setCaptionInput(e.target.value)}
+                          value={editingText}
+                          onChange={e => setEditingText(e.target.value)}
                           placeholder="Add text or @mention…"
-                          className="w-full bg-black/60 backdrop-blur-md text-white text-center text-sm rounded-xl px-4 py-3 border border-white/20 resize-none outline-none placeholder:text-white/40 min-h-[80px]"
+                          className="w-full bg-black/60 backdrop-blur-md text-center text-sm rounded-xl px-4 py-3 border border-white/20 resize-none outline-none placeholder:text-white/40 min-h-[72px]"
+                          style={{ color: editColor, fontSize: "18px" }}
                           rows={3}
                           maxLength={200}
+                          onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); commitEdit(); } }}
                         />
+
                         <div className="flex gap-2">
                           <button
-                            onClick={() => setShowTextInput(false)}
+                            onClick={() => { setEditingId(null); setEditingText(""); }}
                             className="px-4 py-1.5 rounded-full bg-white/10 text-white text-xs font-medium"
                           >
                             Cancel
                           </button>
                           <button
-                            onClick={applyCaption}
+                            onClick={commitEdit}
                             className="px-4 py-1.5 rounded-full bg-gradient-to-r from-primary to-[#c084fc] text-white text-xs font-semibold"
                           >
                             Done
                           </button>
                         </div>
-                      </div>
-                    </div>
-                  )}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
 
-                {/* ── BOTTOM TOOLBAR ── */}
-                <div className="absolute bottom-0 left-0 right-0 z-10 flex items-center justify-between px-4 pb-4 pt-10 bg-gradient-to-t from-black/70 to-transparent">
-                  {/* Text tool */}
+                {/* ── TOOLBAR ── */}
+                <div className="flex items-center justify-between gap-2 px-3 py-2.5 bg-black/80 backdrop-blur-md border-t border-white/10 shrink-0">
+                  {/* Add text */}
                   <button
-                    onClick={() => { setCaptionInput(caption); setShowTextInput(true); }}
-                    className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-semibold transition-colors ${caption ? "bg-primary/80 text-white" : "bg-white/15 text-white"}`}
+                    onClick={addTextLayer}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-full bg-white/15 text-white text-xs font-semibold hover:bg-white/25 transition-colors"
                   >
                     <Type className="w-3.5 h-3.5" />
-                    {caption ? "Edit text" : "Add text"}
+                    Text
+                  </button>
+
+                  {/* Emoji */}
+                  <button
+                    onClick={() => setShowEmojiStrip(v => !v)}
+                    className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-white text-xs font-semibold transition-colors ${
+                      showEmojiStrip ? "bg-primary/70" : "bg-white/15 hover:bg-white/25"
+                    }`}
+                  >
+                    <Smile className="w-3.5 h-3.5" />
+                    Sticker
                   </button>
 
                   {/* Fit toggle */}
                   <button
                     onClick={() => setObjectFit(f => f === "cover" ? "contain" : "cover")}
                     className="flex items-center gap-1.5 px-3 py-2 rounded-full bg-white/15 text-white text-xs font-semibold hover:bg-white/25 transition-colors"
-                    title={objectFit === "cover" ? "Switch to Fit" : "Switch to Fill"}
                   >
                     {objectFit === "cover"
                       ? <><Minimize2 className="w-3.5 h-3.5" />Fill</>
@@ -270,13 +446,12 @@ export default function StoryUploadModal({ open, onClose, onSuccess }: StoryUplo
                     }
                   </button>
 
-                  {/* Discard */}
+                  {/* Change media */}
                   <button
-                    onClick={() => { setFile(null); setPreview(null); setCaption(""); }}
+                    onClick={() => { setFile(null); setPreview(null); setTextLayers([]); }}
                     className="flex items-center gap-1 px-3 py-2 rounded-full bg-white/15 text-white text-xs font-semibold hover:bg-white/25 transition-colors"
                   >
-                    <AlignCenter className="w-3.5 h-3.5" />
-                    Change
+                    <X className="w-3.5 h-3.5" />
                   </button>
                 </div>
 
