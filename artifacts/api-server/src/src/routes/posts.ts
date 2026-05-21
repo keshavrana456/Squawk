@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { eq, and, desc, sql, inArray } from "drizzle-orm";
-import { db, usersTable, postsTable, likesTable, savesTable, commentsTable, followsTable, notificationsTable } from "@workspace/db";
+import { db, usersTable, postsTable, likesTable, savesTable, commentsTable, commentLikesTable, followsTable, notificationsTable } from "@workspace/db";
 import { requireUser } from "../lib/auth";
 import { buildPostWithMeta, buildUserSummary } from "../lib/userHelpers";
 import {
@@ -198,11 +198,32 @@ router.get("/posts/:id/comments", async (req, res): Promise<void> => {
   const params = GetPostCommentsParams.safeParse(req.params);
   if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
 
+  const currentUser = (req as any).currentUser as typeof usersTable.$inferSelect | undefined;
+
   const rows = await db.select({ comment: commentsTable, author: usersTable })
     .from(commentsTable)
     .innerJoin(usersTable, eq(commentsTable.authorId, usersTable.id))
     .where(eq(commentsTable.postId, params.data.id))
     .orderBy(desc(commentsTable.createdAt));
+
+  const commentIds = rows.map(r => r.comment.id);
+
+  const [likeCounts, myLikes] = await Promise.all([
+    commentIds.length > 0
+      ? db.select({ commentId: commentLikesTable.commentId, count: sql<number>`count(*)::int` })
+          .from(commentLikesTable)
+          .where(inArray(commentLikesTable.commentId, commentIds))
+          .groupBy(commentLikesTable.commentId)
+      : Promise.resolve([]),
+    currentUser && commentIds.length > 0
+      ? db.select({ commentId: commentLikesTable.commentId })
+          .from(commentLikesTable)
+          .where(and(eq(commentLikesTable.userId, currentUser.id), inArray(commentLikesTable.commentId, commentIds)))
+      : Promise.resolve([]),
+  ]);
+
+  const likeCountMap = new Map(likeCounts.map((l: any) => [l.commentId, l.count]));
+  const myLikeSet = new Set((myLikes as any[]).map((l: any) => l.commentId));
 
   res.json(rows.map(r => ({
     id: r.comment.id,
@@ -211,6 +232,8 @@ router.get("/posts/:id/comments", async (req, res): Promise<void> => {
     author: buildUserSummary(r.author),
     content: r.comment.content,
     createdAt: r.comment.createdAt.toISOString(),
+    likesCount: likeCountMap.get(r.comment.id) ?? 0,
+    isLiked: myLikeSet.has(r.comment.id),
   })));
 });
 
@@ -249,6 +272,31 @@ router.post("/posts/:id/comments", requireUser, async (req, res): Promise<void> 
     content: comment.content,
     createdAt: comment.createdAt.toISOString(),
   });
+});
+
+// POST /comments/:id/like  (toggle)
+router.post("/comments/:id/like", requireUser, async (req, res): Promise<void> => {
+  const currentUser = (req as any).currentUser as typeof usersTable.$inferSelect;
+  const commentId = parseInt(req.params.id, 10);
+  if (isNaN(commentId)) { res.status(400).json({ error: "Invalid comment id" }); return; }
+
+  const [existing] = await db.select().from(commentLikesTable).where(
+    and(eq(commentLikesTable.userId, currentUser.id), eq(commentLikesTable.commentId, commentId))
+  );
+
+  let isLiked: boolean;
+  if (existing) {
+    await db.delete(commentLikesTable).where(eq(commentLikesTable.id, existing.id));
+    isLiked = false;
+  } else {
+    await db.insert(commentLikesTable).values({ userId: currentUser.id, commentId });
+    isLiked = true;
+  }
+
+  const [countResult] = await db.select({ count: sql<number>`count(*)::int` })
+    .from(commentLikesTable).where(eq(commentLikesTable.commentId, commentId));
+
+  res.json({ isLiked, likesCount: countResult?.count ?? 0 });
 });
 
 // DELETE /comments/:id

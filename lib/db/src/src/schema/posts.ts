@@ -49,3 +49,12 @@ export const commentsTable = pgTable("comments", {
 export const insertCommentSchema = createInsertSchema(commentsTable).omit({ id: true, createdAt: true });
 export type InsertComment = z.infer<typeof insertCommentSchema>;
 export type Comment = typeof commentsTable.$inferSelect;
+
+export const commentLikesTable = pgTable("comment_likes", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
+  commentId: integer("comment_id").notNull().references(() => commentsTable.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export type CommentLike = typeof commentLikesTable.$inferSelect;
