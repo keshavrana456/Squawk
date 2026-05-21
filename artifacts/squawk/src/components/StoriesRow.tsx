@@ -357,6 +357,8 @@ export default function StoriesRow() {
   }
 
   const getInitials = (name: string) => name ? name.charAt(0).toUpperCase() : '?';
+  const myStoryGroup = storyGroups?.find(g => g.user.username === me?.username);
+  const iHaveStory = !!myStoryGroup;
 
   return (
     <>
@@ -365,11 +367,11 @@ export default function StoriesRow() {
         <div
           className="flex flex-col items-center gap-1 shrink-0 cursor-pointer group"
           data-testid="story-add"
-          onClick={() => setUploadOpen(true)}
+          onClick={() => iHaveStory ? setViewerGroupIndex(storyGroups!.findIndex(g => g.user.username === me?.username)) : setUploadOpen(true)}
         >
           <div
-            className="relative w-16 h-16 rounded-full p-[2px] transition-transform group-hover:scale-105 bg-gradient-to-tr from-primary to-[#c084fc]"
-            style={{ boxShadow: "0 0 14px 4px rgba(192,132,252,0.5), 0 0 28px 6px rgba(236,72,153,0.25)" }}
+            className={`relative w-16 h-16 rounded-full p-[2px] transition-transform group-hover:scale-105 ${iHaveStory ? 'bg-gradient-to-tr from-primary to-[#c084fc]' : 'bg-muted border border-border'}`}
+            style={iHaveStory ? { boxShadow: "0 0 14px 4px rgba(192,132,252,0.5), 0 0 28px 6px rgba(236,72,153,0.25)" } : undefined}
           >
             <div className="w-full h-full rounded-full border-2 border-background overflow-hidden bg-muted flex items-center justify-center relative">
               <Avatar className="w-full h-full rounded-none">
