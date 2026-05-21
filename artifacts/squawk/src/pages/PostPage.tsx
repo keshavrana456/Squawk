@@ -1,19 +1,23 @@
 import { useRoute, Link, useLocation } from "wouter";
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import {
   useGetPostComments,
   useCreateComment,
   useGetPost,
   useLikePost,
   useSavePost,
+  useGetMe,
   type Comment,
 } from "@workspace/api-client-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Heart, MessageCircle, Send, Bookmark, MoreHorizontal, ArrowLeft, BadgeCheck } from "lucide-react";
+import { Heart, MessageCircle, Send, Bookmark, MoreHorizontal, ArrowLeft, BadgeCheck, CornerDownRight, X } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { motion } from "framer-motion";
+import { ShareSheet } from "@/components/ShareSheet";
+
+type CommentLikeState = { isLiked: boolean; count: number };
 
 export default function PostPage() {
   const [match, params] = useRoute("/post/:id");
@@ -21,20 +25,51 @@ export default function PostPage() {
 
   const { data: post, isLoading: isLoadingPost } = useGetPost(postId, { query: { enabled: !!postId } });
   const { data: commentsData, isLoading: isLoadingComments, refetch: refetchComments } = useGetPostComments(postId, { query: { enabled: !!postId } });
-  const comments = (commentsData as any) || [];
+  const { data: me } = useGetMe();
+  const comments: any[] = Array.isArray(commentsData) ? commentsData : [];
 
   const likeMutation = useLikePost();
   const saveMutation = useSavePost();
   const createCommentMutation = useCreateComment();
 
   const [commentText, setCommentText] = useState("");
+  const [replyTo, setReplyTo] = useState<{ username: string; commentId: number } | null>(null);
   const [localLiked, setLocalLiked] = useState<boolean | null>(null);
   const [localLikes, setLocalLikes] = useState<number | null>(null);
   const [localSaved, setLocalSaved] = useState<boolean | null>(null);
+  const [shareOpen, setShareOpen] = useState(false);
+  const [commentLikeStates, setCommentLikeStates] = useState<Record<number, CommentLikeState>>({});
 
   const isLiked = localLiked ?? (post?.isLiked ?? false);
   const likesCount = localLikes ?? (post?.likesCount ?? 0);
   const isSaved = localSaved ?? (post?.isSaved ?? false);
+
+  const getCommentLikeState = (c: any): CommentLikeState => {
+    if (commentLikeStates[c.id] !== undefined) return commentLikeStates[c.id];
+    return { isLiked: c.isLiked ?? false, count: c.likesCount ?? 0 };
+  };
+
+  const handleCommentLike = useCallback(async (commentId: number, current: CommentLikeState) => {
+    const optimistic: CommentLikeState = {
+      isLiked: !current.isLiked,
+      count: current.isLiked ? Math.max(0, current.count - 1) : current.count + 1,
+    };
+    setCommentLikeStates(prev => ({ ...prev, [commentId]: optimistic }));
+    try {
+      const res = await fetch(`/api/comments/${commentId}/like`, {
+        method: "POST",
+        credentials: "include",
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setCommentLikeStates(prev => ({ ...prev, [commentId]: { isLiked: data.isLiked, count: data.likesCount } }));
+      } else {
+        setCommentLikeStates(prev => ({ ...prev, [commentId]: current }));
+      }
+    } catch {
+      setCommentLikeStates(prev => ({ ...prev, [commentId]: current }));
+    }
+  }, []);
 
   if (isLoadingPost) return (
     <div className="min-h-screen flex items-center justify-center">
@@ -69,16 +104,20 @@ export default function PostPage() {
   };
 
   const handleComment = () => {
-    if (!commentText.trim()) return;
-    createCommentMutation.mutate({
-      id: postId,
-      data: { content: commentText.trim() },
-    }, {
-      onSuccess: () => {
-        setCommentText("");
-        refetchComments();
-      },
-    });
+    const content = replyTo
+      ? `@${replyTo.username} ${commentText.trim()}`
+      : commentText.trim();
+    if (!content || postId <= 0) return;
+    createCommentMutation.mutate(
+      { id: postId, data: { content } },
+      {
+        onSuccess: () => {
+          setCommentText("");
+          setReplyTo(null);
+          refetchComments();
+        },
+      }
+    );
   };
 
   const getInitials = (n: string) => n ? n.charAt(0).toUpperCase() : "?";
@@ -132,8 +171,9 @@ export default function PostPage() {
             <Button variant="ghost" size="icon"><MoreHorizontal className="w-5 h-5" /></Button>
           </div>
 
-          {/* Scrollable content */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-5 no-scrollbar">
+          {/* Scrollable comments */}
+          <div className="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar">
+            {/* Caption */}
             {post.caption && (
               <div className="flex gap-3">
                 <Avatar className="w-8 h-8 shrink-0">
@@ -153,6 +193,7 @@ export default function PostPage() {
               </div>
             )}
 
+            {/* Comments */}
             {isLoadingComments ? (
               <div className="flex justify-center p-4">
                 <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
@@ -160,27 +201,50 @@ export default function PostPage() {
             ) : comments.length === 0 ? (
               <div className="text-center text-muted-foreground py-8 text-sm">No comments yet. Be the first!</div>
             ) : (
-              comments.map((comment: Comment) => (
-                <div key={comment.id} className="flex gap-3">
-                  <Link href={`/profile/${comment.author.username}`}>
-                    <Avatar className="w-8 h-8 shrink-0 border border-border">
-                      <AvatarImage src={comment.author.avatarUrl || ""} />
-                      <AvatarFallback>{getInitials(comment.author.displayName)}</AvatarFallback>
-                    </Avatar>
-                  </Link>
-                  <div className="text-[15px] flex-1">
-                    <span className="font-semibold mr-2">{comment.author.username}</span>
-                    {comment.content}
-                    <div className="flex items-center gap-4 text-xs text-muted-foreground mt-1 font-medium">
-                      <span>{formatDistanceToNow(new Date(comment.createdAt))}</span>
-                      <button className="font-semibold hover:text-foreground">Reply</button>
+              comments.map((comment: any) => {
+                const cls = getCommentLikeState(comment);
+                return (
+                  <div key={comment.id} className="flex gap-3 items-start">
+                    <Link href={`/profile/${comment.author?.username}`}>
+                      <Avatar className="w-8 h-8 shrink-0 border border-border">
+                        <AvatarImage src={comment.author?.avatarUrl || ""} />
+                        <AvatarFallback>{getInitials(comment.author?.displayName || "?")}</AvatarFallback>
+                      </Avatar>
+                    </Link>
+                    <div className="text-[15px] flex-1 min-w-0">
+                      <span className="font-semibold mr-2">{comment.author?.username}</span>
+                      {comment.content}
+                      <div className="flex items-center gap-4 text-xs text-muted-foreground mt-1 font-medium">
+                        <span>{formatDistanceToNow(new Date(comment.createdAt))}</span>
+                        <button
+                          className="font-semibold hover:text-foreground transition-colors"
+                          onClick={() => {
+                            setReplyTo({ username: comment.author?.username, commentId: comment.id });
+                            setTimeout(() => document.getElementById("post-comment-input")?.focus(), 100);
+                          }}
+                        >
+                          Reply
+                        </button>
+                        {cls.count > 0 && (
+                          <span className={cls.isLiked ? "text-pink-500" : ""}>{cls.count}</span>
+                        )}
+                      </div>
                     </div>
+                    <button
+                      className="pt-1 px-2 h-fit transition-colors group"
+                      onClick={() => handleCommentLike(comment.id, cls)}
+                    >
+                      <Heart
+                        className={`w-3 h-3 transition-all ${
+                          cls.isLiked
+                            ? "fill-pink-500 text-pink-500 scale-110"
+                            : "text-muted-foreground group-hover:text-pink-400"
+                        }`}
+                      />
+                    </button>
                   </div>
-                  <button className="pt-1 px-2 text-muted-foreground hover:text-primary transition-colors h-fit">
-                    <Heart className="w-3 h-3" />
-                  </button>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
 
@@ -191,14 +255,20 @@ export default function PostPage() {
                 <button
                   onClick={handleLike}
                   disabled={likeMutation.isPending}
-                  className={`transition-all hover:opacity-70 active:scale-90 ${isLiked ? "text-primary" : "text-foreground"}`}
+                  className={`transition-all hover:opacity-70 active:scale-90 ${isLiked ? "text-pink-500" : "text-foreground"}`}
                 >
-                  <Heart className={`w-7 h-7 ${isLiked ? "fill-primary" : ""}`} />
+                  <Heart className={`w-7 h-7 ${isLiked ? "fill-pink-500" : ""}`} />
                 </button>
-                <button className="text-foreground hover:opacity-70">
+                <button
+                  className="text-foreground hover:opacity-70"
+                  onClick={() => document.getElementById("post-comment-input")?.focus()}
+                >
                   <MessageCircle className="w-7 h-7" />
                 </button>
-                <button className="text-foreground hover:opacity-70">
+                <button
+                  className="text-foreground hover:opacity-70"
+                  onClick={() => setShareOpen(true)}
+                >
                   <Send className="w-7 h-7" />
                 </button>
               </div>
@@ -216,29 +286,44 @@ export default function PostPage() {
           </div>
 
           {/* Comment Input */}
-          <div className="p-4 border-t border-border flex items-center gap-3 shrink-0 bg-card">
-            <Avatar className="w-8 h-8 shrink-0 border border-border">
-              <AvatarFallback className="bg-primary/20">U</AvatarFallback>
-            </Avatar>
-            <Input
-              value={commentText}
-              onChange={e => setCommentText(e.target.value)}
-              onKeyDown={e => e.key === "Enter" && handleComment()}
-              placeholder="Add a comment..."
-              className="border-0 bg-transparent shadow-none focus-visible:ring-0 px-0 h-auto py-2 text-[15px]"
-            />
-            <Button
-              variant="ghost"
-              className="text-primary font-semibold hover:bg-transparent hover:text-primary/80 px-2"
-              onClick={handleComment}
-              disabled={!commentText.trim() || createCommentMutation.isPending}
-            >
-              {createCommentMutation.isPending ? "..." : "Post"}
-            </Button>
+          <div className="p-3 border-t border-border flex flex-col gap-2 shrink-0 bg-card">
+            {replyTo && (
+              <div className="flex items-center gap-1 text-xs text-primary bg-primary/10 rounded-full px-3 py-1.5 w-fit">
+                <CornerDownRight className="w-3 h-3" />
+                <span>Replying to @{replyTo.username}</span>
+                <button onClick={() => setReplyTo(null)} className="ml-1.5 hover:opacity-70">
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            )}
+            <div className="flex items-center gap-3">
+              <Avatar className="w-8 h-8 shrink-0 border border-border">
+                <AvatarImage src={(me as any)?.avatarUrl || ""} />
+                <AvatarFallback className="bg-primary/20">{getInitials((me as any)?.displayName || "U")}</AvatarFallback>
+              </Avatar>
+              <Input
+                id="post-comment-input"
+                value={commentText}
+                onChange={e => setCommentText(e.target.value)}
+                onKeyDown={e => e.key === "Enter" && handleComment()}
+                placeholder={replyTo ? `Reply to @${replyTo.username}…` : "Add a comment..."}
+                className="border-0 bg-transparent shadow-none focus-visible:ring-0 px-0 h-auto py-2 text-[15px]"
+              />
+              <Button
+                variant="ghost"
+                className="text-primary font-semibold hover:bg-transparent hover:text-primary/80 px-2 shrink-0"
+                onClick={handleComment}
+                disabled={!commentText.trim() || createCommentMutation.isPending}
+              >
+                {createCommentMutation.isPending ? "…" : "Post"}
+              </Button>
+            </div>
           </div>
 
         </div>
       </div>
+
+      <ShareSheet open={shareOpen} onOpenChange={setShareOpen} postId={post.id} caption={post.caption} />
     </motion.div>
   );
 }

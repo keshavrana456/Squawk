@@ -18,6 +18,7 @@ import {
   getGetFeedQueryKey,
   getGetUserPostsQueryKey,
   getListPostsQueryKey,
+  getGetPostQueryKey,
   type Post,
 } from "@workspace/api-client-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -85,6 +86,10 @@ export default function PostCard({ post, onLike, onSave, onComment }: PostCardPr
     );
     queryClient.setQueriesData({ queryKey: getListPostsQueryKey() }, (old: any) =>
       old?.posts ? { ...old, posts: patchPosts(old.posts) } : old
+    );
+    // Also patch the individual post cache so PostPage shows correct like state
+    queryClient.setQueryData(getGetPostQueryKey(post.id), (old: any) =>
+      old ? { ...old, isLiked: isLikedVal, likesCount: likesCountVal } : old
     );
   };
 
