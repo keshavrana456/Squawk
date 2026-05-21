@@ -45,8 +45,8 @@ outputType = "webview"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "PORT=8081 pnpm --filter @workspace/squawk dev"
-waitForPort = 8081
+args = "PORT=5000 pnpm --filter @workspace/squawk dev"
+waitForPort = 5000
 
 [agent]
 stack = "BEST_EFFORT_FALLBACK"
@@ -66,6 +66,10 @@ externalPort = 8081
 
 [[ports]]
 localPort = 19926
+externalPort = 80
+
+[[ports]]
+localPort = 5000
 externalPort = 80
 
 [userenv]
