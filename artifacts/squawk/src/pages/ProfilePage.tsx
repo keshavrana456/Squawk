@@ -643,16 +643,19 @@ export default function ProfilePage() {
                   </div>
                 ) : nftStats ? (
                   <div className="grid grid-cols-2 gap-3">
+                    {/* Floor Price */}
                     <div className="bg-gradient-to-br from-primary/15 to-[#c084fc]/10 border border-primary/20 rounded-2xl p-4">
                       <div className="flex items-center gap-1.5 mb-2">
                         <TrendingUp className="w-3.5 h-3.5 text-primary" />
                         <span className="text-xs font-medium text-muted-foreground">Floor Price</span>
                       </div>
                       <p className="text-2xl font-bold text-foreground">
-                        {nftStats.floorPrice != null ? `${Number(nftStats.floorPrice).toLocaleString(undefined, { maximumFractionDigits: 2 })}` : "—"}
+                        {nftStats.floorPrice != null ? Number(nftStats.floorPrice).toLocaleString(undefined, { maximumFractionDigits: 2 }) : "—"}
                       </p>
                       <p className="text-xs text-muted-foreground mt-0.5">{nftStats.floorPriceSymbol ?? "MON"}</p>
                     </div>
+
+                    {/* Holders */}
                     <div className="bg-muted/40 border border-border rounded-2xl p-4">
                       <div className="flex items-center gap-1.5 mb-2">
                         <Users className="w-3.5 h-3.5 text-primary" />
@@ -663,22 +666,77 @@ export default function ProfilePage() {
                       </p>
                       <p className="text-xs text-muted-foreground mt-0.5">unique wallets</p>
                     </div>
-                    {nftStats.totalSupply != null && (
-                      <div className="bg-muted/40 border border-border rounded-2xl p-4">
+
+                    {/* Total Supply */}
+                    <div className="bg-muted/40 border border-border rounded-2xl p-4">
+                      <div className="flex items-center gap-1.5 mb-2">
+                        <Activity className="w-3.5 h-3.5 text-primary" />
+                        <span className="text-xs font-medium text-muted-foreground">Total Supply</span>
+                      </div>
+                      <p className="text-2xl font-bold text-foreground">{nftStats.totalSupply?.toLocaleString() ?? "3,333"}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">NFTs minted</p>
+                    </div>
+
+                    {/* Total Sales */}
+                    <div className="bg-muted/40 border border-border rounded-2xl p-4">
+                      <div className="flex items-center gap-1.5 mb-2">
+                        <BarChart2 className="w-3.5 h-3.5 text-pink-500" />
+                        <span className="text-xs font-medium text-muted-foreground">Total Sales</span>
+                      </div>
+                      <p className="text-2xl font-bold text-foreground">
+                        {nftStats.totalSales != null ? nftStats.totalSales.toLocaleString() : "—"}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-0.5">all-time</p>
+                    </div>
+
+                    {/* 24h Volume */}
+                    <div className="bg-muted/40 border border-border rounded-2xl p-4">
+                      <div className="flex items-center gap-1.5 mb-2">
+                        <TrendingUp className="w-3.5 h-3.5 text-green-500" />
+                        <span className="text-xs font-medium text-muted-foreground">24h Volume</span>
+                      </div>
+                      <p className="text-2xl font-bold text-foreground">
+                        {nftStats.volume24h != null ? Number(nftStats.volume24h).toLocaleString(undefined, { maximumFractionDigits: 0 }) : "—"}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-0.5">MON</p>
+                    </div>
+
+                    {/* 7d Volume */}
+                    <div className="bg-muted/40 border border-border rounded-2xl p-4">
+                      <div className="flex items-center gap-1.5 mb-2">
+                        <TrendingUp className="w-3.5 h-3.5 text-violet-400" />
+                        <span className="text-xs font-medium text-muted-foreground">7d Volume</span>
+                      </div>
+                      <p className="text-2xl font-bold text-foreground">
+                        {nftStats.volume7d != null ? Number(nftStats.volume7d).toLocaleString(undefined, { maximumFractionDigits: 0 }) : "—"}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-0.5">MON</p>
+                    </div>
+
+                    {/* Total Volume — full width */}
+                    {nftStats.totalVolume != null && (
+                      <div className="col-span-2 bg-gradient-to-r from-primary/10 to-[#c084fc]/10 border border-primary/20 rounded-2xl p-4">
                         <div className="flex items-center gap-1.5 mb-2">
                           <Activity className="w-3.5 h-3.5 text-primary" />
-                          <span className="text-xs font-medium text-muted-foreground">Total Supply</span>
+                          <span className="text-xs font-medium text-muted-foreground">Total Volume</span>
                         </div>
-                        <p className="text-2xl font-bold text-foreground">{nftStats.totalSupply.toLocaleString()}</p>
+                        <p className="text-3xl font-bold text-foreground">
+                          {Number(nftStats.totalVolume).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-0.5">MON all-time</p>
                       </div>
                     )}
-                    {nftStats.collectionUrl && (
-                      <div className="col-span-2 mt-2">
-                        <a href={nftStats.collectionUrl} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-primary text-sm font-semibold hover:underline">
-                          <ExternalLink className="w-4 h-4" /> View on OpenSea
-                        </a>
-                      </div>
-                    )}
+
+                    {/* OpenSea link */}
+                    <div className="col-span-2">
+                      <a
+                        href="https://opensea.io/collection/the-10k-squad"
+                        target="_blank" rel="noreferrer"
+                        className="flex items-center gap-2 text-primary text-sm font-semibold hover:underline"
+                      >
+                        <ExternalLink className="w-4 h-4" /> View on OpenSea
+                      </a>
+                    </div>
                   </div>
                 ) : (
                   <p className="text-center text-muted-foreground py-8 text-sm">No NFT data available</p>

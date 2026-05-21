@@ -28,11 +28,13 @@ export default function Sidebar() {
   ];
 
   return (
-    <aside className="hidden md:flex flex-col border-r border-border bg-card/50 backdrop-blur-xl h-full justify-between sticky top-0 w-16 lg:w-64 p-2 lg:p-4 shrink-0">
-      <div>
-        <Link href="/home" className="flex items-center justify-center lg:justify-start gap-3 px-2 lg:px-4 py-4 mb-4 lg:mb-8" data-testid="link-logo">
-          <img src={import.meta.env.BASE_URL.replace(/\/$/, "") + "/logo.png"} alt="Squawk Logo" className="h-8 w-auto" />
-        </Link>
+    <aside className="hidden md:flex flex-col border-r border-border bg-card/50 backdrop-blur-xl h-full sticky top-0 w-16 lg:w-64 p-2 lg:p-4 shrink-0 overflow-hidden">
+      <Link href="/home" className="flex items-center justify-center lg:justify-start gap-3 px-2 lg:px-4 py-4 mb-4 lg:mb-6 shrink-0" data-testid="link-logo">
+        <img src={import.meta.env.BASE_URL.replace(/\/$/, "") + "/logo.png"} alt="Squawk Logo" className="h-8 w-auto" />
+      </Link>
+
+      {/* Scrollable nav area */}
+      <div className="flex-1 overflow-y-auto no-scrollbar min-h-0">
         <nav className="space-y-1">
           {navItems.map((item) => {
             const isActive = location === item.href || (item.href.startsWith("/profile/") && location.startsWith("/profile/"));
@@ -60,7 +62,7 @@ export default function Sidebar() {
         </nav>
       </div>
 
-      <div className="space-y-1">
+      <div className="space-y-1 shrink-0 pt-2">
         {/* Theme toggle */}
         <button
           onClick={toggle}

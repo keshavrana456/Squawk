@@ -277,6 +277,8 @@ router.delete("/chirps/:id", requireUser, async (req, res): Promise<void> => {
   if (!chirp) { res.status(404).json({ error: "Not found" }); return; }
   if (chirp.authorId !== currentUser.id) { res.status(403).json({ error: "Forbidden" }); return; }
 
+  // Delete the chirp and cascade-delete any reposts of it
+  await db.delete(chirpsTable).where(eq(chirpsTable.rechirpOfId, chirpId));
   await db.delete(chirpsTable).where(eq(chirpsTable.id, chirpId));
   res.json({ success: true });
 });

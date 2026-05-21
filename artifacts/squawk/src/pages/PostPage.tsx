@@ -6,30 +6,47 @@ import {
   useGetPost,
   useLikePost,
   useSavePost,
+  useDeletePost,
   useGetMe,
+  getGetFeedQueryKey,
+  getGetUserPostsQueryKey,
+  getListPostsQueryKey,
   type Comment,
 } from "@workspace/api-client-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Heart, MessageCircle, Send, Bookmark, MoreHorizontal, ArrowLeft, BadgeCheck, CornerDownRight, X } from "lucide-react";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
+  DropdownMenuSeparator, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel,
+  AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
+  AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Heart, MessageCircle, Send, Bookmark, MoreHorizontal, ArrowLeft, BadgeCheck, CornerDownRight, X, Trash2, Copy } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { motion } from "framer-motion";
+import { useQueryClient } from "@tanstack/react-query";
 import { ShareSheet } from "@/components/ShareSheet";
 
 type CommentLikeState = { isLiked: boolean; count: number };
 
 export default function PostPage() {
   const [match, params] = useRoute("/post/:id");
+  const [, navigate] = useLocation();
   const postId = match ? parseInt(params?.id || "0", 10) : 0;
+  const queryClient = useQueryClient();
 
-  const { data: post, isLoading: isLoadingPost } = useGetPost(postId, { query: { enabled: !!postId } });
+  const { data: post, isLoading: isLoadingPost } = useGetPost(postId, { query: { enabled: !!postId, staleTime: 30_000 } });
   const { data: commentsData, isLoading: isLoadingComments, refetch: refetchComments } = useGetPostComments(postId, { query: { enabled: !!postId } });
   const { data: me } = useGetMe();
   const comments: any[] = Array.isArray(commentsData) ? commentsData : [];
 
   const likeMutation = useLikePost();
   const saveMutation = useSavePost();
+  const deleteMutation = useDeletePost();
   const createCommentMutation = useCreateComment();
 
   const [commentText, setCommentText] = useState("");
@@ -38,6 +55,7 @@ export default function PostPage() {
   const [localLikes, setLocalLikes] = useState<number | null>(null);
   const [localSaved, setLocalSaved] = useState<boolean | null>(null);
   const [shareOpen, setShareOpen] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [commentLikeStates, setCommentLikeStates] = useState<Record<number, CommentLikeState>>({});
 
   const isLiked = localLiked ?? (post?.isLiked ?? false);
@@ -77,6 +95,21 @@ export default function PostPage() {
     </div>
   );
   if (!post) return <div className="p-8 text-center text-muted-foreground">Post not found</div>;
+
+  const isOwner = (me as any)?.id === (post.author as any)?.id ||
+    (me as any)?.username === post.author?.username;
+
+  const handleDelete = () => {
+    deleteMutation.mutate({ id: postId }, {
+      onSuccess: () => {
+        // Invalidate all feed/post caches so the deleted post disappears everywhere
+        queryClient.invalidateQueries({ queryKey: getGetFeedQueryKey() });
+        queryClient.invalidateQueries({ queryKey: getListPostsQueryKey() });
+        queryClient.invalidateQueries({ queryKey: getGetUserPostsQueryKey(post.author.username) });
+        navigate("/home");
+      },
+    });
+  };
 
   const handleLike = () => {
     if (likeMutation.isPending) return;
@@ -168,7 +201,30 @@ export default function PostPage() {
                 {post.author.isVerified && !((post.author as any).isFounder) && <BadgeCheck className="w-4 h-4 text-primary" />}
               </div>
             </Link>
-            <Button variant="ghost" size="icon"><MoreHorizontal className="w-5 h-5" /></Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon"><MoreHorizontal className="w-5 h-5" /></Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-44">
+                <DropdownMenuItem
+                  onClick={() => navigator.clipboard.writeText(window.location.href)}
+                  className="gap-2 cursor-pointer"
+                >
+                  <Copy className="w-4 h-4" /> Copy link
+                </DropdownMenuItem>
+                {isOwner && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onClick={() => setShowDeleteConfirm(true)}
+                      className="gap-2 cursor-pointer text-destructive focus:text-destructive"
+                    >
+                      <Trash2 className="w-4 h-4" /> Delete post
+                    </DropdownMenuItem>
+                  </>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
 
           {/* Scrollable comments */}
@@ -324,6 +380,26 @@ export default function PostPage() {
       </div>
 
       <ShareSheet open={shareOpen} onOpenChange={setShareOpen} postId={post.id} caption={post.caption} />
+
+      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this post?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently remove the post. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteMutation.isPending ? "Deleting…" : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </motion.div>
   );
 }
