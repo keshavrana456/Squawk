@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { ClerkProvider, Show, useClerk, useUser, AuthenticateWithRedirectCallback } from '@clerk/react';
+import { ClerkProvider, SignIn, SignUp, Show, useClerk, useUser, AuthenticateWithRedirectCallback } from '@clerk/react';
 import { useSignIn, useSignUp } from '@clerk/react/legacy';
 import { publishableKeyFromHost } from '@clerk/react/internal';
 import { shadcn } from '@clerk/themes';
@@ -69,44 +69,12 @@ const clerkAppearance = {
   variables: {
     colorPrimary: "hsl(330, 100%, 71%)",
     colorForeground: "hsl(280, 20%, 97%)",
-    colorMutedForeground: "hsl(270, 15%, 58%)",
-    colorDanger: "hsl(0, 62.8%, 40%)",
-    colorBackground: "hsl(268, 40%, 10%)",
-    colorInput: "hsl(268, 38%, 12%)",
-    colorInputForeground: "hsl(280, 20%, 97%)",
+    colorBackground: "hsl(268, 45%, 7%)",
+    colorInputBackground: "hsl(268, 38%, 12%)",
+    colorInputText: "hsl(280, 20%, 97%)",
     colorNeutral: "hsl(268, 35%, 14%)",
     fontFamily: "'Outfit', sans-serif",
     borderRadius: "1rem",
-  },
-  elements: {
-    rootBox: "w-full flex justify-center",
-    cardBox: "bg-card rounded-2xl w-[440px] max-w-full overflow-hidden border border-border shadow-2xl",
-    card: "!shadow-none !border-0 !bg-transparent !rounded-none",
-    footer: "!shadow-none !border-0 !bg-transparent !rounded-none",
-    headerTitle: "text-foreground font-bold",
-    headerSubtitle: "text-muted-foreground",
-    formFieldLabel: "text-foreground",
-    footerActionLink: "text-primary hover:text-primary/90",
-    footerActionText: "text-muted-foreground",
-    dividerText: "text-muted-foreground",
-    identityPreviewEditButton: "text-primary",
-    formFieldSuccessText: "text-green-500",
-    alertText: "text-destructive-foreground",
-    logoBox: "flex justify-center mb-4",
-    logoImage: "h-16 w-auto",
-    formButtonPrimary: "bg-gradient-to-r from-primary to-secondary hover:opacity-90 transition-opacity text-foreground border-0 font-semibold",
-    formFieldInput: "bg-input border-border text-foreground placeholder:text-muted-foreground focus:ring-primary",
-    footerAction: "bg-transparent",
-    dividerLine: "bg-border",
-    alert: "bg-destructive/20 border-destructive",
-    otpCodeFieldInput: "bg-input border-border text-foreground",
-    formFieldRow: "mb-4",
-    main: "flex flex-col gap-4",
-    // Hide Clerk's built-in social buttons — we render our own redirect-based ones
-    socialButtonsBlockButton: "!hidden",
-    socialButtonsBlockButtonText: "!hidden",
-    socialButtonsRoot: "!hidden",
-    dividerRow: "!hidden",
   },
 };
 
@@ -417,7 +385,12 @@ function AuthPageShell({ children }: { children: React.ReactNode }) {
 function SignInPage() {
   return (
     <AuthPageShell>
-      <EmailSignInForm />
+      <SignIn
+        routing="virtual"
+        appearance={clerkAppearance}
+        signUpUrl={`${basePath}/sign-up`}
+        fallbackRedirectUrl={`${basePath}/home`}
+      />
     </AuthPageShell>
   );
 }
@@ -425,7 +398,12 @@ function SignInPage() {
 function SignUpPage() {
   return (
     <AuthPageShell>
-      <EmailSignUpForm />
+      <SignUp
+        routing="virtual"
+        appearance={clerkAppearance}
+        signInUrl={`${basePath}/sign-in`}
+        fallbackRedirectUrl={`${basePath}/home`}
+      />
     </AuthPageShell>
   );
 }
