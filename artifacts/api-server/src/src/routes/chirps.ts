@@ -267,6 +267,20 @@ router.post("/chirps/:id/rechirp", requireUser, async (req, res): Promise<void> 
   res.json({ rechirped: true });
 });
 
+// DELETE /chirps/:id — delete own chirp
+router.delete("/chirps/:id", requireUser, async (req, res): Promise<void> => {
+  const currentUser = (req as any).currentUser as typeof usersTable.$inferSelect;
+  const chirpId = parseInt(req.params.id, 10);
+  if (isNaN(chirpId)) { res.status(400).json({ error: "Invalid ID" }); return; }
+
+  const [chirp] = await db.select().from(chirpsTable).where(eq(chirpsTable.id, chirpId));
+  if (!chirp) { res.status(404).json({ error: "Not found" }); return; }
+  if (chirp.authorId !== currentUser.id) { res.status(403).json({ error: "Forbidden" }); return; }
+
+  await db.delete(chirpsTable).where(eq(chirpsTable.id, chirpId));
+  res.json({ success: true });
+});
+
 // GET /chirps/:id/comments — replies
 router.get("/chirps/:id/comments", async (req, res): Promise<void> => {
   const chirpId = parseInt(req.params.id, 10);

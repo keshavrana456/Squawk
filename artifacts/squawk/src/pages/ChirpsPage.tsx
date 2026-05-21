@@ -6,8 +6,18 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
+  DropdownMenuSeparator, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel,
+  AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
+  AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Heart, MessageCircle, Repeat2, Bookmark, Share2, MoreHorizontal,
   Hash, TrendingUp, BadgeCheck, Image as ImageIcon, Smile, X, Send,
+  Trash2, Copy,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { useUser } from "@clerk/react";
@@ -100,6 +110,14 @@ function useRechirp() {
   });
 }
 
+function useDeleteChirp() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => apiFetch(`/api/chirps/${id}`, { method: "DELETE" }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["chirps"] }),
+  });
+}
+
 function getInitials(n: string) { return n ? n.charAt(0).toUpperCase() : "?"; }
 function fmt(n: number) { return n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n); }
 
@@ -117,9 +135,13 @@ function ChirpCard({ chirp, onReply, isNested = false, onOpen }: { chirp: ChirpD
   const [localLikes, setLocalLikes] = useState(chirp.likesCount);
   const [localSaved, setLocalSaved] = useState(chirp.isSaved);
   const [localRechirped, setLocalRechirped] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const likeMut = useLikeChirp();
   const saveMut = useSaveChirp();
   const rechirpMut = useRechirp();
+  const deleteMut = useDeleteChirp();
+  const { data: me } = useGetMe();
+  const isOwner = me && (me as any).id === chirp.authorId;
 
   const handleLike = () => {
     const newLiked = !localLiked;
@@ -153,6 +175,47 @@ function ChirpCard({ chirp, onReply, isNested = false, onOpen }: { chirp: ChirpD
       navigator.clipboard.writeText(url).catch(() => {});
     }
   };
+
+  const handleCopyLink = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigator.clipboard.writeText(`${window.location.origin}/chirps/${chirp.id}`).catch(() => {});
+  };
+
+  const handleDeleteConfirmed = () => {
+    deleteMut.mutate(chirp.id);
+    setShowDeleteConfirm(false);
+  };
+
+  const ChirpMenu = () => (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          className="ml-auto text-muted-foreground hover:text-foreground p-1 rounded-full hover:bg-muted transition-colors"
+          onClick={e => e.stopPropagation()}
+        >
+          <MoreHorizontal className="w-4 h-4" />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-44" onClick={e => e.stopPropagation()}>
+        {isOwner && (
+          <>
+            <DropdownMenuItem
+              onClick={e => { e.stopPropagation(); setShowDeleteConfirm(true); }}
+              className="text-destructive focus:text-destructive cursor-pointer"
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              Delete chirp
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+          </>
+        )}
+        <DropdownMenuItem onClick={handleCopyLink} className="cursor-pointer">
+          <Copy className="w-4 h-4 mr-2" />
+          Copy link
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
 
   const timeAgo = (() => {
     try { return formatDistanceToNow(new Date(chirp.createdAt), { addSuffix: true }); } catch { return ""; }
@@ -205,9 +268,7 @@ function ChirpCard({ chirp, onReply, isNested = false, onOpen }: { chirp: ChirpD
                 {chirp.originalChirp.author.isFounder && <BadgeCheck className="w-4 h-4 text-pink-500 shrink-0" />}
                 {chirp.originalChirp.author.isVerified && !chirp.originalChirp.author.isFounder && <BadgeCheck className="w-4 h-4 text-primary shrink-0" />}
                 <span className="text-muted-foreground text-sm">@{chirp.originalChirp.author.username}</span>
-                <button className="ml-auto text-muted-foreground hover:text-foreground p-1 rounded-full hover:bg-muted transition-colors" onClick={e => e.stopPropagation()}>
-                  <MoreHorizontal className="w-4 h-4" />
-                </button>
+                <ChirpMenu />
               </div>
               {chirp.originalChirp.content && (
                 <p className="mt-1 text-[15px] leading-relaxed break-words">{renderContent(chirp.originalChirp.content)}</p>
@@ -234,9 +295,7 @@ function ChirpCard({ chirp, onReply, isNested = false, onOpen }: { chirp: ChirpD
                 <span className="text-muted-foreground text-sm">@{chirp.author.username}</span>
                 <span className="text-muted-foreground text-sm">·</span>
                 <span className="text-muted-foreground text-sm">{timeAgo}</span>
-                <button className="ml-auto text-muted-foreground hover:text-foreground p-1 rounded-full hover:bg-muted transition-colors" onClick={e => e.stopPropagation()}>
-                  <MoreHorizontal className="w-4 h-4" />
-                </button>
+                <ChirpMenu />
               </div>
               {chirp.content && (
                 <p className="mt-1 text-[15px] leading-relaxed break-words">{renderContent(chirp.content)}</p>
@@ -294,6 +353,26 @@ function ChirpCard({ chirp, onReply, isNested = false, onOpen }: { chirp: ChirpD
           </div>
         </div>
       </div>
+
+      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this chirp?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete your chirp. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirmed}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </motion.article>
   );
 }

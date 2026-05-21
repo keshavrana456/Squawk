@@ -13,8 +13,17 @@ import { Button } from "@/components/ui/button";
 import {
   BadgeCheck, Grid, Film, X, ImagePlus, Crown, Settings,
   PlusCircle, Bookmark, BarChart2, TrendingUp, Users,
-  Activity, ExternalLink, Camera, MessageSquare,
+  Activity, ExternalLink, Camera, MessageSquare, MoreHorizontal, Trash2, Copy,
 } from "lucide-react";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
+  DropdownMenuSeparator, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel,
+  AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
+  AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import PostGrid from "@/components/PostGrid";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
@@ -125,6 +134,7 @@ export default function ProfilePage() {
 
   const bannerInputRef = useRef<HTMLInputElement>(null);
   const avatarInputRef = useRef<HTMLInputElement>(null);
+  const [chirpToDelete, setChirpToDelete] = useState<number | null>(null);
   const [showStoryUpload, setShowStoryUpload] = useState(false);
   const [bannerUploading, setBannerUploading] = useState(false);
   const [avatarUploading, setAvatarUploading] = useState(false);
@@ -484,7 +494,37 @@ export default function ProfilePage() {
             <div className="space-y-0 border border-border rounded-2xl overflow-hidden">
               {userChirps.map((chirp: any) => (
                 <div key={chirp.id} className="p-4 border-b border-border last:border-b-0 hover:bg-muted/30 transition-colors">
-                  <p className="text-foreground text-[15px] leading-relaxed break-words">{chirp.content}</p>
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="text-foreground text-[15px] leading-relaxed break-words flex-1">{chirp.content}</p>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button className="text-muted-foreground hover:text-foreground p-1 rounded-full hover:bg-muted transition-colors shrink-0">
+                          <MoreHorizontal className="w-4 h-4" />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-44">
+                        {isMe && (
+                          <>
+                            <DropdownMenuItem
+                              onClick={() => setChirpToDelete(chirp.id)}
+                              className="text-destructive focus:text-destructive cursor-pointer"
+                            >
+                              <Trash2 className="w-4 h-4 mr-2" />
+                              Delete chirp
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                          </>
+                        )}
+                        <DropdownMenuItem
+                          onClick={() => navigator.clipboard.writeText(`${window.location.origin}/chirps/${chirp.id}`).catch(() => {})}
+                          className="cursor-pointer"
+                        >
+                          <Copy className="w-4 h-4 mr-2" />
+                          Copy link
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
                   {chirp.mediaUrl && (
                     <img src={chirp.mediaUrl} alt="" className="mt-3 rounded-xl max-h-64 w-auto object-cover" />
                   )}
@@ -527,6 +567,33 @@ export default function ProfilePage() {
         onClose={() => setShowStoryUpload(false)}
         onSuccess={() => setShowStoryUpload(false)}
       />
+
+      <AlertDialog open={chirpToDelete !== null} onOpenChange={open => { if (!open) setChirpToDelete(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this chirp?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete your chirp. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async () => {
+                if (chirpToDelete === null) return;
+                try {
+                  await fetch(`/api/chirps/${chirpToDelete}`, { method: "DELETE", credentials: "include" });
+                  setUserChirps(prev => prev.filter((c: any) => c.id !== chirpToDelete));
+                } catch { /* silent */ }
+                setChirpToDelete(null);
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Story viewer for this user's stories */}
       <AnimatePresence>
