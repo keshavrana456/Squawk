@@ -1,0 +1,33 @@
+add my permanent storages ill provide you api keys of that and opensea api keys all in codes so it can easily transfer add all apis in codes,  
+
+SUPABASE
+
+project url:   https://ngsvenudlagubljtcvok.supabase.co
+
+annon key:  eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5nc3ZlbnVkbGFndWJsanRjdm9rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyOTQ3NDAsImV4cCI6MjA5NDg3MDc0MH0.zHjLLngi6RRzBw-lvOnD13o6Zs3zlISS7hYKg3JisSg
+
+service role key :    eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5nc3ZlbnVkbGFndWJsanRjdm9rIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3OTI5NDc0MCwiZXhwIjoyMDk0ODcwNzQwfQ.67NXqBerwXfFUoxvxvLQvr8knNCR8cZoffFpjMzBLbY
+
+
+CLOUDINARY
+
+API:  378187519115639
+
+SECRET: lKBABpoB794bKvVYJjxLV3vpSTM
+
+CLOUD NAME:  dnvwdktiy
+
+
+
+CLERK ADD THIS NEWONE
+
+Publishable key:  pk_test_ZHJpdmVuLXBsYXR5cHVzLTg5LmNsZXJrLmFjY291bnRzLmRldiQ
+
+secret key:  sk_test_4yKnY3OXUvKVaAwER7oDPcXAEO4uhsWrFfc7GjSRp2
+
+
+OPENSEA FOR NFT STATS
+
+api : 3bef7be8ddae401ca55e45aeab0c5610
+
+make story frame in 9:16 and make images manually slide or adjust in story while editing and after uploding dont show diff story show the same like i edited , and no need to show story seprately , make it visible in my story not seprate like shown in this image, and make my story glow border and do this same into my profile, and when we click on my pfp in my profile make it as add pfp so user can add pfp by clicking on pfp, and if user click on this + button make them to add story, and add a option for my chirps in my profile, and change the edit profile and 10k squad button colour into baby glow pink and after following someone make the button colour into transparent with pink border glow and add a option of view in my stories so owner can see who watched my stories and when user or anyuserr click on post from my profile or user profile, dont popup the post make post open like insta and when scroll the other posts will also be visible dont change the frame of posts keep them orignal and in comments when user reply to someone comment then show the comment in nested and little small in size as compare to comment and still the like button is unfill after liking posts its filled after liking post but if i view that pick by openinig it my profile like button stays unfill fix it, comment not working if we try to comment by openinig post from profile.
