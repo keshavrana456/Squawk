@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { eq, and, desc, sql, isNull } from "drizzle-orm";
+import { eq, and, desc, sql, isNull, inArray } from "drizzle-orm";
 import {
   db, usersTable, followsTable,
   chirpsTable, chirpLikesTable, chirpSavesTable, chirpCommentsTable,
@@ -25,6 +25,26 @@ async function buildChirpWithMeta(chirp: typeof chirpsTable.$inferSelect, author
       : Promise.resolve([]),
   ]);
 
+  // Fetch original chirp for rechirps
+  let originalChirp: any = null;
+  if (chirp.rechirpOfId) {
+    const [origRow] = await db.select({ chirp: chirpsTable, author: usersTable })
+      .from(chirpsTable)
+      .innerJoin(usersTable, eq(chirpsTable.authorId, usersTable.id))
+      .where(eq(chirpsTable.id, chirp.rechirpOfId));
+    if (origRow) {
+      originalChirp = {
+        id: origRow.chirp.id,
+        author: buildUserSummary(origRow.author),
+        content: origRow.chirp.content,
+        mediaUrl: origRow.chirp.mediaUrl ?? null,
+        mediaType: origRow.chirp.mediaType ?? null,
+        hashtags: origRow.chirp.hashtags ?? [],
+        createdAt: origRow.chirp.createdAt.toISOString(),
+      };
+    }
+  }
+
   return {
     id: chirp.id,
     authorId: chirp.authorId,
@@ -37,6 +57,7 @@ async function buildChirpWithMeta(chirp: typeof chirpsTable.$inferSelect, author
     parentId: chirp.parentId ?? null,
     rechirpOfId: chirp.rechirpOfId ?? null,
     quoteOfId: chirp.quoteOfId ?? null,
+    originalChirp,
     viewCount: chirp.viewCount,
     likesCount: likesResult[0]?.count ?? 0,
     commentsCount: commentsResult[0]?.count ?? 0,

@@ -13,6 +13,16 @@ import { formatDistanceToNow } from "date-fns";
 import { useUser } from "@clerk/react";
 import { useGetMe } from "@workspace/api-client-react";
 
+type OriginalChirp = {
+  id: number;
+  author: { id: number; username: string; displayName: string; avatarUrl: string | null; isVerified: boolean; isFounder: boolean };
+  content: string;
+  mediaUrl: string | null;
+  mediaType: string | null;
+  hashtags: string[];
+  createdAt: string;
+};
+
 type ChirpData = {
   id: number;
   authorId: number;
@@ -28,6 +38,7 @@ type ChirpData = {
   parentId: number | null;
   rechirpOfId: number | null;
   quoteOfId: number | null;
+  originalChirp: OriginalChirp | null;
   viewCount: number;
   likesCount: number;
   commentsCount: number;
@@ -154,50 +165,92 @@ function ChirpCard({ chirp, onReply, isNested = false, onOpen }: { chirp: ChirpD
       className={`border-b border-border transition-colors ${isNested ? "bg-muted/20 hover:bg-muted/30" : "hover:bg-muted/30 cursor-pointer"}`}
       onClick={() => { if (!isNested && onOpen) onOpen(chirp); }}
     >
-      {/* Repost label */}
+      {/* Repost label — shows reposter's name */}
       {(chirp.rechirpOfId !== null || localRechirped) && (
         <div className="flex items-center gap-2 px-4 pt-3 text-xs font-semibold text-green-500">
           <Repeat2 className="w-3.5 h-3.5" />
-          {localRechirped ? "You reposted" : "Reposted"}
+          <span>{localRechirped ? "You reposted" : `${chirp.author.displayName || chirp.author.username} reposted`}</span>
         </div>
       )}
       <div className="flex gap-3 px-4 py-4">
-        <Link href={`/profile/${chirp.author.username}`} onClick={e => e.stopPropagation()}>
-          <Avatar className="w-11 h-11 border border-border hover:border-primary transition-colors shrink-0">
-            <AvatarImage src={chirp.author.avatarUrl || ""} />
-            <AvatarFallback className="bg-primary/20 text-primary font-bold text-sm">
-              {getInitials(chirp.author.displayName)}
-            </AvatarFallback>
-          </Avatar>
-        </Link>
+        {/* For reposts, show the original author's avatar; for regular chirps, the chirp author */}
+        {chirp.originalChirp ? (
+          <Link href={`/profile/${chirp.originalChirp.author.username}`} onClick={e => e.stopPropagation()}>
+            <Avatar className="w-11 h-11 border border-border hover:border-primary transition-colors shrink-0">
+              <AvatarImage src={chirp.originalChirp.author.avatarUrl || ""} />
+              <AvatarFallback className="bg-primary/20 text-primary font-bold text-sm">
+                {getInitials(chirp.originalChirp.author.displayName)}
+              </AvatarFallback>
+            </Avatar>
+          </Link>
+        ) : (
+          <Link href={`/profile/${chirp.author.username}`} onClick={e => e.stopPropagation()}>
+            <Avatar className="w-11 h-11 border border-border hover:border-primary transition-colors shrink-0">
+              <AvatarImage src={chirp.author.avatarUrl || ""} />
+              <AvatarFallback className="bg-primary/20 text-primary font-bold text-sm">
+                {getInitials(chirp.author.displayName)}
+              </AvatarFallback>
+            </Avatar>
+          </Link>
+        )}
 
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <Link href={`/profile/${chirp.author.username}`} onClick={e => e.stopPropagation()}>
-              <span className="font-bold text-foreground hover:underline">{chirp.author.displayName || chirp.author.username}</span>
-            </Link>
-            {chirp.author.isFounder && <BadgeCheck className="w-4 h-4 text-pink-500 shrink-0" />}
-            {chirp.author.isVerified && !chirp.author.isFounder && <BadgeCheck className="w-4 h-4 text-primary shrink-0" />}
-            <span className="text-muted-foreground text-sm">@{chirp.author.username}</span>
-            <span className="text-muted-foreground text-sm">·</span>
-            <span className="text-muted-foreground text-sm">{timeAgo}</span>
-            <button className="ml-auto text-muted-foreground hover:text-foreground p-1 rounded-full hover:bg-muted transition-colors" onClick={e => e.stopPropagation()}>
-              <MoreHorizontal className="w-4 h-4" />
-            </button>
-          </div>
-
-          {chirp.content && (
-            <p className="mt-1 text-[15px] leading-relaxed break-words">{renderContent(chirp.content)}</p>
-          )}
-
-          {chirp.mediaUrl && (
-            <div className="mt-3 rounded-2xl overflow-hidden border border-border">
-              {chirp.mediaType === "video" ? (
-                <video src={chirp.mediaUrl} controls className="w-full max-h-80 object-cover" playsInline />
-              ) : (
-                <img src={chirp.mediaUrl} alt="chirp media" className="w-full max-h-80 object-cover" />
+          {chirp.originalChirp ? (
+            /* ── Repost: show original author header + content + media ── */
+            <>
+              <div className="flex items-center gap-2 flex-wrap">
+                <Link href={`/profile/${chirp.originalChirp.author.username}`} onClick={e => e.stopPropagation()}>
+                  <span className="font-bold text-foreground hover:underline">{chirp.originalChirp.author.displayName || chirp.originalChirp.author.username}</span>
+                </Link>
+                {chirp.originalChirp.author.isFounder && <BadgeCheck className="w-4 h-4 text-pink-500 shrink-0" />}
+                {chirp.originalChirp.author.isVerified && !chirp.originalChirp.author.isFounder && <BadgeCheck className="w-4 h-4 text-primary shrink-0" />}
+                <span className="text-muted-foreground text-sm">@{chirp.originalChirp.author.username}</span>
+                <button className="ml-auto text-muted-foreground hover:text-foreground p-1 rounded-full hover:bg-muted transition-colors" onClick={e => e.stopPropagation()}>
+                  <MoreHorizontal className="w-4 h-4" />
+                </button>
+              </div>
+              {chirp.originalChirp.content && (
+                <p className="mt-1 text-[15px] leading-relaxed break-words">{renderContent(chirp.originalChirp.content)}</p>
               )}
-            </div>
+              {chirp.originalChirp.mediaUrl && (
+                <div className="mt-3 rounded-2xl overflow-hidden border border-border">
+                  {chirp.originalChirp.mediaType === "video" ? (
+                    <video src={chirp.originalChirp.mediaUrl} controls className="w-full max-h-80 object-cover" playsInline />
+                  ) : (
+                    <img src={chirp.originalChirp.mediaUrl} alt="chirp media" className="w-full max-h-80 object-cover" />
+                  )}
+                </div>
+              )}
+            </>
+          ) : (
+            /* ── Normal chirp ── */
+            <>
+              <div className="flex items-center gap-2 flex-wrap">
+                <Link href={`/profile/${chirp.author.username}`} onClick={e => e.stopPropagation()}>
+                  <span className="font-bold text-foreground hover:underline">{chirp.author.displayName || chirp.author.username}</span>
+                </Link>
+                {chirp.author.isFounder && <BadgeCheck className="w-4 h-4 text-pink-500 shrink-0" />}
+                {chirp.author.isVerified && !chirp.author.isFounder && <BadgeCheck className="w-4 h-4 text-primary shrink-0" />}
+                <span className="text-muted-foreground text-sm">@{chirp.author.username}</span>
+                <span className="text-muted-foreground text-sm">·</span>
+                <span className="text-muted-foreground text-sm">{timeAgo}</span>
+                <button className="ml-auto text-muted-foreground hover:text-foreground p-1 rounded-full hover:bg-muted transition-colors" onClick={e => e.stopPropagation()}>
+                  <MoreHorizontal className="w-4 h-4" />
+                </button>
+              </div>
+              {chirp.content && (
+                <p className="mt-1 text-[15px] leading-relaxed break-words">{renderContent(chirp.content)}</p>
+              )}
+              {chirp.mediaUrl && (
+                <div className="mt-3 rounded-2xl overflow-hidden border border-border">
+                  {chirp.mediaType === "video" ? (
+                    <video src={chirp.mediaUrl} controls className="w-full max-h-80 object-cover" playsInline />
+                  ) : (
+                    <img src={chirp.mediaUrl} alt="chirp media" className="w-full max-h-80 object-cover" />
+                  )}
+                </div>
+              )}
+            </>
           )}
 
           <div className="flex items-center gap-1 mt-3 -ml-2">
