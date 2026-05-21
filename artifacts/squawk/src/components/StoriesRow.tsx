@@ -11,7 +11,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import StoryUploadModal from "./StoryUploadModal";
 
 const IMAGE_DURATION = 5000;
-const IMAGE_OFFSET_KEY = "__imageOffset";
+const TRANSFORM_KEY = "__transform";
+const LEGACY_OFFSET_KEY = "__imageOffset";
 
 type TextLayer = {
   id?: string; text?: string; x: number; y: number;
@@ -19,17 +20,27 @@ type TextLayer = {
   [key: string]: any;
 };
 
-function parseTextLayers(raw: string | null | undefined): { layers: TextLayer[]; imageOffset: { x: number; y: number } | null } {
-  if (!raw) return { layers: [], imageOffset: null };
+type MediaTransform = { tx: number; ty: number; scale: number } | null;
+
+function parseTextLayers(raw: string | null | undefined): { layers: TextLayer[]; transform: MediaTransform } {
+  if (!raw) return { layers: [], transform: null };
   try {
     const parsed = JSON.parse(raw) as any[];
-    const imageOffsetEntry = parsed.find(l => l[IMAGE_OFFSET_KEY]);
-    const layers = parsed.filter(l => !l[IMAGE_OFFSET_KEY]) as TextLayer[];
-    return {
-      layers,
-      imageOffset: imageOffsetEntry ? { x: imageOffsetEntry.x, y: imageOffsetEntry.y } : null,
-    };
-  } catch { return { layers: [], imageOffset: null }; }
+    // New format: __transform entry
+    const transformEntry = parsed.find(l => l[TRANSFORM_KEY]);
+    // Legacy format: __imageOffset entry (objectPosition percentage)
+    const legacyEntry = parsed.find(l => l[LEGACY_OFFSET_KEY]);
+    const layers = parsed.filter(l => !l[TRANSFORM_KEY] && !l[LEGACY_OFFSET_KEY]) as TextLayer[];
+
+    let transform: MediaTransform = null;
+    if (transformEntry) {
+      transform = { tx: transformEntry.x ?? 0, ty: transformEntry.y ?? 0, scale: transformEntry.scale ?? 1 };
+    } else if (legacyEntry) {
+      // Legacy: x/y are 0–100% offsets, convert to ~pixel nudge approximation
+      transform = { tx: (legacyEntry.x - 50) * 2, ty: (legacyEntry.y - 50) * 2, scale: 1 };
+    }
+    return { layers, transform };
+  } catch { return { layers: [], transform: null }; }
 }
 
 // ─── Story Viewer ─────────────────────────────────────────────────────────────
@@ -48,12 +59,11 @@ export function StoryViewer({ groups, startIndex, onClose }: { groups: StoryGrou
   const currentGroup = groups[groupIndex];
   const currentStory = currentGroup?.stories[storyIndex];
   const isVideo = currentStory?.mediaType === "video";
-  const objectFit: "cover" | "contain" = (currentStory as any)?.objectFit ?? "cover";
   const caption: string | null = (currentStory as any)?.caption ?? null;
   const isMyStory = me && currentGroup?.user?.id === (me as any)?.id;
   const TICK = 50;
 
-  const { layers: textLayers, imageOffset } = parseTextLayers((currentStory as any)?.textLayers);
+  const { layers: textLayers, transform: mediaTransform } = parseTextLayers((currentStory as any)?.textLayers);
 
   const goNext = useCallback(() => {
     if (storyIndex < (currentGroup?.stories.length ?? 1) - 1) {
@@ -115,9 +125,9 @@ export function StoryViewer({ groups, startIndex, onClose }: { groups: StoryGrou
   if (!currentGroup || !currentStory) return null;
 
   const getInitials = (n: string) => n ? n.charAt(0).toUpperCase() : '?';
-  const mediaPosition = imageOffset && objectFit === "cover"
-    ? `${imageOffset.x}% ${imageOffset.y}%`
-    : "center";
+  const mediaCssTransform = mediaTransform
+    ? `translate(calc(-50% + ${mediaTransform.tx}px), calc(-50% + ${mediaTransform.ty}px)) scale(${mediaTransform.scale})`
+    : "translate(-50%, -50%)";
 
   return (
     <motion.div
@@ -134,16 +144,14 @@ export function StoryViewer({ groups, startIndex, onClose }: { groups: StoryGrou
         }}
         onClick={e => e.stopPropagation()}
       >
-        {/* Blurred background for contain mode */}
-        {objectFit === "contain" && (
-          <div className="absolute inset-0 z-0 overflow-hidden">
-            {isVideo ? (
-              <video src={currentStory.mediaUrl} className="w-full h-full object-cover scale-110 blur-2xl opacity-60" muted autoPlay loop playsInline />
-            ) : (
-              <img src={currentStory.mediaUrl} className="w-full h-full object-cover scale-110 blur-2xl opacity-60" alt="" />
-            )}
-          </div>
-        )}
+        {/* Blurred background */}
+        <div className="absolute inset-0 z-0 overflow-hidden">
+          {isVideo ? (
+            <video src={currentStory.mediaUrl} className="w-full h-full object-cover scale-110 blur-2xl opacity-40" muted autoPlay loop playsInline />
+          ) : (
+            <img src={currentStory.mediaUrl} className="w-full h-full object-cover scale-110 blur-2xl opacity-40" alt="" />
+          )}
+        </div>
 
         {/* Progress bars */}
         <div className="absolute top-0 left-0 right-0 z-20 flex gap-1 p-2">
@@ -185,16 +193,18 @@ export function StoryViewer({ groups, startIndex, onClose }: { groups: StoryGrou
         </div>
 
         {/* Media */}
-        <div className="flex-1 relative z-10">
+        <div className="flex-1 relative z-10 overflow-hidden">
           {isVideo ? (
             <video
               ref={videoRef}
               key={currentStory.id}
               src={currentStory.mediaUrl}
-              className="absolute inset-0 w-full h-full"
+              className="absolute w-full h-full"
               style={{
-                objectFit: objectFit === "contain" ? "contain" : "cover",
-                objectPosition: mediaPosition,
+                top: "50%", left: "50%",
+                objectFit: "cover",
+                transform: mediaCssTransform,
+                transformOrigin: "center center",
               }}
               autoPlay playsInline muted={false}
               onTimeUpdate={handleVideoTimeUpdate}
@@ -205,10 +215,12 @@ export function StoryViewer({ groups, startIndex, onClose }: { groups: StoryGrou
             <img
               key={currentStory.id}
               src={currentStory.mediaUrl}
-              className="absolute inset-0 w-full h-full"
+              className="absolute w-full h-full"
               style={{
-                objectFit: objectFit === "contain" ? "contain" : "cover",
-                objectPosition: mediaPosition,
+                top: "50%", left: "50%",
+                objectFit: "cover",
+                transform: mediaCssTransform,
+                transformOrigin: "center center",
               }}
               alt=""
             />

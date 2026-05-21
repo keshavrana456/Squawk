@@ -1,5 +1,5 @@
-import { useState, useRef, useCallback } from "react";
-import { X, UploadCloud, Type, Minimize2, Maximize2, Send, Smile, Move } from "lucide-react";
+import { useState, useRef, useCallback, useEffect } from "react";
+import { X, UploadCloud, Type, Send, Smile } from "lucide-react";
 import { useGetMe } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -14,8 +14,8 @@ interface StoryUploadModalProps {
 interface DraggableText {
   id: string;
   text: string;
-  x: number; // 0–100 percent
-  y: number; // 0–100 percent
+  x: number;
+  y: number;
   fontSize: number;
   color: string;
   bgStyle: "none" | "black" | "white";
@@ -29,8 +29,7 @@ const BG_STYLES: { label: string; value: DraggableText["bgStyle"] }[] = [
   { label: "Light", value: "white" },
 ];
 
-// Special key used to embed image offset into textLayers JSON
-const IMAGE_OFFSET_KEY = "__imageOffset";
+export const TRANSFORM_KEY = "__transform";
 
 export default function StoryUploadModal({ open, onClose, onSuccess }: StoryUploadModalProps) {
   const { data: me } = useGetMe();
@@ -40,13 +39,11 @@ export default function StoryUploadModal({ open, onClose, onSuccess }: StoryUplo
   const [preview, setPreview] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
-  const [objectFit, setObjectFit] = useState<"cover" | "contain">("cover");
 
-  // Image pan offset (0–100%)
-  const [imageOffsetX, setImageOffsetX] = useState(50);
-  const [imageOffsetY, setImageOffsetY] = useState(50);
-  const imageDragging = useRef<{ startX: number; startY: number; origX: number; origY: number } | null>(null);
-  const [isPanMode, setIsPanMode] = useState(false);
+  // Image transform state
+  const [tx, setTx] = useState(0);
+  const [ty, setTy] = useState(0);
+  const [scale, setScale] = useState(1);
 
   // Text layers
   const [textLayers, setTextLayers] = useState<DraggableText[]>([]);
@@ -56,16 +53,19 @@ export default function StoryUploadModal({ open, onClose, onSuccess }: StoryUplo
   const [editBg, setEditBg] = useState<DraggableText["bgStyle"]>("none");
   const [showEmojiStrip, setShowEmojiStrip] = useState(false);
 
-  // Text drag state
-  const dragging = useRef<{ id: string; startX: number; startY: number; origX: number; origY: number } | null>(null);
+  // Pointer tracking for pan + pinch
   const canvasRef = useRef<HTMLDivElement>(null);
+  const ptrCache = useRef<Map<number, { x: number; y: number }>>(new Map());
+  const dragOrigin = useRef<{ startX: number; startY: number; origTx: number; origTy: number } | null>(null);
+  const lastPinchDist = useRef<number | null>(null);
+  const lastPinchScale = useRef<number>(1);
+  const textDragging = useRef<{ id: string; startX: number; startY: number; origX: number; origY: number } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const reset = () => {
     setFile(null); setPreview(null); setError(null); setUploading(false);
-    setObjectFit("cover"); setTextLayers([]); setEditingId(null);
-    setEditingText(""); setShowEmojiStrip(false);
-    setImageOffsetX(50); setImageOffsetY(50); setIsPanMode(false);
+    setTx(0); setTy(0); setScale(1);
+    setTextLayers([]); setEditingId(null); setEditingText(""); setShowEmojiStrip(false);
   };
 
   const handleClose = () => { reset(); onClose(); };
@@ -90,7 +90,98 @@ export default function StoryUploadModal({ open, onClose, onSuccess }: StoryUplo
     }
   };
 
-  // ── Text layer management ────────────────────────────────────────────────────
+  // ── Wheel zoom ──────────────────────────────────────────────────────────────
+  useEffect(() => {
+    const el = canvasRef.current;
+    if (!el || !file) return;
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const factor = e.deltaY < 0 ? 1.08 : 0.93;
+      setScale(s => Math.max(0.15, Math.min(12, s * factor)));
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, [file]);
+
+  // ── Pointer events for pan + pinch ─────────────────────────────────────────
+  const getPinchDist = () => {
+    const pts = Array.from(ptrCache.current.values());
+    if (pts.length < 2) return null;
+    return Math.hypot(pts[1].x - pts[0].x, pts[1].y - pts[0].y);
+  };
+
+  const onCanvasPointerDown = useCallback((e: React.PointerEvent) => {
+    if (editingId) return;
+    ptrCache.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    if (ptrCache.current.size === 1) {
+      dragOrigin.current = { startX: e.clientX, startY: e.clientY, origTx: tx, origTy: ty };
+      lastPinchDist.current = null;
+    } else if (ptrCache.current.size === 2) {
+      dragOrigin.current = null;
+      lastPinchDist.current = getPinchDist();
+      lastPinchScale.current = scale;
+    }
+  }, [editingId, tx, ty, scale]);
+
+  const onCanvasPointerMove = useCallback((e: React.PointerEvent) => {
+    ptrCache.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+    if (ptrCache.current.size >= 2) {
+      // Pinch zoom
+      const dist = getPinchDist();
+      if (dist !== null && lastPinchDist.current !== null) {
+        const newScale = Math.max(0.15, Math.min(12, lastPinchScale.current * (dist / lastPinchDist.current)));
+        setScale(newScale);
+      }
+    } else if (ptrCache.current.size === 1 && dragOrigin.current && textDragging.current === null) {
+      // Pan image
+      const dx = e.clientX - dragOrigin.current.startX;
+      const dy = e.clientY - dragOrigin.current.startY;
+      setTx(dragOrigin.current.origTx + dx);
+      setTy(dragOrigin.current.origTy + dy);
+    }
+  }, []);
+
+  const onCanvasPointerUp = useCallback((e: React.PointerEvent) => {
+    ptrCache.current.delete(e.pointerId);
+    if (ptrCache.current.size < 2) {
+      lastPinchDist.current = null;
+    }
+    if (ptrCache.current.size === 0) {
+      dragOrigin.current = null;
+    }
+  }, []);
+
+  // ── Text layer pointer drag ─────────────────────────────────────────────────
+  const onTextPointerDown = useCallback((e: React.PointerEvent, id: string) => {
+    e.stopPropagation();
+    const layer = textLayers.find(t => t.id === id);
+    if (!layer) return;
+    textDragging.current = { id, startX: e.clientX, startY: e.clientY, origX: layer.x, origY: layer.y };
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+  }, [textLayers]);
+
+  const onTextPointerMove = useCallback((e: React.PointerEvent) => {
+    if (!textDragging.current || !canvasRef.current) return;
+    e.stopPropagation();
+    const rect = canvasRef.current.getBoundingClientRect();
+    const dx = ((e.clientX - textDragging.current.startX) / rect.width) * 100;
+    const dy = ((e.clientY - textDragging.current.startY) / rect.height) * 100;
+    setTextLayers(prev => prev.map(t =>
+      t.id === textDragging.current!.id
+        ? { ...t, x: t.x + dx, y: t.y + dy }
+        : t
+    ));
+    textDragging.current.startX = e.clientX;
+    textDragging.current.startY = e.clientY;
+  }, []);
+
+  const onTextPointerUp = useCallback(() => {
+    textDragging.current = null;
+  }, []);
+
+  // ── Text layer management ───────────────────────────────────────────────────
   const addTextLayer = () => {
     const id = Math.random().toString(36).slice(2);
     setTextLayers(prev => [...prev, {
@@ -98,7 +189,6 @@ export default function StoryUploadModal({ open, onClose, onSuccess }: StoryUplo
     }]);
     setEditingId(id);
     setEditingText("");
-    setIsPanMode(false);
   };
 
   const commitEdit = () => {
@@ -121,109 +211,72 @@ export default function StoryUploadModal({ open, onClose, onSuccess }: StoryUplo
     setEditBg(layer.bgStyle);
   };
 
-  // ── Text drag ────────────────────────────────────────────────────────────────
-  const onPointerDown = useCallback((e: React.PointerEvent, id: string) => {
-    if (isPanMode) return;
-    e.stopPropagation();
-    const layer = textLayers.find(t => t.id === id);
-    if (!layer) return;
-    dragging.current = { id, startX: e.clientX, startY: e.clientY, origX: layer.x, origY: layer.y };
-    (e.target as HTMLElement).setPointerCapture(e.pointerId);
-  }, [textLayers, isPanMode]);
-
-  const onPointerMove = useCallback((e: React.PointerEvent) => {
-    // Handle image panning
-    if (imageDragging.current && canvasRef.current) {
-      const rect = canvasRef.current.getBoundingClientRect();
-      const dx = ((e.clientX - imageDragging.current.startX) / rect.width) * 100;
-      const dy = ((e.clientY - imageDragging.current.startY) / rect.height) * 100;
-      setImageOffsetX(Math.max(0, Math.min(100, imageDragging.current.origX - dx)));
-      setImageOffsetY(Math.max(0, Math.min(100, imageDragging.current.origY - dy)));
-      return;
-    }
-    // Handle text layer dragging
-    if (!dragging.current || !canvasRef.current) return;
-    const rect = canvasRef.current.getBoundingClientRect();
-    const dx = ((e.clientX - dragging.current.startX) / rect.width) * 100;
-    const dy = ((e.clientY - dragging.current.startY) / rect.height) * 100;
-    const newX = Math.max(5, Math.min(95, dragging.current.origX + dx));
-    const newY = Math.max(5, Math.min(95, dragging.current.origY + dy));
-    setTextLayers(prev => prev.map(t =>
-      t.id === dragging.current!.id ? { ...t, x: newX, y: newY } : t
-    ));
-  }, []);
-
-  const onPointerUp = useCallback(() => {
-    dragging.current = null;
-    imageDragging.current = null;
-  }, []);
-
-  // ── Image pan pointer down ────────────────────────────────────────────────────
-  const onCanvasPointerDown = useCallback((e: React.PointerEvent) => {
-    if (!isPanMode) return;
-    e.preventDefault();
-    imageDragging.current = {
-      startX: e.clientX,
-      startY: e.clientY,
-      origX: imageOffsetX,
-      origY: imageOffsetY,
-    };
-    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-  }, [isPanMode, imageOffsetX, imageOffsetY]);
-
-  // ── Emoji sticker ────────────────────────────────────────────────────────────
   const addEmoji = (emoji: string) => {
     const id = Math.random().toString(36).slice(2);
     setTextLayers(prev => [...prev, {
-      id, text: emoji, x: 50 + Math.random() * 20 - 10, y: 40 + Math.random() * 20 - 10,
+      id, text: emoji,
+      x: 45 + Math.random() * 20,
+      y: 35 + Math.random() * 30,
       fontSize: 40, color: "#ffffff", bgStyle: "none",
     }]);
     setShowEmojiStrip(false);
   };
 
-  // ── Upload ───────────────────────────────────────────────────────────────────
+  // ── Upload ─────────────────────────────────────────────────────────────────
   const handlePost = async () => {
     if (!file) return;
     setUploading(true); setError(null);
     try {
       const form = new FormData();
       form.append("file", file);
-      const res = await fetch("/api/storage/upload", { method: "POST", body: form });
-      if (!res.ok) throw new Error("Upload failed");
-      const { mediaUrl } = await res.json();
+      const uploadRes = await fetch("/api/storage/upload", {
+        method: "POST",
+        body: form,
+        credentials: "include",
+      });
+      if (!uploadRes.ok) {
+        const txt = await uploadRes.text().catch(() => "Upload failed");
+        throw new Error(txt);
+      }
+      const { mediaUrl } = await uploadRes.json();
 
-      // Build caption from first text layer (non-emoji)
+      // Build textLayers: prepend transform metadata, then actual text layers
+      const allLayers: any[] = [
+        { [TRANSFORM_KEY]: true, x: tx, y: ty, scale },
+        ...textLayers,
+      ];
+
       const captionLayer = textLayers.find(t => t.text.trim() && !/^\p{Emoji}/u.test(t.text.trim()));
       const caption = captionLayer?.text.trim() || null;
-
-      // Serialize text layers + image offset into textLayers JSON
-      const allLayers: any[] = [...textLayers];
-      // Store image offset as a hidden metadata entry
-      if (objectFit === "cover" && (imageOffsetX !== 50 || imageOffsetY !== 50)) {
-        allLayers.unshift({ [IMAGE_OFFSET_KEY]: true, x: imageOffsetX, y: imageOffsetY });
-      }
-      const textLayersJson = allLayers.length > 0 ? JSON.stringify(allLayers) : null;
 
       const storyRes = await fetch("/api/stories", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
           mediaUrl,
           mediaType: file.type.startsWith("video/") ? "video" : "image",
           caption,
-          objectFit,
-          textLayers: textLayersJson,
+          objectFit: "cover",
+          textLayers: JSON.stringify(allLayers),
         }),
       });
-      if (!storyRes.ok) throw new Error("Failed to post story");
+      if (!storyRes.ok) {
+        const txt = await storyRes.text().catch(() => "Failed to post story");
+        throw new Error(txt);
+      }
 
       await queryClient.invalidateQueries({ queryKey: ["getStories"] });
+      await queryClient.invalidateQueries({ queryKey: ["getActiveStories"] });
       reset(); onSuccess?.(); onClose();
     } catch (e: any) {
-      setError(e?.message || "Something went wrong");
+      setError(e?.message || "Something went wrong. Please try again.");
       setUploading(false);
     }
   };
+
+  const isVideo = file?.type.startsWith("video/") ?? false;
+  const mediaTransform = `translate(calc(-50% + ${tx}px), calc(-50% + ${ty}px)) scale(${scale})`;
 
   return (
     <AnimatePresence>
@@ -243,7 +296,6 @@ export default function StoryUploadModal({ open, onClose, onSuccess }: StoryUplo
               file ? "rounded-2xl" : "w-full max-w-sm rounded-3xl bg-card border border-border"
             }`}
             style={file ? {
-              /* Fixed 9:16 frame — calculated from viewport */
               width: "min(100vw, calc(100dvh * 9 / 16))",
               height: "min(100dvh, calc(100vw * 16 / 9))",
               maxWidth: "390px",
@@ -251,14 +303,15 @@ export default function StoryUploadModal({ open, onClose, onSuccess }: StoryUplo
             } : undefined}
             onClick={e => e.stopPropagation()}
           >
-
             {/* ── TOP BAR ── */}
             <div className={`flex items-center justify-between px-4 py-3 ${
-              file ? "absolute top-0 left-0 right-0 z-20 bg-gradient-to-b from-black/70 to-transparent" : "border-b border-border bg-card"
+              file
+                ? "absolute top-0 left-0 right-0 z-20 bg-gradient-to-b from-black/70 to-transparent pointer-events-none"
+                : "border-b border-border bg-card"
             }`}>
               <button
                 onClick={handleClose}
-                className="w-8 h-8 rounded-full bg-black/50 flex items-center justify-center hover:bg-black/70 transition-colors"
+                className="w-8 h-8 rounded-full bg-black/50 flex items-center justify-center hover:bg-black/70 transition-colors pointer-events-auto"
               >
                 <X className="w-4 h-4 text-white" />
               </button>
@@ -277,7 +330,7 @@ export default function StoryUploadModal({ open, onClose, onSuccess }: StoryUplo
                 <button
                   onClick={handlePost}
                   disabled={uploading}
-                  className="flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-gradient-to-r from-primary to-[#c084fc] text-white text-sm font-semibold disabled:opacity-60 hover:opacity-90 transition-opacity"
+                  className="flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-gradient-to-r from-primary to-[#c084fc] text-white text-sm font-semibold disabled:opacity-60 hover:opacity-90 transition-opacity pointer-events-auto"
                 >
                   {uploading
                     ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -314,66 +367,74 @@ export default function StoryUploadModal({ open, onClose, onSuccess }: StoryUplo
             {file && preview && (
               <div className="relative flex flex-col h-full">
 
-                {/* Media canvas — fills the entire 9:16 frame */}
+                {/* Media canvas */}
                 <div
                   ref={canvasRef}
-                  className={`absolute inset-0 bg-black overflow-hidden select-none ${isPanMode ? "cursor-grab active:cursor-grabbing" : "cursor-default"}`}
-                  onPointerMove={onPointerMove}
-                  onPointerUp={onPointerUp}
-                  onPointerLeave={onPointerUp}
+                  className="absolute inset-0 bg-black overflow-hidden"
+                  style={{ cursor: editingId ? "default" : "grab", touchAction: "none" }}
                   onPointerDown={onCanvasPointerDown}
+                  onPointerMove={onCanvasPointerMove}
+                  onPointerUp={onCanvasPointerUp}
+                  onPointerLeave={onCanvasPointerUp}
                 >
-                  {/* Blurred bg for contain mode */}
-                  {objectFit === "contain" && (
-                    <div className="absolute inset-0 overflow-hidden">
-                      {file.type.startsWith("video/") ? (
-                        <video src={preview} className="w-full h-full object-cover scale-110 blur-xl opacity-50" muted autoPlay loop playsInline />
-                      ) : (
-                        <img src={preview} className="w-full h-full object-cover scale-110 blur-xl opacity-50" alt="" />
-                      )}
-                    </div>
-                  )}
-
-                  {/* Main media */}
-                  {file.type.startsWith("video/") ? (
+                  {/* Media — free-form transform */}
+                  {isVideo ? (
                     <video
                       src={preview}
-                      className="absolute inset-0 w-full h-full pointer-events-none"
+                      className="absolute w-full h-full"
                       style={{
-                        objectFit: objectFit === "cover" ? "cover" : "contain",
-                        objectPosition: objectFit === "cover" ? `${imageOffsetX}% ${imageOffsetY}%` : "center",
+                        top: "50%", left: "50%",
+                        objectFit: "cover",
+                        transform: mediaTransform,
+                        transformOrigin: "center center",
+                        pointerEvents: "none",
+                        userSelect: "none",
                       }}
                       muted autoPlay loop playsInline
                     />
                   ) : (
                     <img
                       src={preview}
-                      className="absolute inset-0 w-full h-full pointer-events-none"
+                      className="absolute w-full h-full"
                       style={{
-                        objectFit: objectFit === "cover" ? "cover" : "contain",
-                        objectPosition: objectFit === "cover" ? `${imageOffsetX}% ${imageOffsetY}%` : "center",
+                        top: "50%", left: "50%",
+                        objectFit: "cover",
+                        transform: mediaTransform,
+                        transformOrigin: "center center",
+                        pointerEvents: "none",
+                        userSelect: "none",
+                        WebkitUserSelect: "none",
                       }}
                       alt="Story preview"
                       draggable={false}
                     />
                   )}
 
-                  {/* Pan mode hint */}
-                  {isPanMode && (
-                    <div className="absolute top-16 left-0 right-0 flex justify-center z-20 pointer-events-none">
-                      <div className="bg-black/60 text-white text-xs px-3 py-1.5 rounded-full">
-                        Drag to reposition image
-                      </div>
+                  {/* Pinch / drag hint — fades after 2s */}
+                  <div
+                    className="absolute bottom-14 left-0 right-0 flex justify-center pointer-events-none z-20"
+                    style={{ opacity: scale === 1 && tx === 0 && ty === 0 ? 1 : 0, transition: "opacity 1.5s 1s" }}
+                  >
+                    <div className="bg-black/55 text-white/80 text-xs px-3 py-1.5 rounded-full">
+                      Drag to pan · Pinch or scroll to zoom
                     </div>
-                  )}
+                  </div>
 
                   {/* Text layers */}
                   {textLayers.map(layer => (
-                    <motion.div
+                    <div
                       key={layer.id}
-                      className="absolute cursor-grab active:cursor-grabbing touch-none select-none"
-                      style={{ left: `${layer.x}%`, top: `${layer.y}%`, transform: "translate(-50%, -50%)", zIndex: 10 }}
-                      onPointerDown={e => onPointerDown(e, layer.id)}
+                      className="absolute touch-none select-none"
+                      style={{
+                        left: `${layer.x}%`,
+                        top: `${layer.y}%`,
+                        transform: "translate(-50%, -50%)",
+                        zIndex: 10,
+                        cursor: "grab",
+                      }}
+                      onPointerDown={e => onTextPointerDown(e, layer.id)}
+                      onPointerMove={onTextPointerMove}
+                      onPointerUp={onTextPointerUp}
                       onDoubleClick={() => openEditLayer(layer)}
                     >
                       <div
@@ -385,7 +446,7 @@ export default function StoryUploadModal({ open, onClose, onSuccess }: StoryUplo
                       >
                         {layer.text}
                       </div>
-                    </motion.div>
+                    </div>
                   ))}
 
                   {/* Emoji strip */}
@@ -401,7 +462,7 @@ export default function StoryUploadModal({ open, onClose, onSuccess }: StoryUplo
                           <button
                             key={e}
                             className="text-2xl shrink-0 hover:scale-125 transition-transform"
-                            onClick={() => addEmoji(e)}
+                            onClick={ev => { ev.stopPropagation(); addEmoji(e); }}
                           >
                             {e}
                           </button>
@@ -418,6 +479,7 @@ export default function StoryUploadModal({ open, onClose, onSuccess }: StoryUplo
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/50 gap-3 px-4"
+                        onClick={e => e.stopPropagation()}
                       >
                         <div className="flex items-center gap-2 flex-wrap justify-center">
                           {TEXT_COLORS.map(c => (
@@ -429,7 +491,6 @@ export default function StoryUploadModal({ open, onClose, onSuccess }: StoryUplo
                             />
                           ))}
                         </div>
-
                         <div className="flex gap-2">
                           {BG_STYLES.map(s => (
                             <button
@@ -443,7 +504,6 @@ export default function StoryUploadModal({ open, onClose, onSuccess }: StoryUplo
                             </button>
                           ))}
                         </div>
-
                         <textarea
                           autoFocus
                           value={editingText}
@@ -453,9 +513,10 @@ export default function StoryUploadModal({ open, onClose, onSuccess }: StoryUplo
                           style={{ color: editColor, fontSize: "18px" }}
                           rows={3}
                           maxLength={200}
-                          onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); commitEdit(); } }}
+                          onKeyDown={e => {
+                            if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); commitEdit(); }
+                          }}
                         />
-
                         <div className="flex gap-2">
                           <button
                             onClick={() => { setEditingId(null); setEditingText(""); }}
@@ -475,21 +536,19 @@ export default function StoryUploadModal({ open, onClose, onSuccess }: StoryUplo
                   </AnimatePresence>
                 </div>
 
-                {/* ── TOOLBAR — pinned at bottom ── */}
-                <div className="absolute bottom-0 left-0 right-0 z-20 flex items-center justify-between gap-2 px-3 py-2.5 bg-black/80 backdrop-blur-md border-t border-white/10">
-                  {/* Add text */}
+                {/* ── TOOLBAR ── */}
+                <div className="absolute bottom-0 left-0 right-0 z-20 flex items-center justify-between gap-2 px-4 py-3 bg-black/80 backdrop-blur-md border-t border-white/10">
                   <button
-                    onClick={addTextLayer}
-                    className="flex items-center gap-1.5 px-3 py-2 rounded-full bg-white/15 text-white text-xs font-semibold hover:bg-white/25 transition-colors"
+                    onClick={() => addTextLayer()}
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-white/15 text-white text-xs font-semibold hover:bg-white/25 transition-colors"
                   >
                     <Type className="w-3.5 h-3.5" />
                     Text
                   </button>
 
-                  {/* Emoji */}
                   <button
-                    onClick={() => { setShowEmojiStrip(v => !v); setIsPanMode(false); }}
-                    className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-white text-xs font-semibold transition-colors ${
+                    onClick={() => setShowEmojiStrip(v => !v)}
+                    className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-white text-xs font-semibold transition-colors ${
                       showEmojiStrip ? "bg-primary/70" : "bg-white/15 hover:bg-white/25"
                     }`}
                   >
@@ -497,41 +556,16 @@ export default function StoryUploadModal({ open, onClose, onSuccess }: StoryUplo
                     Sticker
                   </button>
 
-                  {/* Pan / reposition */}
-                  {objectFit === "cover" && !file.type.startsWith("video/") && (
-                    <button
-                      onClick={() => { setIsPanMode(v => !v); setShowEmojiStrip(false); }}
-                      className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-white text-xs font-semibold transition-colors ${
-                        isPanMode ? "bg-primary/70" : "bg-white/15 hover:bg-white/25"
-                      }`}
-                    >
-                      <Move className="w-3.5 h-3.5" />
-                      Move
-                    </button>
-                  )}
-
-                  {/* Fit toggle */}
                   <button
-                    onClick={() => { setObjectFit(f => f === "cover" ? "contain" : "cover"); setIsPanMode(false); }}
-                    className="flex items-center gap-1.5 px-3 py-2 rounded-full bg-white/15 text-white text-xs font-semibold hover:bg-white/25 transition-colors"
+                    onClick={() => { setFile(null); setPreview(null); setTextLayers([]); setTx(0); setTy(0); setScale(1); }}
+                    className="w-9 h-9 rounded-full bg-white/15 text-white flex items-center justify-center hover:bg-white/25 transition-colors"
                   >
-                    {objectFit === "cover"
-                      ? <><Minimize2 className="w-3.5 h-3.5" />Fill</>
-                      : <><Maximize2 className="w-3.5 h-3.5" />Fit</>
-                    }
-                  </button>
-
-                  {/* Change media */}
-                  <button
-                    onClick={() => { setFile(null); setPreview(null); setTextLayers([]); setImageOffsetX(50); setImageOffsetY(50); }}
-                    className="flex items-center gap-1 px-3 py-2 rounded-full bg-white/15 text-white text-xs font-semibold hover:bg-white/25 transition-colors"
-                  >
-                    <X className="w-3.5 h-3.5" />
+                    <X className="w-4 h-4" />
                   </button>
                 </div>
 
                 {error && (
-                  <div className="absolute top-16 left-0 right-0 flex justify-center z-30">
+                  <div className="absolute top-16 left-0 right-0 flex justify-center z-30 pointer-events-none">
                     <p className="bg-destructive/90 text-white text-xs px-4 py-2 rounded-full">{error}</p>
                   </div>
                 )}
