@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
-import { ClerkProvider, Show, useClerk, useUser, useSignIn, useSignUp, AuthenticateWithRedirectCallback } from '@clerk/react';
+import { ClerkProvider, Show, useClerk, useUser, AuthenticateWithRedirectCallback } from '@clerk/react';
+import { useSignIn, useSignUp } from '@clerk/react/legacy';
 import { publishableKeyFromHost } from '@clerk/react/internal';
 import { shadcn } from '@clerk/themes';
 import { Switch, Route, useLocation, Router as WouterRouter, Redirect } from 'wouter';
@@ -227,9 +228,15 @@ function ErrorMsg({ msg }: { msg: string }) {
   return <p className="text-xs text-red-400 mt-1 text-center">{msg}</p>;
 }
 
+function withTimeout<T>(promise: Promise<T>, ms: number, msg: string): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<never>((_, reject) => setTimeout(() => reject(new Error(msg)), ms)),
+  ]);
+}
+
 function EmailSignUpForm() {
   const { signUp, setActive } = useSignUp();
-  const [, setLocation] = useLocation();
   const [step, setStep] = useState<"details" | "verify">("details");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -245,16 +252,25 @@ function EmailSignUpForm() {
     setLoading(true);
     setError("");
     try {
-      const created = await signUp.create({ firstName, lastName, emailAddress: email, password });
+      const created = await withTimeout(
+        signUp.create({ firstName, lastName, emailAddress: email, password }),
+        25000,
+        "Request timed out. Please check your connection and try again.",
+      );
       if (created.status === "complete") {
         await setActive!({ session: created.createdSessionId });
         window.location.href = `${window.location.origin}${basePath}/home`;
         return;
       }
-      await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
+      await withTimeout(
+        signUp.prepareEmailAddressVerification({ strategy: "email_code" }),
+        15000,
+        "Could not send verification email. Please try again.",
+      );
       setStep("verify");
     } catch (err: any) {
-      setError(err?.errors?.[0]?.longMessage ?? err?.errors?.[0]?.message ?? "Sign up failed. Please try again.");
+      const msg = err?.errors?.[0]?.longMessage ?? err?.errors?.[0]?.message ?? err?.message ?? "Sign up failed. Please try again.";
+      setError(msg);
     } finally {
       setLoading(false);
     }
@@ -266,68 +282,74 @@ function EmailSignUpForm() {
     setLoading(true);
     setError("");
     try {
-      const result = await signUp.attemptEmailAddressVerification({ code });
+      const result = await withTimeout(
+        signUp.attemptEmailAddressVerification({ code }),
+        15000,
+        "Verification timed out. Please try again.",
+      );
       if (result.status === "complete") {
         await setActive!({ session: result.createdSessionId });
         window.location.href = `${window.location.origin}${basePath}/home`;
       } else {
         setError("Verification incomplete. Please try again.");
-        setLoading(false);
       }
     } catch (err: any) {
-      setError(err?.errors?.[0]?.longMessage ?? err?.errors?.[0]?.message ?? "Invalid code. Please try again.");
+      setError(err?.errors?.[0]?.longMessage ?? err?.errors?.[0]?.message ?? err?.message ?? "Invalid code. Please try again.");
+    } finally {
       setLoading(false);
     }
   };
 
-  if (step === "verify") {
-    return (
-      <AuthCard title="Check your email" subtitle={`We sent a 6-digit code to ${email}`}>
-        <form onSubmit={handleVerify} className="flex flex-col gap-3 mt-4">
-          <input
-            className={inputCls}
-            placeholder="Enter verification code"
-            value={code}
-            onChange={e => setCode(e.target.value)}
-            maxLength={6}
-            inputMode="numeric"
-            autoComplete="one-time-code"
-            autoFocus
-            required
-          />
-          <ErrorMsg msg={error} />
-          <button type="submit" disabled={loading || code.length < 6} style={gradientBg} className={btnCls}>
-            {loading ? <span className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" /> : "Verify email"}
-          </button>
-          <button type="button" onClick={() => { setStep("details"); setError(""); setCode(""); }} className="text-xs text-muted-foreground hover:text-foreground text-center mt-1 transition">
-            ← Back
-          </button>
-        </form>
-      </AuthCard>
-    );
-  }
-
   return (
-    <AuthCard title="Create your account" subtitle="Join the 10K Squad community">
-      <OAuthSection mode="sign-up" />
-      <form onSubmit={handleCreate} className="flex flex-col gap-3">
-        <div className="flex gap-2">
-          <input className={inputCls} placeholder="First name" value={firstName} onChange={e => setFirstName(e.target.value)} autoComplete="given-name" required />
-          <input className={inputCls} placeholder="Last name" value={lastName} onChange={e => setLastName(e.target.value)} autoComplete="family-name" required />
-        </div>
-        <input className={inputCls} type="email" placeholder="Email address" value={email} onChange={e => setEmail(e.target.value)} autoComplete="email" required />
-        <input className={inputCls} type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} autoComplete="new-password" minLength={8} required />
-        <ErrorMsg msg={error} />
-        <div id="clerk-captcha" />
-        <button type="submit" disabled={loading} style={gradientBg} className={`${btnCls} mt-1`}>
-          {loading ? <span className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" /> : "Continue"}
-        </button>
-        <p className="text-xs text-muted-foreground text-center mt-1">
-          Already have an account?{" "}
-          <a href={`${basePath}/sign-in`} className="text-primary hover:underline">Sign in</a>
-        </p>
-      </form>
-    </AuthCard>
+    <>
+      {/* Clerk bot-protection widget — must stay mounted throughout the entire sign-up flow */}
+      <div id="clerk-captcha" style={{ marginBottom: 0 }} />
+
+      {step === "verify" ? (
+        <AuthCard title="Check your email" subtitle={`We sent a 6-digit code to ${email}`}>
+          <form onSubmit={handleVerify} className="flex flex-col gap-3 mt-4">
+            <input
+              className={inputCls}
+              placeholder="Enter verification code"
+              value={code}
+              onChange={e => setCode(e.target.value)}
+              maxLength={6}
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              autoFocus
+              required
+            />
+            <ErrorMsg msg={error} />
+            <button type="submit" disabled={loading || code.length < 6} style={gradientBg} className={btnCls}>
+              {loading ? <span className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" /> : "Verify email"}
+            </button>
+            <button type="button" onClick={() => { setStep("details"); setError(""); setCode(""); }} className="text-xs text-muted-foreground hover:text-foreground text-center mt-1 transition">
+              ← Back
+            </button>
+          </form>
+        </AuthCard>
+      ) : (
+        <AuthCard title="Create your account" subtitle="Join the 10K Squad community">
+          <OAuthSection mode="sign-up" />
+          <form onSubmit={handleCreate} className="flex flex-col gap-3">
+            <div className="flex gap-2">
+              <input className={inputCls} placeholder="First name" value={firstName} onChange={e => setFirstName(e.target.value)} autoComplete="given-name" required />
+              <input className={inputCls} placeholder="Last name" value={lastName} onChange={e => setLastName(e.target.value)} autoComplete="family-name" required />
+            </div>
+            <input className={inputCls} type="email" placeholder="Email address" value={email} onChange={e => setEmail(e.target.value)} autoComplete="email" required />
+            <input className={inputCls} type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} autoComplete="new-password" minLength={8} required />
+            <ErrorMsg msg={error} />
+            <button type="submit" disabled={loading} style={gradientBg} className={`${btnCls} mt-1`}>
+              {loading ? <span className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" /> : "Continue"}
+            </button>
+            <p className="text-xs text-muted-foreground text-center mt-1">
+              Already have an account?{" "}
+              <a href={`${basePath}/sign-in`} className="text-primary hover:underline">Sign in</a>
+            </p>
+          </form>
+        </AuthCard>
+      )}
+    </>
   );
 }
 
@@ -546,8 +568,6 @@ function ClerkProviderWithRoutes() {
       appearance={clerkAppearance}
       signInUrl={`${basePath}/sign-in`}
       signUpUrl={`${basePath}/sign-up`}
-      afterSignInUrl={`${basePath}/home`}
-      afterSignUpUrl={`${basePath}/home`}
       routerPush={(to) => setLocation(stripBase(to))}
       routerReplace={(to) => setLocation(stripBase(to), { replace: true })}
     >
