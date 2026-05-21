@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Plus, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, X, ChevronLeft, ChevronRight, Eye, Users } from "lucide-react";
 import {
   useGetActiveStories,
   useGetMe,
@@ -11,13 +11,37 @@ import { motion, AnimatePresence } from "framer-motion";
 import StoryUploadModal from "./StoryUploadModal";
 
 const IMAGE_DURATION = 5000;
+const IMAGE_OFFSET_KEY = "__imageOffset";
+
+type TextLayer = {
+  id?: string; text?: string; x: number; y: number;
+  fontSize?: number; color?: string; bgStyle?: "none" | "black" | "white";
+  [key: string]: any;
+};
+
+function parseTextLayers(raw: string | null | undefined): { layers: TextLayer[]; imageOffset: { x: number; y: number } | null } {
+  if (!raw) return { layers: [], imageOffset: null };
+  try {
+    const parsed = JSON.parse(raw) as any[];
+    const imageOffsetEntry = parsed.find(l => l[IMAGE_OFFSET_KEY]);
+    const layers = parsed.filter(l => !l[IMAGE_OFFSET_KEY]) as TextLayer[];
+    return {
+      layers,
+      imageOffset: imageOffsetEntry ? { x: imageOffsetEntry.x, y: imageOffsetEntry.y } : null,
+    };
+  } catch { return { layers: [], imageOffset: null }; }
+}
 
 // ─── Story Viewer ─────────────────────────────────────────────────────────────
-function StoryViewer({ groups, startIndex, onClose }: { groups: StoryGroup[]; startIndex: number; onClose: () => void }) {
+export function StoryViewer({ groups, startIndex, onClose }: { groups: StoryGroup[]; startIndex: number; onClose: () => void }) {
   const [groupIndex, setGroupIndex] = useState(startIndex);
   const [storyIndex, setStoryIndex] = useState(0);
   const [progress, setProgress] = useState(0);
+  const [showViews, setShowViews] = useState(false);
+  const [viewsList, setViewsList] = useState<any[]>([]);
+  const [viewsLoading, setViewsLoading] = useState(false);
   const markViewed = useViewStory();
+  const { data: me } = useGetMe();
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -26,17 +50,10 @@ function StoryViewer({ groups, startIndex, onClose }: { groups: StoryGroup[]; st
   const isVideo = currentStory?.mediaType === "video";
   const objectFit: "cover" | "contain" = (currentStory as any)?.objectFit ?? "cover";
   const caption: string | null = (currentStory as any)?.caption ?? null;
+  const isMyStory = me && currentGroup?.user?.id === (me as any)?.id;
   const TICK = 50;
 
-  type TextLayer = {
-    id: string; text: string; x: number; y: number;
-    fontSize: number; color: string; bgStyle: "none" | "black" | "white";
-  };
-  const textLayers: TextLayer[] = (() => {
-    const raw = (currentStory as any)?.textLayers;
-    if (!raw) return [];
-    try { return JSON.parse(raw) as TextLayer[]; } catch { return []; }
-  })();
+  const { layers: textLayers, imageOffset } = parseTextLayers((currentStory as any)?.textLayers);
 
   const goNext = useCallback(() => {
     if (storyIndex < (currentGroup?.stories.length ?? 1) - 1) {
@@ -58,6 +75,7 @@ function StoryViewer({ groups, startIndex, onClose }: { groups: StoryGroup[]; st
 
   useEffect(() => {
     if (currentStory) markViewed.mutate({ id: currentStory.id });
+    setShowViews(false);
   }, [currentStory?.id]);
 
   useEffect(() => {
@@ -79,9 +97,27 @@ function StoryViewer({ groups, startIndex, onClose }: { groups: StoryGroup[]; st
   };
   const handleVideoEnded = () => goNext();
 
+  const loadViews = async () => {
+    if (!currentStory) return;
+    setViewsLoading(true);
+    try {
+      const res = await fetch(`/api/stories/${currentStory.id}/views`);
+      if (res.ok) setViewsList(await res.json());
+    } catch {}
+    setViewsLoading(false);
+  };
+
+  const toggleViews = () => {
+    if (!showViews) loadViews();
+    setShowViews(v => !v);
+  };
+
   if (!currentGroup || !currentStory) return null;
 
   const getInitials = (n: string) => n ? n.charAt(0).toUpperCase() : '?';
+  const mediaPosition = imageOffset && objectFit === "cover"
+    ? `${imageOffset.x}% ${imageOffset.y}%`
+    : "center";
 
   return (
     <motion.div
@@ -93,23 +129,18 @@ function StoryViewer({ groups, startIndex, onClose }: { groups: StoryGroup[]; st
     >
       <div
         className="relative w-full max-w-sm h-full max-h-[100dvh] md:max-h-[680px] md:rounded-2xl overflow-hidden bg-black flex flex-col"
+        style={{
+          boxShadow: "0 0 40px 6px rgba(192,132,252,0.35), 0 0 80px 16px rgba(236,72,153,0.15)",
+        }}
         onClick={e => e.stopPropagation()}
       >
         {/* Blurred background for contain mode */}
         {objectFit === "contain" && (
           <div className="absolute inset-0 z-0 overflow-hidden">
             {isVideo ? (
-              <video
-                src={currentStory.mediaUrl}
-                className="w-full h-full object-cover scale-110 blur-2xl opacity-60"
-                muted autoPlay loop playsInline
-              />
+              <video src={currentStory.mediaUrl} className="w-full h-full object-cover scale-110 blur-2xl opacity-60" muted autoPlay loop playsInline />
             ) : (
-              <img
-                src={currentStory.mediaUrl}
-                className="w-full h-full object-cover scale-110 blur-2xl opacity-60"
-                alt=""
-              />
+              <img src={currentStory.mediaUrl} className="w-full h-full object-cover scale-110 blur-2xl opacity-60" alt="" />
             )}
           </div>
         )}
@@ -138,6 +169,16 @@ function StoryViewer({ groups, startIndex, onClose }: { groups: StoryGroup[]; st
               {new Date(currentStory.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
             </p>
           </div>
+          {/* Views button for story owner */}
+          {isMyStory && (
+            <button
+              onClick={e => { e.stopPropagation(); toggleViews(); }}
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-white/15 text-white text-xs font-semibold hover:bg-white/25 transition-colors"
+            >
+              <Eye className="w-3.5 h-3.5" />
+              {(currentStory as any).viewsCount ?? 0}
+            </button>
+          )}
           <button className="w-8 h-8 flex items-center justify-center text-white/80 hover:text-white" onClick={onClose}>
             <X className="w-5 h-5" />
           </button>
@@ -150,10 +191,12 @@ function StoryViewer({ groups, startIndex, onClose }: { groups: StoryGroup[]; st
               ref={videoRef}
               key={currentStory.id}
               src={currentStory.mediaUrl}
-              className={`absolute inset-0 w-full h-full ${objectFit === "contain" ? "object-contain" : "object-cover"}`}
-              autoPlay
-              playsInline
-              muted={false}
+              className="absolute inset-0 w-full h-full"
+              style={{
+                objectFit: objectFit === "contain" ? "contain" : "cover",
+                objectPosition: mediaPosition,
+              }}
+              autoPlay playsInline muted={false}
               onTimeUpdate={handleVideoTimeUpdate}
               onEnded={handleVideoEnded}
               onLoadedMetadata={() => setProgress(0)}
@@ -162,15 +205,19 @@ function StoryViewer({ groups, startIndex, onClose }: { groups: StoryGroup[]; st
             <img
               key={currentStory.id}
               src={currentStory.mediaUrl}
-              className={`absolute inset-0 w-full h-full ${objectFit === "contain" ? "object-contain" : "object-cover"}`}
+              className="absolute inset-0 w-full h-full"
+              style={{
+                objectFit: objectFit === "contain" ? "contain" : "cover",
+                objectPosition: mediaPosition,
+              }}
               alt=""
             />
           )}
 
           {/* Text layers overlay */}
-          {textLayers.map(layer => (
+          {textLayers.map((layer, i) => (
             <div
-              key={layer.id}
+              key={layer.id ?? i}
               className="absolute pointer-events-none select-none"
               style={{
                 left: `${layer.x}%`,
@@ -184,14 +231,14 @@ function StoryViewer({ groups, startIndex, onClose }: { groups: StoryGroup[]; st
                   layer.bgStyle === "black" ? "bg-black/70 backdrop-blur-sm" :
                   layer.bgStyle === "white" ? "bg-white/80" : ""
                 }`}
-                style={{ fontSize: `${layer.fontSize}px`, color: layer.color, lineHeight: 1.3 }}
+                style={{ fontSize: `${layer.fontSize ?? 22}px`, color: layer.color ?? "#fff", lineHeight: 1.3 }}
               >
                 {layer.text}
               </div>
             </div>
           ))}
 
-          {/* Caption overlay (fallback if no text layers) */}
+          {/* Caption overlay */}
           {caption && textLayers.length === 0 && (
             <div className="absolute bottom-16 left-0 right-0 flex justify-center px-4 z-10">
               <div className="bg-black/50 backdrop-blur-md rounded-xl px-4 py-2 max-w-[85%] text-center">
@@ -204,6 +251,60 @@ function StoryViewer({ groups, startIndex, onClose }: { groups: StoryGroup[]; st
           <div className="absolute inset-y-0 left-0 w-1/3 z-10" onClick={e => { e.stopPropagation(); goPrev(); }} />
           <div className="absolute inset-y-0 right-0 w-1/3 z-10" onClick={e => { e.stopPropagation(); goNext(); }} />
         </div>
+
+        {/* Views panel (owner only) */}
+        <AnimatePresence>
+          {showViews && isMyStory && (
+            <motion.div
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", damping: 30, stiffness: 340 }}
+              className="absolute bottom-0 left-0 right-0 z-30 bg-black/90 backdrop-blur-md rounded-t-2xl border-t border-white/10"
+              style={{ maxHeight: "55%" }}
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
+                <div className="flex items-center gap-2">
+                  <Users className="w-4 h-4 text-white/60" />
+                  <span className="text-white font-semibold text-sm">Seen by {viewsList.length}</span>
+                </div>
+                <button onClick={() => setShowViews(false)} className="text-white/60 hover:text-white">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="overflow-y-auto no-scrollbar p-3 space-y-2" style={{ maxHeight: "calc(55vh - 60px)" }}>
+                {viewsLoading ? (
+                  <div className="flex justify-center py-6">
+                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  </div>
+                ) : viewsList.length === 0 ? (
+                  <p className="text-white/40 text-sm text-center py-6">No views yet</p>
+                ) : (
+                  viewsList.map((v: any, i: number) => (
+                    <div key={i} className="flex items-center gap-3 px-1 py-1">
+                      <Avatar className="w-8 h-8 border border-white/20">
+                        <AvatarImage src={v.user?.avatarUrl || ''} />
+                        <AvatarFallback className="bg-white/10 text-white text-xs">
+                          {getInitials(v.user?.displayName || '?')}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-white text-sm font-medium truncate">{v.user?.displayName}</p>
+                        <p className="text-white/40 text-xs">@{v.user?.username}</p>
+                      </div>
+                      {v.viewedAt && (
+                        <span className="text-white/30 text-xs shrink-0">
+                          {new Date(v.viewedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Desktop nav arrows */}
         <button
@@ -266,7 +367,10 @@ export default function StoriesRow() {
           data-testid="story-add"
           onClick={() => setUploadOpen(true)}
         >
-          <div className="relative w-16 h-16 rounded-full p-[2px] bg-border transition-transform group-hover:scale-105">
+          <div
+            className="relative w-16 h-16 rounded-full p-[2px] transition-transform group-hover:scale-105 bg-gradient-to-tr from-primary to-[#c084fc]"
+            style={{ boxShadow: "0 0 14px 4px rgba(192,132,252,0.5), 0 0 28px 6px rgba(236,72,153,0.25)" }}
+          >
             <div className="w-full h-full rounded-full border-2 border-background overflow-hidden bg-muted flex items-center justify-center relative">
               <Avatar className="w-full h-full rounded-none">
                 <AvatarImage src={me?.avatarUrl || ''} className="object-cover" />
@@ -296,7 +400,7 @@ export default function StoriesRow() {
             >
               <div
                 className={`relative w-16 h-16 rounded-full p-[2px] transition-all group-hover:scale-105 ${hasUnviewed ? 'bg-gradient-to-tr from-primary to-[#c084fc]' : 'bg-gradient-to-tr from-primary/25 to-[#c084fc]/25'}`}
-                style={hasUnviewed ? { boxShadow: '0 0 14px 3px rgba(192,132,252,0.55)' } : undefined}
+                style={hasUnviewed ? { boxShadow: '0 0 14px 3px rgba(192,132,252,0.55), 0 0 28px 6px rgba(236,72,153,0.25)' } : undefined}
               >
                 <div className="w-full h-full rounded-full border-2 border-background overflow-hidden bg-muted">
                   <Avatar className="w-full h-full rounded-none">

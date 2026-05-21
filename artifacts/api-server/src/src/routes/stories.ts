@@ -140,4 +140,27 @@ router.post("/stories/:id/view", requireUser, async (req, res): Promise<void> =>
   res.json({ success: true });
 });
 
+// GET /stories/:id/views — returns list of viewers (for story owner)
+router.get("/stories/:id/views", requireUser, async (req, res): Promise<void> => {
+  const currentUser = (req as any).currentUser as typeof usersTable.$inferSelect;
+  const storyId = parseInt(String(req.params.id), 10);
+  if (isNaN(storyId)) { res.status(400).json({ error: "Invalid story ID" }); return; }
+
+  // Only the story owner can see views
+  const [story] = await db.select().from(storiesTable).where(eq(storiesTable.id, storyId));
+  if (!story) { res.status(404).json({ error: "Story not found" }); return; }
+  if (story.authorId !== currentUser.id) { res.status(403).json({ error: "Forbidden" }); return; }
+
+  const views = await db.select({ viewer: usersTable, createdAt: storyViewsTable.createdAt })
+    .from(storyViewsTable)
+    .innerJoin(usersTable, eq(storyViewsTable.viewerId, usersTable.id))
+    .where(eq(storyViewsTable.storyId, storyId))
+    .orderBy(desc(storyViewsTable.createdAt));
+
+  res.json(views.map(v => ({
+    user: buildUserSummary(v.viewer),
+    viewedAt: v.createdAt?.toISOString() ?? null,
+  })));
+});
+
 export default router;
