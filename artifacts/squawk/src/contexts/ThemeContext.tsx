@@ -11,7 +11,16 @@ const ThemeContext = createContext<ThemeCtx>({ theme: "dark", toggle: () => {} }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<Theme>(() => {
-    try { return (localStorage.getItem("squawk-theme") as Theme) || "dark"; } catch { return "dark"; }
+    try {
+      const saved = (localStorage.getItem("squawk-theme") as Theme) || "dark";
+      const root = document.documentElement;
+      if (saved === "dark") { root.classList.add("dark"); root.classList.remove("light"); }
+      else { root.classList.add("light"); root.classList.remove("dark"); }
+      return saved;
+    } catch {
+      document.documentElement.classList.add("dark");
+      return "dark";
+    }
   });
 
   useEffect(() => {
