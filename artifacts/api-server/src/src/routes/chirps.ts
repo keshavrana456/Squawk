@@ -3,6 +3,7 @@ import { eq, and, desc, sql, isNull, inArray } from "drizzle-orm";
 import {
   db, usersTable, followsTable,
   chirpsTable, chirpLikesTable, chirpSavesTable, chirpCommentsTable,
+  notificationsTable,
 } from "@workspace/db";
 import { requireUser } from "../lib/auth";
 import { buildUserSummary } from "../lib/userHelpers";
@@ -123,6 +124,16 @@ router.post("/chirps", requireUser, async (req, res): Promise<void> => {
       authorId: currentUser.id,
       content: content.trim().slice(0, 500),
     });
+    // Notify parent chirp author
+    const [parentChirp] = await db.select().from(chirpsTable).where(eq(chirpsTable.id, pid));
+    if (parentChirp && parentChirp.authorId !== currentUser.id) {
+      await db.insert(notificationsTable).values({
+        recipientId: parentChirp.authorId,
+        actorId: currentUser.id,
+        type: "comment",
+        message: content.trim().slice(0, 100),
+      }).onConflictDoNothing();
+    }
   }
 
   const result = await buildChirpWithMeta(chirp, currentUser, currentUser.id);
@@ -184,6 +195,16 @@ router.post("/chirps/:id/like", requireUser, async (req, res): Promise<void> => 
     await db.delete(chirpLikesTable).where(eq(chirpLikesTable.id, existing.id));
   } else {
     await db.insert(chirpLikesTable).values({ userId: currentUser.id, chirpId }).onConflictDoNothing();
+    // Notify chirp author
+    const [chirp] = await db.select().from(chirpsTable).where(eq(chirpsTable.id, chirpId));
+    if (chirp && chirp.authorId !== currentUser.id) {
+      await db.insert(notificationsTable).values({
+        recipientId: chirp.authorId,
+        actorId: currentUser.id,
+        type: "like",
+        message: chirp.content?.slice(0, 100) ?? null,
+      }).onConflictDoNothing();
+    }
   }
 
   const [count] = await db.select({ count: sql<number>`count(*)::int` }).from(chirpLikesTable).where(eq(chirpLikesTable.chirpId, chirpId));
@@ -223,6 +244,8 @@ router.post("/chirps/:id/rechirp", requireUser, async (req, res): Promise<void> 
     return;
   }
 
+  const [originalChirp] = await db.select().from(chirpsTable).where(eq(chirpsTable.id, chirpId));
+
   await db.insert(chirpsTable).values({
     authorId: currentUser.id,
     content: "",
@@ -230,6 +253,16 @@ router.post("/chirps/:id/rechirp", requireUser, async (req, res): Promise<void> 
     hashtags: [],
     mentions: [],
   });
+
+  // Notify original chirp author
+  if (originalChirp && originalChirp.authorId !== currentUser.id) {
+    await db.insert(notificationsTable).values({
+      recipientId: originalChirp.authorId,
+      actorId: currentUser.id,
+      type: "repost",
+      message: originalChirp.content?.slice(0, 100) ?? null,
+    }).onConflictDoNothing();
+  }
 
   res.json({ rechirped: true });
 });

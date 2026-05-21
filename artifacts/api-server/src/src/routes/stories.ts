@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { eq, and, desc, gt, sql, inArray } from "drizzle-orm";
-import { db, usersTable, storiesTable, storyViewsTable, followsTable } from "@workspace/db";
+import { db, usersTable, storiesTable, storyViewsTable, followsTable, notificationsTable } from "@workspace/db";
 import { requireUser } from "../lib/auth";
 import { buildUserSummary } from "../lib/userHelpers";
 import { ViewStoryParams } from "@workspace/api-zod";
@@ -104,6 +104,25 @@ router.post("/stories", requireUser, async (req, res): Promise<void> => {
     textLayers: parsed.data.textLayers ?? null,
     expiresAt,
   }).returning();
+
+  // Notify all followers about the new story (fire-and-forget, don't block response)
+  db.select({ followerId: followsTable.followerId })
+    .from(followsTable)
+    .where(eq(followsTable.followingId, currentUser.id))
+    .then(async (followers) => {
+      if (followers.length === 0) return;
+      const notifs = followers.map(f => ({
+        recipientId: f.followerId,
+        actorId: currentUser.id,
+        type: "story" as const,
+        message: parsed.data.caption?.slice(0, 100) ?? null,
+      }));
+      // Batch insert in chunks to avoid huge queries
+      for (let i = 0; i < notifs.length; i += 50) {
+        await db.insert(notificationsTable).values(notifs.slice(i, i + 50)).onConflictDoNothing();
+      }
+    })
+    .catch(() => {});
 
   res.status(201).json({
     id: story.id,

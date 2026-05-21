@@ -6,7 +6,7 @@ export const notificationsTable = pgTable("notifications", {
   id: serial("id").primaryKey(),
   recipientId: integer("recipient_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
   actorId: integer("actor_id").references(() => usersTable.id, { onDelete: "cascade" }),
-  type: text("type").notNull().$type<"like" | "comment" | "follow" | "mention" | "message">(),
+  type: text("type").notNull().$type<"like" | "comment" | "follow" | "mention" | "message" | "repost" | "story">(),
   postId: integer("post_id").references(() => postsTable.id, { onDelete: "cascade" }),
   message: text("message"),
   isRead: boolean("is_read").notNull().default(false),
