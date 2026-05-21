@@ -42,7 +42,7 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "PORT=5000 pnpm --filter @workspace/squawk dev"
+args = "node scripts/port-bridge.mjs & PORT=5000 pnpm --filter @workspace/squawk dev"
 waitForPort = 5000
 
 [workflows.workflow.metadata]
@@ -61,10 +61,6 @@ timeoutMs = 20000
 [[ports]]
 localPort = 5000
 externalPort = 80
-
-[[ports]]
-localPort = 8081
-externalPort = 8081
 
 [[ports]]
 localPort = 19926
