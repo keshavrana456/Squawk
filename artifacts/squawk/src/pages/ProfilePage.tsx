@@ -233,8 +233,8 @@ export default function ProfilePage() {
 
   const handleAvatarClick = () => {
     if (!isMe) return;
-    // If user has active stories, open them. If own profile, allow PFP upload via long press/button
-    avatarInputRef.current?.click();
+    // Clicking own avatar opens story upload (not PFP upload)
+    setShowStoryUpload(true);
   };
 
   if (isLoading) {
@@ -526,7 +526,17 @@ export default function ProfilePage() {
                     </DropdownMenu>
                   </div>
                   {chirp.mediaUrl && (
-                    <img src={chirp.mediaUrl} alt="" className="mt-3 rounded-xl max-h-64 w-auto object-cover" />
+                    chirp.mediaType === "video" ? (
+                      <video
+                        src={chirp.mediaUrl}
+                        className="mt-3 rounded-xl max-h-72 w-full object-cover"
+                        controls
+                        playsInline
+                        preload="metadata"
+                      />
+                    ) : (
+                      <img src={chirp.mediaUrl} alt="" className="mt-3 rounded-xl max-h-72 w-full object-cover" />
+                    )
                   )}
                   <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
                     <span>{new Date(chirp.createdAt).toLocaleDateString()}</span>

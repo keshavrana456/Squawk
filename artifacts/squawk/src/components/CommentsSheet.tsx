@@ -91,23 +91,19 @@ export default function CommentsSheet({ postId, commentsCount, isOpen, onClose }
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex flex-col justify-end"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
           style={{ background: "rgba(0,0,0,0.55)", backdropFilter: "blur(6px)" }}
           onClick={onClose}
         >
           <motion.div
-            initial={{ y: "100%" }}
-            animate={{ y: 0 }}
-            exit={{ y: "100%" }}
-            transition={{ type: "spring", damping: 30, stiffness: 340 }}
-            className="bg-card border-t border-border rounded-t-3xl flex flex-col overflow-hidden shadow-2xl"
-            style={{ maxHeight: "78vh" }}
+            initial={{ scale: 0.92, opacity: 0, y: 16 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.92, opacity: 0, y: 16 }}
+            transition={{ type: "spring", damping: 28, stiffness: 320 }}
+            className="bg-card border border-border rounded-3xl flex flex-col overflow-hidden shadow-2xl w-full max-w-lg"
+            style={{ maxHeight: "80vh" }}
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Drag handle */}
-            <div className="flex justify-center pt-3 pb-0 shrink-0">
-              <div className="w-10 h-1 rounded-full bg-muted-foreground/30" />
-            </div>
 
             {/* Header */}
             <div className="flex items-center justify-between px-5 py-3 border-b border-border shrink-0">

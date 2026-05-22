@@ -75,6 +75,33 @@ router.get("/chirps", async (req, res): Promise<void> => {
   const cursor = req.query.cursor ? parseInt(String(req.query.cursor), 10) : null;
   const currentUser = (req as any).currentUser as typeof usersTable.$inferSelect | undefined;
 
+  const username = req.query.username ? String(req.query.username) : null;
+
+  // If filtering by username: return all chirps authored OR rechirped by that user
+  if (username) {
+    const [userRow] = await db.select().from(usersTable).where(eq(usersTable.username, username));
+    if (!userRow) { res.json({ items: [], hasMore: false, nextCursor: null }); return; }
+    const uid = userRow.id;
+
+    // Get original chirps + rechirps authored by this user (no parent = top-level)
+    const rows = await db.select({ chirp: chirpsTable, author: usersTable })
+      .from(chirpsTable)
+      .innerJoin(usersTable, eq(chirpsTable.authorId, usersTable.id))
+      .where(and(eq(chirpsTable.authorId, uid), isNull(chirpsTable.parentId)))
+      .orderBy(desc(chirpsTable.createdAt))
+      .limit(limit);
+
+    // Add isRechirped flag per chirp when current user is known
+    const items = await Promise.all(rows.map(async (r: any) => {
+      const base = await buildChirpWithMeta(r.chirp, r.author, currentUser?.id);
+      const isRechirped = r.chirp.rechirpOfId != null;
+      return { ...base, isRechirped };
+    }));
+
+    res.json({ items, hasMore: false, nextCursor: null });
+    return;
+  }
+
   let q = db.select({ chirp: chirpsTable, author: usersTable })
     .from(chirpsTable)
     .innerJoin(usersTable, eq(chirpsTable.authorId, usersTable.id))
@@ -94,7 +121,18 @@ router.get("/chirps", async (req, res): Promise<void> => {
   const rows = await q;
   const hasMore = rows.length > limit;
   const data = hasMore ? rows.slice(0, limit) : rows;
-  const items = await Promise.all(data.map((r: any) => buildChirpWithMeta(r.chirp, r.author, currentUser?.id)));
+
+  // Add isRechirped flag (whether each chirp is itself a rechirp)
+  const items = await Promise.all(data.map(async (r: any) => {
+    const base = await buildChirpWithMeta(r.chirp, r.author, currentUser?.id);
+    const isRechirped = r.chirp.rechirpOfId != null;
+    // Check if current user has rechirped this chirp
+    const isRechirpedByMe = currentUser
+      ? (await db.select({ id: chirpsTable.id }).from(chirpsTable).where(and(eq(chirpsTable.authorId, currentUser.id), eq(chirpsTable.rechirpOfId, r.chirp.id))).limit(1)).length > 0
+      : false;
+    return { ...base, isRechirped, isRechirpedByMe };
+  }));
+
   res.json({ items, hasMore, nextCursor: hasMore ? data[data.length - 1].chirp.id : null });
 });
 

@@ -60,11 +60,13 @@ export default function PostCard({ post, onLike, onSave, onComment }: PostCardPr
   const videoRef = useRef<HTMLVideoElement>(null);
 
   // Sync from server whenever the post prop updates (e.g. React Query refetch)
+  // Skip sync while a like mutation is in-flight to avoid reverting optimistic updates
   useEffect(() => {
+    if (likeMutation.isPending) return;
     setIsLiked(!!post.isLiked);
     setLikesCount(post.likesCount ?? 0);
     setIsSaved(!!post.isSaved);
-  }, [post.isLiked, post.likesCount, post.isSaved]);
+  }, [post.isLiked, post.likesCount, post.isSaved, likeMutation.isPending]);
 
   const isOwner = me && (me as any).id === post.author.id;
   const getInitials = (name: string) => name ? name.charAt(0).toUpperCase() : "?";

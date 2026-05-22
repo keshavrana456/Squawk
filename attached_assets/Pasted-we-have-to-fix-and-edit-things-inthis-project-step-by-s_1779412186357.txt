@@ -1,0 +1,28 @@
+we have to fix and edit things inthis project step by step and in the end i want a promotional type video for this app.
+
+so lets start, first of all whole processing in website is to slow speed up all processings and transcations. now do all steps given below.
+
+step1:
+currently when i try to delete the chrips from chirp feed its opening option to comment,and currently all chirps are showing in user id even tough other users chirps are also visible in my profile fix this only show chirps that is posted or reposted by user, and do remove chirp if again click repost of same post.
+
+step2:
+
+change the main heading on landing page with this : Built for what’s next.
+
+step3:
+
+there is a issue after liking any post aftersometime its automatically gets unlike fix this and make it like once if i liked the post or flow or chirp from anywhere wheter its feed,by visiting to user profile  or explorer, make the like button filled and show liked everywhere i saw.
+
+
+step4:
+
+remove the clicking on my pfp to upload the new pfp make it as click on my pfp make it to upload story, and in the home feed keep the your story is only to upload story not for view story for view make a clone of it by my story but the curretly your story rename as add story and dont add glow effect around the add story add this on my story, and in edit profile option keep options upto bio, and rest all the options after bio move them into setting button, edit profile will show other option and setting will show other.
+
+step4:
+
+and you can see in this given images in mobile view how the things are cutting like the text box for messaging,story edit options,home feed comments, fix this and for comment section dont make it to slideup from down instead of this make it popup on middle screen when click on commment section apply this for all comment sections, and in flow remove the navbar for mobile useres and make it to full screen view only for flows,
+
+
+step5:
+
+add a option to delete stories on my stories, and in message add options like typing when user is typing, seen if user has seen the message active indicator if user is active on website,and allow gifs in chat,and if user share any post to other users via dm instead of post link send entire post contains media, and in mobile view move the notificiation button into right top near to msg, and move the create new post option into left top and make the logo size little big dont change size of navbar, and if user recieve dm then mark a number icon on message button it will help to show how many dms he got means from how many users he got dms, and do same for notifications after watching dms or notifications remove that number icons. and in my profile you can see a option of edit banner remove that, instead of add a new button to add banner for add banners. and make founder to operate everything on the wewbsite even he can dlt every post wheter its own or other users.

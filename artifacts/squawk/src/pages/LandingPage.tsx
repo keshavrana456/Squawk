@@ -183,10 +183,10 @@ export default function LandingPage() {
           className="max-w-4xl mx-auto relative z-10 mt-8"
         >
           <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold tracking-tighter mb-6 leading-tight text-white drop-shadow-xl">
-            Culture at{" "}
+            Built for{" "}
             <br className="hidden md:block" />
             <span className="bg-clip-text text-transparent" style={{ backgroundImage: "linear-gradient(90deg, #f472b6, #c084fc, #818cf8)" }}>
-              light speed.
+              what's next
             </span>
           </h1>
 

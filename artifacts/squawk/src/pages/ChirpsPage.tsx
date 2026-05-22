@@ -125,7 +125,15 @@ function renderContent(content: string) {
   const parts = content.split(/(\s)/);
   return parts.map((word, i) => {
     if (word.startsWith("#")) return <span key={i} className="text-primary font-semibold cursor-pointer hover:underline">{word}</span>;
-    if (word.startsWith("@")) return <span key={i} className="text-primary font-semibold cursor-pointer hover:underline">{word}</span>;
+    if (word.startsWith("@")) {
+      const username = word.slice(1).replace(/[^a-zA-Z0-9_]/g, "");
+      const trailing = word.slice(1 + username.length);
+      return (
+        <span key={i}>
+          <Link href={`/profile/${username}`} onClick={e => e.stopPropagation()} className="text-primary font-semibold hover:underline">@{username}</Link>{trailing}
+        </span>
+      );
+    }
     return <span key={i}>{word}</span>;
   });
 }
@@ -134,7 +142,7 @@ function ChirpCard({ chirp, onReply, isNested = false, onOpen }: { chirp: ChirpD
   const [localLiked, setLocalLiked] = useState(chirp.isLiked);
   const [localLikes, setLocalLikes] = useState(chirp.likesCount);
   const [localSaved, setLocalSaved] = useState(chirp.isSaved);
-  const [localRechirped, setLocalRechirped] = useState(false);
+  const [localRechirped, setLocalRechirped] = useState(!!(chirp as any).isRechirped);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const likeMut = useLikeChirp();
   const saveMut = useSaveChirp();
@@ -143,7 +151,15 @@ function ChirpCard({ chirp, onReply, isNested = false, onOpen }: { chirp: ChirpD
   const { data: me } = useGetMe();
   const isOwner = me && (me as any).id === chirp.authorId;
 
-  const handleLike = () => {
+  // Don't sync like state while mutation is in-flight to avoid reverting optimistic updates
+  useEffect(() => {
+    if (likeMut.isPending) return;
+    setLocalLiked(chirp.isLiked);
+    setLocalLikes(chirp.likesCount);
+  }, [chirp.isLiked, chirp.likesCount, likeMut.isPending]);
+
+  const handleLike = (e: React.MouseEvent) => {
+    e.stopPropagation();
     const newLiked = !localLiked;
     setLocalLiked(newLiked);
     setLocalLikes(l => l + (newLiked ? 1 : -1));
@@ -159,8 +175,12 @@ function ChirpCard({ chirp, onReply, isNested = false, onOpen }: { chirp: ChirpD
   };
 
   const handleRechirp = () => {
-    setLocalRechirped(r => !r);
-    rechirpMut.mutate(chirp.id);
+    const newVal = !localRechirped;
+    setLocalRechirped(newVal);
+    rechirpMut.mutate(chirp.id, {
+      onSuccess: (d: any) => setLocalRechirped(d.rechirped ?? newVal),
+      onError: () => setLocalRechirped(!newVal),
+    });
   };
 
   const handleShare = async () => {
@@ -225,8 +245,7 @@ function ChirpCard({ chirp, onReply, isNested = false, onOpen }: { chirp: ChirpD
     <motion.article
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      className={`border-b border-border transition-colors ${isNested ? "bg-muted/20 hover:bg-muted/30" : "hover:bg-muted/30 cursor-pointer"}`}
-      onClick={() => { if (!isNested && onOpen) onOpen(chirp); }}
+      className={`border-b border-border transition-colors ${isNested ? "bg-muted/20 hover:bg-muted/30" : "hover:bg-muted/30"}`}
     >
       {/* Repost label — shows reposter's name */}
       {(chirp.rechirpOfId !== null || localRechirped) && (
@@ -330,7 +349,7 @@ function ChirpCard({ chirp, onReply, isNested = false, onOpen }: { chirp: ChirpD
             </button>
 
             <button
-              onClick={e => { e.stopPropagation(); handleLike(); }}
+              onClick={handleLike}
               className={`flex items-center gap-1.5 px-2 py-1.5 rounded-full transition-colors text-sm ${localLiked ? "text-pink-500" : "text-muted-foreground hover:text-pink-500 hover:bg-pink-500/10"}`}
             >
               <Heart className={`w-4 h-4 ${localLiked ? "fill-pink-500" : ""}`} />

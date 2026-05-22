@@ -375,16 +375,13 @@ export default function StoriesRow() {
   return (
     <>
       <div className="flex gap-4 p-4 overflow-x-auto no-scrollbar border-b border-border" data-testid="stories-row">
-        {/* Your Story */}
+        {/* Add Story — always shown, always opens upload */}
         <div
           className="flex flex-col items-center gap-1 shrink-0 cursor-pointer group"
           data-testid="story-add"
-          onClick={() => iHaveStory ? setViewerGroupIndex(storyGroups!.findIndex(g => g.user.username === me?.username)) : setUploadOpen(true)}
+          onClick={() => setUploadOpen(true)}
         >
-          <div
-            className={`relative w-16 h-16 rounded-full p-[2px] transition-transform group-hover:scale-105 ${iHaveStory ? 'bg-gradient-to-tr from-primary to-[#c084fc]' : 'bg-muted border border-border'}`}
-            style={iHaveStory ? { boxShadow: "0 0 14px 4px rgba(192,132,252,0.5), 0 0 28px 6px rgba(236,72,153,0.25)" } : undefined}
-          >
+          <div className="relative w-16 h-16 rounded-full p-[2px] transition-transform group-hover:scale-105 bg-muted border border-border">
             <div className="w-full h-full rounded-full border-2 border-background overflow-hidden bg-muted flex items-center justify-center relative">
               <Avatar className="w-full h-full rounded-none">
                 <AvatarImage src={me?.avatarUrl || ''} className="object-cover" />
@@ -397,8 +394,32 @@ export default function StoriesRow() {
               </div>
             </div>
           </div>
-          <span className="text-xs text-muted-foreground truncate w-16 text-center">Your Story</span>
+          <span className="text-xs text-muted-foreground truncate w-16 text-center">Add Story</span>
         </div>
+
+        {/* My Story — only shown when user has active stories */}
+        {iHaveStory && myStoryGroup && (
+          <div
+            className="flex flex-col items-center gap-1 shrink-0 cursor-pointer group"
+            data-testid="story-mine"
+            onClick={() => setViewerGroupIndex(storyGroups!.findIndex(g => g.user.username === me?.username))}
+          >
+            <div
+              className="relative w-16 h-16 rounded-full p-[2px] transition-transform group-hover:scale-105 bg-gradient-to-tr from-primary to-[#c084fc]"
+              style={{ boxShadow: "0 0 14px 4px rgba(192,132,252,0.5), 0 0 28px 6px rgba(236,72,153,0.25)" }}
+            >
+              <div className="w-full h-full rounded-full border-2 border-background overflow-hidden bg-muted">
+                <Avatar className="w-full h-full rounded-none">
+                  <AvatarImage src={me?.avatarUrl || ''} className="object-cover" />
+                  <AvatarFallback className="bg-muted text-muted-foreground font-semibold">
+                    {me?.displayName?.charAt(0)?.toUpperCase() ?? 'Me'}
+                  </AvatarFallback>
+                </Avatar>
+              </div>
+            </div>
+            <span className="text-xs text-foreground truncate w-16 text-center font-medium">My Story</span>
+          </div>
+        )}
 
         {/* Other Stories */}
         {storyGroups?.map((group, idx) => {
