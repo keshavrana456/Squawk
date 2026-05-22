@@ -67,6 +67,12 @@ export interface OnboardInput {
 
 export interface ProfileUpdate {
   /**
+     * @minLength 3
+     * @maxLength 20
+     * @pattern ^[a-zA-Z0-9_]+$
+     */
+  username?: string;
+  /**
      * @minLength 1
      * @maxLength 60
      */

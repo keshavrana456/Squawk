@@ -417,7 +417,26 @@ export default function ProfilePage() {
             {profile.isVerified && !((profile as any).isFounder) && <BadgeCheck className="w-6 h-6 text-primary" />}
           </div>
           <p className="text-muted-foreground font-medium text-[15px]">@{profile.username}</p>
-          {profile.bio && <p className="mt-4 text-[15px] whitespace-pre-wrap max-w-2xl">{profile.bio}</p>}
+          {profile.bio && (
+            <p className="mt-4 text-[15px] whitespace-pre-wrap max-w-2xl">
+              {profile.bio.split(/(https?:\/\/[^\s]+)/g).map((part, i) =>
+                /^https?:\/\//.test(part)
+                  ? <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline break-all">{part}</a>
+                  : <span key={i}>{part}</span>
+              )}
+            </p>
+          )}
+          {(profile as any).website && (
+            <a
+              href={(profile as any).website.startsWith("http") ? (profile as any).website : `https://${(profile as any).website}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-2 flex items-center gap-1.5 text-primary text-sm hover:underline w-fit"
+            >
+              <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>
+              {(profile as any).website.replace(/^https?:\/\//, "")}
+            </a>
+          )}
 
           <div className="flex gap-6 mt-6 pt-6 border-t border-border/50">
             <div className="flex flex-col">

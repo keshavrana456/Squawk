@@ -75,6 +75,9 @@ router.post("/users/me/onboard", requireAuth, async (req, res): Promise<void> =>
   res.status(201).json(profile);
 });
 
+const USERNAME_COOLDOWN_DAYS = 14;
+const USERNAME_REGEX = /^[a-zA-Z0-9_]{3,20}$/;
+
 // PUT /users/me/profile
 router.put("/users/me/profile", requireUser, async (req, res): Promise<void> => {
   const currentUser = (req as any).currentUser as typeof usersTable.$inferSelect;
@@ -88,7 +91,49 @@ router.put("/users/me/profile", requireUser, async (req, res): Promise<void> => 
   if (parsed.data.bio !== undefined) updateData.bio = parsed.data.bio;
   if (parsed.data.avatarUrl !== undefined) updateData.avatarUrl = parsed.data.avatarUrl;
   if (parsed.data.coverUrl !== undefined) updateData.coverUrl = parsed.data.coverUrl;
-  if (parsed.data.website !== undefined) updateData.website = parsed.data.website;
+  if (parsed.data.website !== undefined) updateData.website = parsed.data.website ?? null;
+
+  // Handle username change
+  if ((parsed.data as any).username !== undefined) {
+    const newUsername: string = (parsed.data as any).username.trim();
+
+    if (!USERNAME_REGEX.test(newUsername)) {
+      res.status(400).json({ error: "Username must be 3-20 characters and can only contain letters, numbers, and underscores." });
+      return;
+    }
+
+    if (newUsername !== currentUser.username) {
+      // Check 14-day cooldown
+      const lastChanged = (currentUser as any).usernameChangedAt as Date | null;
+      if (lastChanged) {
+        const daysSince = (Date.now() - new Date(lastChanged).getTime()) / (1000 * 60 * 60 * 24);
+        if (daysSince < USERNAME_COOLDOWN_DAYS) {
+          const daysLeft = Math.ceil(USERNAME_COOLDOWN_DAYS - daysSince);
+          res.status(429).json({ error: `You can change your username again in ${daysLeft} day${daysLeft === 1 ? "" : "s"}.` });
+          return;
+        }
+      }
+
+      // Check uniqueness
+      const [taken] = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.username, newUsername));
+      if (taken) {
+        res.status(400).json({ error: "That username is already taken." });
+        return;
+      }
+
+      // Sync to Clerk
+      try {
+        await clerkClient.users.updateUser(currentUser.clerkId, { username: newUsername });
+      } catch (err: any) {
+        const msg = err?.errors?.[0]?.longMessage ?? err?.message ?? "Failed to update username in auth system.";
+        res.status(400).json({ error: msg });
+        return;
+      }
+
+      updateData.username = newUsername;
+      (updateData as any).usernameChangedAt = new Date();
+    }
+  }
 
   const [updated] = await db.update(usersTable).set(updateData).where(eq(usersTable.id, currentUser.id)).returning();
   const profile = await buildUserProfile(updated, currentUser.id);

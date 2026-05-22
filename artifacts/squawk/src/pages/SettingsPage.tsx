@@ -3,13 +3,23 @@ import { useGetMe, useUpdateMyProfile, getGetMeQueryKey, getGetUserByUsernameQue
 import { useClerk } from "@clerk/react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
-import { Camera, LogOut, Check, ImagePlus, Moon, Sun, Info, Mail, Shield, ChevronRight } from "lucide-react";
+import { Camera, LogOut, Check, ImagePlus, Moon, Sun, Info, Mail, Shield, ChevronRight, Link as LinkIcon, Clock, AtSign } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { motion } from "framer-motion";
 import { useTheme } from "@/contexts/ThemeContext";
+
+const USERNAME_COOLDOWN_DAYS = 14;
+const USERNAME_REGEX = /^[a-zA-Z0-9_]{3,20}$/;
+
+function getDaysUntilCanChange(usernameChangedAt: string | null | undefined): number | null {
+  if (!usernameChangedAt) return null;
+  const daysSince = (Date.now() - new Date(usernameChangedAt).getTime()) / (1000 * 60 * 60 * 24);
+  if (daysSince >= USERNAME_COOLDOWN_DAYS) return null;
+  return Math.ceil(USERNAME_COOLDOWN_DAYS - daysSince);
+}
 
 async function uploadFile(file: File): Promise<string> {
   const formData = new FormData();
@@ -28,11 +38,14 @@ export default function SettingsPage() {
   const { theme, toggle: toggleTheme } = useTheme();
   const [, setLocation] = useLocation();
 
+  const [username, setUsername] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [bio, setBio] = useState("");
+  const [website, setWebsite] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [usernameError, setUsernameError] = useState<string | null>(null);
 
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
@@ -44,8 +57,10 @@ export default function SettingsPage() {
 
   useEffect(() => {
     if (me) {
+      setUsername(me.username || "");
       setDisplayName(me.displayName || "");
       setBio(me.bio || "");
+      setWebsite((me as any).website || "");
     }
   }, [me]);
 
@@ -69,7 +84,27 @@ export default function SettingsPage() {
     }
   };
 
+  const daysUntilCanChange = getDaysUntilCanChange((me as any)?.usernameChangedAt);
+  const usernameChanged = username.trim() !== (me?.username || "");
+  const usernameValid = USERNAME_REGEX.test(username.trim());
+
+  const handleUsernameChange = (val: string) => {
+    setUsername(val);
+    setUsernameError(null);
+    if (val && !USERNAME_REGEX.test(val)) {
+      setUsernameError("3–20 chars, letters, numbers, and underscores only.");
+    }
+  };
+
   const handleSave = async () => {
+    if (usernameChanged && daysUntilCanChange !== null) {
+      setSaveError(`You can change your username again in ${daysUntilCanChange} day${daysUntilCanChange === 1 ? "" : "s"}.`);
+      return;
+    }
+    if (usernameChanged && !usernameValid) {
+      setSaveError("Username must be 3–20 characters, letters, numbers, and underscores only.");
+      return;
+    }
     setIsSaving(true);
     setSaveError(null);
     try {
@@ -78,29 +113,37 @@ export default function SettingsPage() {
         bannerFile ? uploadFile(bannerFile) : Promise.resolve(me?.coverUrl ?? null),
       ]);
 
+      const oldUsername = me?.username;
       await updateMutation.mutateAsync({
         data: {
+          ...(usernameChanged ? { username: username.trim() } : {}),
           displayName,
           bio: bio || null,
+          website: website.trim() || null,
           avatarUrl: finalAvatarUrl,
           coverUrl: finalBannerUrl,
-        },
+        } as any,
       });
 
       await queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
-      if (me?.username) {
-        await queryClient.invalidateQueries({ queryKey: getGetUserByUsernameQueryKey(me.username) });
+      if (oldUsername) {
+        await queryClient.invalidateQueries({ queryKey: getGetUserByUsernameQueryKey(oldUsername) });
+      }
+      if (usernameChanged && username.trim()) {
+        await queryClient.invalidateQueries({ queryKey: getGetUserByUsernameQueryKey(username.trim()) });
       }
       setAvatarFile(null);
       setBannerFile(null);
       setSaved(true);
+      const finalUsername = usernameChanged ? username.trim() : (me?.username ?? "");
       setTimeout(() => {
         setSaved(false);
-        if (me?.username) setLocation(`/profile/${me.username}`);
+        if (finalUsername) setLocation(`/profile/${finalUsername}`);
       }, 1000);
     } catch (e: any) {
       console.error(e);
-      setSaveError(e?.message || "Something went wrong — please try again.");
+      const msg = e?.response?.data?.error ?? e?.message ?? "Something went wrong — please try again.";
+      setSaveError(msg);
     } finally {
       setIsSaving(false);
     }
@@ -161,12 +204,44 @@ export default function SettingsPage() {
 
           {/* Form Fields */}
           <div className="space-y-5">
+            {/* Username */}
             <div className="space-y-2">
-              <label className="text-sm font-semibold text-foreground">Username</label>
-              <Input value={me?.username || ""} disabled className="bg-muted text-muted-foreground cursor-not-allowed" />
-              <p className="text-xs text-muted-foreground">Usernames cannot be changed.</p>
+              <label className="text-sm font-semibold text-foreground flex items-center gap-1.5">
+                <AtSign className="w-3.5 h-3.5 text-muted-foreground" />
+                Username
+              </label>
+              {daysUntilCanChange !== null ? (
+                <>
+                  <Input value={username} disabled className="bg-muted text-muted-foreground cursor-not-allowed" />
+                  <p className="text-xs flex items-center gap-1.5 text-amber-500">
+                    <Clock className="w-3 h-3 shrink-0" />
+                    You can change your username again in {daysUntilCanChange} day{daysUntilCanChange === 1 ? "" : "s"}.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm select-none">@</span>
+                    <Input
+                      value={username}
+                      onChange={e => handleUsernameChange(e.target.value)}
+                      placeholder="yourhandle"
+                      className={`bg-input border-border focus-visible:ring-primary pl-7 ${usernameError ? "border-destructive focus-visible:ring-destructive" : ""}`}
+                      maxLength={20}
+                    />
+                  </div>
+                  {usernameError ? (
+                    <p className="text-xs text-destructive">{usernameError}</p>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">
+                      3–20 characters · letters, numbers, underscores · changeable once every 14 days
+                    </p>
+                  )}
+                </>
+              )}
             </div>
 
+            {/* Display Name */}
             <div className="space-y-2">
               <label className="text-sm font-semibold text-foreground">Display Name</label>
               <Input
@@ -177,16 +252,33 @@ export default function SettingsPage() {
               />
             </div>
 
+            {/* Bio */}
             <div className="space-y-2">
               <label className="text-sm font-semibold text-foreground">Bio</label>
               <Textarea
                 value={bio}
                 onChange={e => setBio(e.target.value)}
-                placeholder="Tell us about yourself"
+                placeholder="Tell us about yourself… URLs will be clickable on your profile"
                 className="bg-input border-border focus-visible:ring-primary resize-none h-24"
                 maxLength={150}
               />
               <div className="text-right text-xs text-muted-foreground">{bio.length} / 150</div>
+            </div>
+
+            {/* Website / Link */}
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-foreground flex items-center gap-1.5">
+                <LinkIcon className="w-3.5 h-3.5 text-muted-foreground" />
+                Link
+              </label>
+              <Input
+                value={website}
+                onChange={e => setWebsite(e.target.value)}
+                placeholder="https://yoursite.com"
+                className="bg-input border-border focus-visible:ring-primary"
+                type="url"
+              />
+              <p className="text-xs text-muted-foreground">Shown as a clickable link on your profile.</p>
             </div>
           </div>
 

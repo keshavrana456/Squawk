@@ -40,11 +40,17 @@ export const GetMeResponse = zod.object({
 /**
  * @summary Update current user profile
  */
+export const updateMyProfileBodyUsernameMin = 3;
+export const updateMyProfileBodyUsernameMax = 20;
+
+
+export const updateMyProfileBodyUsernameRegExp = new RegExp('^[a-zA-Z0-9_]+$');
 export const updateMyProfileBodyDisplayNameMax = 60;
 
 
 
 export const UpdateMyProfileBody = zod.object({
+  "username": zod.string().min(updateMyProfileBodyUsernameMin).max(updateMyProfileBodyUsernameMax).regex(updateMyProfileBodyUsernameRegExp).optional(),
   "displayName": zod.string().min(1).max(updateMyProfileBodyDisplayNameMax).optional(),
   "bio": zod.string().nullish(),
   "avatarUrl": zod.string().nullish(),
