@@ -12,7 +12,7 @@ export default function Sidebar() {
   const { data: me } = useGetMe({ query: { enabled: !!user } });
   const { theme, toggle } = useTheme();
 
-  const { data: unreadData } = useGetUnreadNotificationCount({ query: { enabled: !!user } });
+  const { data: unreadData } = useGetUnreadNotificationCount({ query: { enabled: !!user, refetchInterval: 12_000 } });
   const unreadCount = unreadData?.count || 0;
 
   const { data: unreadMsgData } = useQuery({

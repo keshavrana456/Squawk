@@ -16,6 +16,11 @@ interface CommentsSheetProps {
 type LikeState = { isLiked: boolean; count: number };
 
 function renderCommentText(content: string) {
+  // Render image URLs (including GIFs) as inline images
+  const imageUrlPattern = /^https?:\/\/\S+\.(gif|png|jpg|jpeg|webp)(\?.*)?$/i;
+  if (imageUrlPattern.test(content.trim())) {
+    return <img src={content.trim()} alt="image" className="max-w-[180px] max-h-[140px] rounded-xl object-cover mt-1" loading="lazy" />;
+  }
   const parts = content.split(/(@\w+)/g);
   return parts.map((part, i) => {
     if (/^@\w+$/.test(part)) {
@@ -82,6 +87,24 @@ export default function CommentsSheet({ postId, commentsCount, isOpen, onClose }
     setText(val);
     const match = val.match(/@(\w*)$/);
     setMentionQuery(match ? match[1] : null);
+  };
+
+  const handlePaste = async (e: React.ClipboardEvent<HTMLInputElement>) => {
+    const item = Array.from(e.clipboardData.items).find(
+      (i) => i.type.startsWith("image/")
+    );
+    if (!item) return;
+    e.preventDefault();
+    const file = item.getAsFile();
+    if (!file) return;
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch("/api/storage/upload", { method: "POST", body: formData, credentials: "include" });
+      if (!res.ok) return;
+      const { mediaUrl } = await res.json();
+      setText(mediaUrl);
+    } catch {}
   };
 
   const insertMention = (username: string) => {
@@ -224,7 +247,7 @@ export default function CommentsSheet({ postId, commentsCount, isOpen, onClose }
             </div>
 
             {/* Comments list */}
-            <div className="flex-1 overflow-y-auto px-4 py-3 space-y-1 no-scrollbar">
+            <div className="flex-1 min-h-0 overflow-y-auto px-4 py-3 space-y-1 no-scrollbar">
               {isLoading ? (
                 <div className="flex justify-center py-12">
                   <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
@@ -389,6 +412,7 @@ export default function CommentsSheet({ postId, commentsCount, isOpen, onClose }
                   value={text}
                   onChange={(e) => handleTextChange(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
+                  onPaste={handlePaste}
                   placeholder={replyTo ? `Reply to @${replyTo.username}…` : "Add a comment…"}
                   className="flex-1 bg-muted border border-border rounded-full px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/20 transition-all"
                 />

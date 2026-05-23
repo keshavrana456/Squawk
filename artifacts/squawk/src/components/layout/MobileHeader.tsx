@@ -10,7 +10,7 @@ export default function MobileHeader() {
   const [location] = useLocation();
   const { user } = useUser();
   const { data: me } = useGetMe({ query: { enabled: !!user } });
-  const { data: unreadData } = useGetUnreadNotificationCount({ query: { enabled: !!user } });
+  const { data: unreadData } = useGetUnreadNotificationCount({ query: { enabled: !!user, refetchInterval: 12_000 } });
   const unreadCount = unreadData?.count || 0;
 
   const { data: unreadMsgData } = useQuery({

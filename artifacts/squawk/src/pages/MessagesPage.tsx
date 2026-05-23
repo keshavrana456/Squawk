@@ -22,7 +22,7 @@ import { useCall } from "@/contexts/CallContext";
 const GIPHY_KEY = (import.meta as any).env?.VITE_GIPHY_API_KEY || "dc6zaTOxFJmzC";
 
 // ─── Shared Post Card ─────────────────────────────────────────────────────────
-function SharedPostCard({ postId, postUrl }: { postId?: number | null; postUrl: string }) {
+function SharedPostCard({ postId, postUrl, onOpenPost }: { postId?: number | null; postUrl: string; onOpenPost?: (post: any) => void }) {
   const [post, setPost] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
@@ -36,9 +36,15 @@ function SharedPostCard({ postId, postUrl }: { postId?: number | null; postUrl: 
   }, [postId]);
 
   const handleClick = () => {
-    if (!post) { window.open(postUrl, "_self"); return; }
+    if (!post) { window.open(postUrl, "_blank"); return; }
     const isVideo = post.mediaType === "video";
-    window.location.href = isVideo ? `/reels` : `/home`;
+    if (isVideo) {
+      window.location.href = `/reels?id=${post.id}`;
+    } else if (onOpenPost) {
+      onOpenPost(post);
+    } else {
+      window.location.href = `/home`;
+    }
   };
 
   if (loading) {
@@ -643,6 +649,7 @@ function ChatView({ conversationId, onBack, me, conversation }: any) {
   const [content, setContent] = useState("");
   const [replyingTo, setReplyingTo] = useState<any | null>(null);
   const [showGifPicker, setShowGifPicker] = useState(false);
+  const [viewingPost, setViewingPost] = useState<any | null>(null);
   const [typingUsers, setTypingUsers] = useState<string[]>([]);
   const [readMessageIds, setReadMessageIds] = useState<Set<number>>(new Set());
   const sendMutation = useSendMessage();
@@ -907,7 +914,7 @@ function ChatView({ conversationId, onBack, me, conversation }: any) {
                           loading="lazy"
                         />
                       ) : msg.messageType === "shared_post" ? (
-                        <SharedPostCard postId={msg.sharedPostId} postUrl={msg.content} />
+                        <SharedPostCard postId={msg.sharedPostId} postUrl={msg.content} onOpenPost={setViewingPost} />
                       ) : msg.mediaUrl ? (
                         <img
                           src={msg.mediaUrl}
@@ -1020,9 +1027,22 @@ function ChatView({ conversationId, onBack, me, conversation }: any) {
                 handleSend({ gifUrl: url });
               }
             }}
-            placeholder="Message... (paste GIF from keyboard)"
+            placeholder="Message…"
             className="flex-1 border-0 bg-transparent focus-visible:ring-0 shadow-none px-2 h-10"
           />
+
+          <button
+            type="button"
+            onClick={() => setShowGifPicker(v => !v)}
+            className={`shrink-0 w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold transition-colors border ${
+              showGifPicker
+                ? "bg-primary text-white border-primary"
+                : "text-muted-foreground hover:text-foreground border-border hover:bg-muted"
+            }`}
+            title="GIF"
+          >
+            GIF
+          </button>
 
           <Button
             size="icon"
@@ -1034,6 +1054,49 @@ function ChatView({ conversationId, onBack, me, conversation }: any) {
           </Button>
         </div>
       </div>
+
+      {/* Inline Post Viewer */}
+      {viewingPost && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+          style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(8px)" }}
+          onClick={() => setViewingPost(null)}
+        >
+          <div
+            className="bg-card border border-border rounded-3xl overflow-hidden shadow-2xl w-full max-w-sm"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+              <div className="flex items-center gap-2">
+                {viewingPost.user?.avatarUrl && (
+                  <img src={viewingPost.user.avatarUrl} className="w-7 h-7 rounded-full border border-border" alt="" />
+                )}
+                <span className="font-semibold text-sm text-foreground">@{viewingPost.user?.username}</span>
+              </div>
+              <button
+                onClick={() => setViewingPost(null)}
+                className="text-muted-foreground hover:text-foreground p-1.5 rounded-full hover:bg-muted transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            {viewingPost.mediaUrl && (
+              <img
+                src={viewingPost.mediaUrl}
+                alt=""
+                className="w-full object-cover"
+                style={{ maxHeight: "420px" }}
+              />
+            )}
+            {viewingPost.caption && (
+              <div className="px-4 py-3 text-sm text-foreground">
+                <span className="font-semibold mr-1">@{viewingPost.user?.username}</span>
+                {viewingPost.caption}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

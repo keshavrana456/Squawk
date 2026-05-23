@@ -26,7 +26,7 @@ export default function NotificationsPage() {
   const [activeTab, setActiveTab] = useState<Tab>("All");
   const queryClient = useQueryClient();
 
-  const { data: notifData, isLoading } = useGetNotifications();
+  const { data: notifData, isLoading } = useGetNotifications({ query: { refetchInterval: 15_000, refetchOnWindowFocus: true } });
   const notifications = Array.isArray(notifData) ? notifData : [];
   const markReadMutation = useMarkAllNotificationsRead({
     mutation: {

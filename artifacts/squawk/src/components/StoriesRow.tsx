@@ -253,6 +253,17 @@ export function StoryViewer({ groups: initialGroups, startIndex, onClose, onStor
               {(currentStory as any).viewsCount ?? 0}
             </button>
           )}
+          {/* Pause / Play button */}
+          <button
+            className="w-8 h-8 flex items-center justify-center text-white/80 hover:text-white rounded-full hover:bg-white/10 transition-colors"
+            onClick={e => { e.stopPropagation(); setIsPaused(v => !v); }}
+            title={isPaused ? "Play" : "Pause"}
+          >
+            {isPaused
+              ? <ChevronRight className="w-4 h-4 fill-white" />
+              : <Pause className="w-4 h-4 fill-white" />
+            }
+          </button>
           {isMyStory && (
             <div className="relative">
               <button

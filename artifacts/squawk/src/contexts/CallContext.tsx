@@ -10,6 +10,11 @@ import {
 const ICE_SERVERS = [
   { urls: "stun:stun.l.google.com:19302" },
   { urls: "stun:stun1.l.google.com:19302" },
+  { urls: "stun:stun2.l.google.com:19302" },
+  { urls: "stun:stun3.l.google.com:19302" },
+  { urls: "stun:stun4.l.google.com:19302" },
+  { urls: "stun:stun.cloudflare.com:3478" },
+  { urls: "stun:stun.stunprotocol.org:3478" },
 ];
 
 export interface CallUser {
@@ -75,6 +80,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
   const remoteStreamRef = useRef<MediaStream | null>(null);
   const localVideoRef = useRef<HTMLVideoElement | null>(null);
   const remoteVideoRef = useRef<HTMLVideoElement | null>(null);
+  const remoteAudioRef = useRef<HTMLAudioElement | null>(null);
   const pendingCandidatesRef = useRef<RTCIceCandidateInit[]>([]);
   const callTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [callDuration, setCallDuration] = useState(0);
@@ -115,6 +121,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       remoteStreamRef.current = stream;
       setRemoteStream(stream);
       if (remoteVideoRef.current) remoteVideoRef.current.srcObject = stream;
+      if (remoteAudioRef.current) remoteAudioRef.current.srcObject = stream;
     };
 
     pc.onconnectionstatechange = () => {
@@ -134,7 +141,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
 
   const getMedia = async (callType: "voice" | "video"): Promise<MediaStream> => {
     const stream = await navigator.mediaDevices.getUserMedia({
-      audio: true,
+      audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
       video: callType === "video" ? { facingMode: "user", width: 640, height: 480 } : false,
     });
     localStreamRef.current = stream;
@@ -162,7 +169,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       const pc = createPeerConnection(otherUser.id);
       stream.getTracks().forEach(t => pc.addTrack(t, stream));
 
-      const offer = await pc.createOffer();
+      const offer = await pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: callType === "video" });
       await pc.setLocalDescription(offer);
 
       socket.emit("call_invite", {
@@ -205,7 +212,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       }
       pendingCandidatesRef.current = [];
 
-      const answer = await pc.createAnswer();
+      const answer = await pc.createAnswer({ offerToReceiveAudio: true, offerToReceiveVideo: callType === "video" });
       await pc.setLocalDescription(answer);
 
       socket.emit("call_accepted", {
@@ -476,7 +483,13 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
                 <p className="text-white/50 text-base mt-1">
                   {activeCall.status === "connecting" ? "Calling…" : formatDuration(callDuration)}
                 </p>
-                {/* Hidden audio element for voice calls */}
+                {/* Audio elements for voice calls */}
+                <audio
+                  ref={remoteAudioRef}
+                  autoPlay
+                  playsInline
+                  className="hidden"
+                />
                 <video
                   ref={remoteVideoRef}
                   autoPlay

@@ -20,10 +20,10 @@ export default function ExplorePage() {
 
   // Pass an object with query property based on the API definition
   const { data: searchResults, isLoading: isSearchLoading } = useSearch({ q: debouncedQuery, type: "all" }, { query: { enabled: debouncedQuery.length > 0 } });
-  const { data: trendingHashtags } = useGetTrendingHashtags();
-  const { data: suggestedUsers } = useGetSuggestedUsers();
-  const { data: trendingPosts } = useGetTrendingPosts();
-  const { data: hashtagPosts } = useGetHashtagPosts(tag || "", { query: { enabled: !!tag } });
+  const { data: trendingHashtags } = useGetTrendingHashtags({ query: { refetchInterval: 60_000 } });
+  const { data: suggestedUsers } = useGetSuggestedUsers({ query: { refetchInterval: 60_000 } });
+  const { data: trendingPosts } = useGetTrendingPosts({ query: { refetchInterval: 30_000, refetchOnWindowFocus: true } });
+  const { data: hashtagPosts } = useGetHashtagPosts(tag || "", { query: { enabled: !!tag, refetchInterval: 30_000 } });
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-4xl mx-auto p-4 md:p-8">

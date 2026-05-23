@@ -70,6 +70,8 @@ function useChirpsFeed() {
     queryKey: ["chirps"],
     queryFn: () => apiFetch("/api/chirps"),
     staleTime: 30_000,
+    refetchInterval: 30_000,
+    refetchOnWindowFocus: true,
   });
 }
 
@@ -151,11 +153,21 @@ function ChirpCard({ chirp, onReply, isNested = false, onOpen }: { chirp: ChirpD
   const { data: me } = useGetMe();
   const isOwner = me && (me as any).id === chirp.authorId;
 
-  // Don't sync like state while mutation is in-flight to avoid reverting optimistic updates
+  // Track last server-confirmed state so we don't revert optimistic updates
+  const serverLikeRef = useRef({ liked: chirp.isLiked, count: chirp.likesCount });
+
   useEffect(() => {
     if (likeMut.isPending) return;
-    setLocalLiked(chirp.isLiked);
-    setLocalLikes(chirp.likesCount);
+    // Only sync from server data if it changed from what we last got from the server
+    // This prevents reverting our optimistic update before the cache refreshes
+    if (
+      chirp.isLiked !== serverLikeRef.current.liked ||
+      chirp.likesCount !== serverLikeRef.current.count
+    ) {
+      serverLikeRef.current = { liked: chirp.isLiked, count: chirp.likesCount };
+      setLocalLiked(chirp.isLiked);
+      setLocalLikes(chirp.likesCount);
+    }
   }, [chirp.isLiked, chirp.likesCount, likeMut.isPending]);
 
   const handleLike = (e: React.MouseEvent) => {
@@ -164,7 +176,11 @@ function ChirpCard({ chirp, onReply, isNested = false, onOpen }: { chirp: ChirpD
     setLocalLiked(newLiked);
     setLocalLikes(l => l + (newLiked ? 1 : -1));
     likeMut.mutate(chirp.id, {
-      onSuccess: (d: any) => { setLocalLiked(d.isLiked); setLocalLikes(d.likesCount); },
+      onSuccess: (d: any) => {
+        serverLikeRef.current = { liked: d.isLiked, count: d.likesCount };
+        setLocalLiked(d.isLiked);
+        setLocalLikes(d.likesCount);
+      },
       onError: () => { setLocalLiked(!newLiked); setLocalLikes(l => l + (!newLiked ? 1 : -1)); },
     });
   };
