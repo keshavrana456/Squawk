@@ -1,5 +1,5 @@
 import { useRoute, Link, useLocation } from "wouter";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import {
   useGetPost,
   useGetPostComments,
@@ -57,6 +57,10 @@ export default function PostPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [commentLikeStates, setCommentLikeStates] = useState<Record<number, CommentLikeState>>({});
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
+  const [longPressedComment, setLongPressedComment] = useState<number | null>(null);
+  const [commentToDelete, setCommentToDelete] = useState<number | null>(null);
+  const [deletingComment, setDeletingComment] = useState(false);
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const isLiked = localLiked ?? (post?.isLiked ?? false);
   const likesCount = localLikes ?? (post?.likesCount ?? 0);
@@ -185,6 +189,28 @@ export default function PostPage() {
     } finally {
       setIsSubmittingComment(false);
     }
+  };
+
+  const handleDeleteComment = async () => {
+    if (!commentToDelete) return;
+    setDeletingComment(true);
+    try {
+      await fetch(`/api/comments/${commentToDelete}`, { method: "DELETE", credentials: "include" });
+      setCommentToDelete(null);
+      setLongPressedComment(null);
+      refetchComments();
+    } catch {
+      // ignore
+    } finally {
+      setDeletingComment(false);
+    }
+  };
+
+  const startLongPress = (id: number) => {
+    longPressTimer.current = setTimeout(() => setLongPressedComment(id), 500);
+  };
+  const cancelLongPress = () => {
+    if (longPressTimer.current) clearTimeout(longPressTimer.current);
   };
 
   const getInitials = (n: string) => n ? n.charAt(0).toUpperCase() : "?";
@@ -371,7 +397,15 @@ export default function PostPage() {
                   return (
                     <div key={comment.id} className="space-y-1">
                       {/* Top-level comment */}
-                      <div className="flex gap-3 items-start py-2">
+                      <div
+                        className={`flex gap-3 items-start py-2 rounded-lg transition-colors ${longPressedComment === comment.id ? "bg-destructive/10" : ""}`}
+                        onMouseDown={() => startLongPress(comment.id)}
+                        onMouseUp={cancelLongPress}
+                        onMouseLeave={cancelLongPress}
+                        onTouchStart={() => startLongPress(comment.id)}
+                        onTouchEnd={cancelLongPress}
+                        onTouchMove={cancelLongPress}
+                      >
                         <Link href={`/profile/${comment.author?.username}`}>
                           <Avatar className="w-8 h-8 shrink-0 border border-border">
                             <AvatarImage src={comment.author?.avatarUrl || ""} />
@@ -397,6 +431,14 @@ export default function PostPage() {
                             {cls.count > 0 && (
                               <span className={cls.isLiked ? "text-pink-500" : ""}>{cls.count}</span>
                             )}
+                            {longPressedComment === comment.id && comment.author?.username === (me as any)?.username && (
+                              <button
+                                className="flex items-center gap-1 text-destructive font-semibold hover:opacity-80"
+                                onClick={(e) => { e.stopPropagation(); setCommentToDelete(comment.id); setLongPressedComment(null); }}
+                              >
+                                <Trash2 className="w-3 h-3" /> Delete
+                              </button>
+                            )}
                           </div>
                         </div>
                         <button
@@ -417,7 +459,16 @@ export default function PostPage() {
                       {replies.map((reply: any) => {
                         const rls = getCommentLikeState(reply);
                         return (
-                          <div key={reply.id} className="flex gap-2 items-start ml-11 pb-1">
+                          <div
+                            key={reply.id}
+                            className={`flex gap-2 items-start ml-11 pb-1 rounded-lg transition-colors ${longPressedComment === reply.id ? "bg-destructive/10" : ""}`}
+                            onMouseDown={() => startLongPress(reply.id)}
+                            onMouseUp={cancelLongPress}
+                            onMouseLeave={cancelLongPress}
+                            onTouchStart={() => startLongPress(reply.id)}
+                            onTouchEnd={cancelLongPress}
+                            onTouchMove={cancelLongPress}
+                          >
                             <CornerDownRight className="w-3 h-3 text-muted-foreground/40 mt-2 shrink-0" />
                             <Avatar className="w-6 h-6 shrink-0 border border-border">
                               <AvatarImage src={reply.author?.avatarUrl || ""} />
@@ -437,6 +488,14 @@ export default function PostPage() {
                                     setTimeout(() => document.getElementById("post-comment-input")?.focus(), 100);
                                   }}
                                 >Reply</button>
+                                {longPressedComment === reply.id && reply.author?.username === (me as any)?.username && (
+                                  <button
+                                    className="flex items-center gap-1 text-destructive font-semibold hover:opacity-80"
+                                    onClick={(e) => { e.stopPropagation(); setCommentToDelete(reply.id); setLongPressedComment(null); }}
+                                  >
+                                    <Trash2 className="w-3 h-3" /> Delete
+                                  </button>
+                                )}
                               </div>
                             </div>
                             <button
@@ -494,6 +553,26 @@ export default function PostPage() {
       </div>
 
       <ShareSheet open={shareOpen} onOpenChange={setShareOpen} postId={post.id} caption={post.caption} />
+
+      <AlertDialog open={!!commentToDelete} onOpenChange={(open) => { if (!open) { setCommentToDelete(null); setLongPressedComment(null); } }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this comment?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently remove your comment. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteComment}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deletingComment ? "Deleting…" : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
         <AlertDialogContent>

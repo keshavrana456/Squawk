@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import {
   BadgeCheck, Grid, Film, X, ImagePlus, Crown, Settings,
   PlusCircle, Bookmark, BarChart2, TrendingUp, Users,
-  Activity, ExternalLink, Camera, MessageSquare, MoreHorizontal, Trash2, Copy,
+  Activity, ExternalLink, Camera, MessageSquare, MoreHorizontal, Trash2, Copy, Repeat2,
 } from "lucide-react";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
@@ -561,8 +561,23 @@ export default function ProfilePage() {
             <div className="space-y-0 border border-border rounded-2xl overflow-hidden">
               {userChirps.map((chirp: any) => (
                 <div key={chirp.id} className="p-4 border-b border-border last:border-b-0 hover:bg-muted/30 transition-colors">
+                  {chirp.rechirpOfId && chirp.originalChirp && (
+                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-2">
+                      <Repeat2 className="w-3.5 h-3.5" />
+                      <span>Rechirped</span>
+                    </div>
+                  )}
                   <div className="flex items-start justify-between gap-2">
-                    <p className="text-foreground text-[15px] leading-relaxed break-words flex-1">{chirp.content}</p>
+                    <div className="flex-1 min-w-0">
+                      {chirp.rechirpOfId && chirp.originalChirp ? (
+                        <div className="border border-border rounded-xl p-3 bg-muted/20">
+                          <p className="text-xs text-muted-foreground font-medium mb-1">@{chirp.originalChirp.author?.username}</p>
+                          <p className="text-foreground text-[15px] leading-relaxed break-words">{chirp.originalChirp.content}</p>
+                        </div>
+                      ) : (
+                        <p className="text-foreground text-[15px] leading-relaxed break-words">{chirp.content}</p>
+                      )}
+                    </div>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <button className="text-muted-foreground hover:text-foreground p-1 rounded-full hover:bg-muted transition-colors shrink-0">
