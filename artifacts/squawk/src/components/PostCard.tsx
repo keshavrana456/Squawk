@@ -141,6 +141,9 @@ export default function PostCard({ post, onLike, onSave, onComment }: PostCardPr
         setIsLiked(data.isLiked);
         setLikesCount(data.likesCount);
         patchCache(data.isLiked, data.likesCount);
+        queryClient.invalidateQueries({ queryKey: getGetFeedQueryKey() });
+        queryClient.invalidateQueries({ queryKey: getGetUserPostsQueryKey(post.author.username) });
+        queryClient.invalidateQueries({ queryKey: getListPostsQueryKey() });
       },
       onError: () => {
         setIsLiked(!newLiked);
