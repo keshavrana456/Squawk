@@ -34,6 +34,7 @@ const PostPage = lazy(() => import("./pages/PostPage"));
 const SettingsPage = lazy(() => import("./pages/SettingsPage"));
 const EditProfilePage = lazy(() => import("./pages/EditProfilePage"));
 const ChirpsPage = lazy(() => import("./pages/ChirpsPage"));
+const PromoVideoPage = lazy(() => import("./pages/PromoVideoPage"));
 
 function PageLoader() {
   return (
@@ -525,6 +526,12 @@ function Router() {
       <ProtectedRoute path="/post/:id" component={PostPage} />
       <ProtectedRoute path="/settings" component={SettingsPage} />
       <ProtectedRoute path="/edit-profile" component={EditProfilePage} />
+
+      <Route path="/promo">
+        <Suspense fallback={<PageLoader />}>
+          <PromoVideoPage />
+        </Suspense>
+      </Route>
       
       <Route>
         <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4 text-center">
