@@ -2,8 +2,8 @@ import { Router, type IRouter } from "express";
 import { eq, and, notInArray, sql, desc } from "drizzle-orm";
 import { db, usersTable, followsTable, postsTable, notificationsTable } from "@workspace/db";
 import { requireAuth, requireUser, resolveUser } from "../lib/auth";
-import { clerkClient } from "@clerk/express";
-import { buildUserProfile, buildUserSummary, buildPostWithMeta } from "../lib/userHelpers";
+import { clerkClient, getAuth } from "@clerk/express";
+import { buildUserProfile, buildUserSummary, buildPostWithMeta, buildPostsWithMeta } from "../lib/userHelpers";
 import {
   OnboardUserBody,
   UpdateMyProfileBody,
@@ -173,7 +173,7 @@ router.get("/users/:username", async (req, res): Promise<void> => {
     res.status(404).json({ error: "User not found" });
     return;
   }
-  const clerkId = (req as any).clerkUserId as string | undefined;
+  const clerkId = getAuth(req).userId ?? undefined;
   let currentUserId: number | undefined;
   if (clerkId) {
     const cur = await resolveUser(clerkId);
@@ -196,7 +196,7 @@ router.get("/users/:username/posts", async (req, res): Promise<void> => {
     return;
   }
 
-  const clerkId = (req as any).clerkUserId as string | undefined;
+  const clerkId = getAuth(req).userId ?? undefined;
   let currentUserId: number | undefined;
   if (clerkId) {
     const cur = await resolveUser(clerkId);
@@ -204,7 +204,7 @@ router.get("/users/:username/posts", async (req, res): Promise<void> => {
   }
 
   const posts = await db.select().from(postsTable).where(eq(postsTable.authorId, user.id)).orderBy(desc(postsTable.createdAt)).limit(24);
-  const postsWithMeta = await Promise.all(posts.map(p => buildPostWithMeta(p, user, currentUserId)));
+  const postsWithMeta = await buildPostsWithMeta(posts.map(p => ({ post: p, author: user })), currentUserId);
   res.json({ posts: postsWithMeta, hasMore: false, nextCursor: null });
 });
 

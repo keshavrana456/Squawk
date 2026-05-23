@@ -316,7 +316,7 @@ export default function CommentsSheet({ postId, commentsCount, isOpen, onClose }
                                 <button
                                   className="text-[10px] text-muted-foreground hover:text-foreground font-semibold transition-colors"
                                   onClick={() => {
-                                    setReplyTo({ username: reply.author?.username, commentId: reply.id });
+                                    setReplyTo({ username: reply.author?.username, commentId: c.id });
                                     setTimeout(() => inputRef.current?.focus(), 100);
                                   }}
                                 >

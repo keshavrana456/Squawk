@@ -1,8 +1,9 @@
 import { Router, type IRouter } from "express";
 import { eq, and, desc, sql, inArray } from "drizzle-orm";
 import { db, usersTable, postsTable, likesTable, savesTable, commentsTable, commentLikesTable, followsTable, notificationsTable } from "@workspace/db";
-import { requireUser } from "../lib/auth";
-import { buildPostWithMeta, buildUserSummary } from "../lib/userHelpers";
+import { requireUser, resolveUser } from "../lib/auth";
+import { getAuth } from "@clerk/express";
+import { buildPostWithMeta, buildPostsWithMeta, buildUserSummary } from "../lib/userHelpers";
 import {
   ListPostsQueryParams,
   CreatePostBody,
@@ -25,7 +26,12 @@ router.get("/posts", async (req, res): Promise<void> => {
   const limit = queryParams.success ? (queryParams.data.limit ?? 12) : 12;
   const cursor = queryParams.success ? queryParams.data.cursor : null;
 
-  const currentUser = (req as any).currentUser as typeof usersTable.$inferSelect | undefined;
+  const clerkId = getAuth(req).userId ?? undefined;
+  let currentUserId: number | undefined;
+  if (clerkId) {
+    const cur = await resolveUser(clerkId);
+    currentUserId = cur?.id;
+  }
 
   let query = db.select({ post: postsTable, author: usersTable })
     .from(postsTable)
@@ -41,9 +47,7 @@ router.get("/posts", async (req, res): Promise<void> => {
   const hasMore = rows.length > limit;
   const data = hasMore ? rows.slice(0, limit) : rows;
 
-  const postsWithMeta = await Promise.all(
-    data.map((r: any) => buildPostWithMeta(r.post, r.author, currentUser?.id))
-  );
+  const postsWithMeta = await buildPostsWithMeta(data, currentUserId);
 
   res.json({ posts: postsWithMeta, hasMore, nextCursor: hasMore ? data[data.length - 1].post.id : null });
 });

@@ -2,7 +2,7 @@ import { Router, type IRouter } from "express";
 import { eq, and, desc, sql, inArray } from "drizzle-orm";
 import { db, usersTable, postsTable, likesTable, followsTable } from "@workspace/db";
 import { requireUser } from "../lib/auth";
-import { buildPostWithMeta } from "../lib/userHelpers";
+import { buildPostsWithMeta } from "../lib/userHelpers";
 import { GetFeedQueryParams } from "@workspace/api-zod";
 
 const router: IRouter = Router();
@@ -47,7 +47,7 @@ router.get("/feed", requireUser, async (req, res): Promise<void> => {
 
   const hasMore = rows.length > limit;
   const data = hasMore ? rows.slice(0, limit) : rows;
-  const postsWithMeta = await Promise.all(data.map((r: any) => buildPostWithMeta(r.post, r.author, currentUser.id)));
+  const postsWithMeta = await buildPostsWithMeta(data, currentUser.id);
 
   res.json({
     posts: postsWithMeta,
