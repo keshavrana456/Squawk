@@ -1,0 +1,396 @@
+Fix all remaining critical UI, state-management, comments, replies, story editor, and navbar issues completely across the app. Do NOT break existing realtime/chat functionality while implementing these fixes.
+
+========================================
+
+1. LIKE STATE DESYNC ACROSS DIFFERENT PAGES
+   ========================================
+
+Current issue:
+
+* If I like a post in feed, the heart becomes filled correctly
+* After refresh, it still remains filled correctly in feed
+* BUT if I open the SAME post from my own profile or another section, the heart becomes unfilled there even though likes count is correct
+
+This means:
+
+* database is correct
+* UI state syncing globally is still broken
+
+Fix completely.
+
+Requirements:
+
+* same post must always show same like state everywhere
+* sync likes globally across:
+
+  * feed
+  * profile
+  * explore
+  * single post modal
+  * reposts
+  * shared posts
+
+Implement centralized global state management using:
+
+* Zustand OR Context API OR React Query cache
+
+Requirements:
+
+* fetch isLiked consistently
+* normalize post cache by postId
+* no duplicate local post states
+* optimistic updates sync globally
+* realtime sync preserved
+
+Correct logic:
+
+```js
+isLiked = likes.some(
+ like => like.user_id === currentUser.id
+)
+```
+
+========================================
+2. FOLLOW STATE STILL DESYNCING
+===============================
+
+Current issue:
+
+* followers count updates correctly
+* but Follow/Following button resets visually after refresh/navigation
+
+Fix:
+
+* centralized follow state management
+* fetch follow relation on load
+* same follow state everywhere
+
+Apply to:
+
+* profile
+* feed
+* search
+* explore
+* user cards
+* modals
+
+========================================
+3. COMMENT REPLY POSTING UNDER WRONG COMMENT
+============================================
+
+Current issue:
+
+* first reply works correctly
+* but replying to another comment posts the reply under the FIRST comment instead
+
+This means:
+
+* reply parent mapping/state is broken
+* reply target is not resetting/updating correctly
+
+Fix completely.
+
+Requirements:
+
+* every reply MUST attach only to selected parent comment
+* replying to second/third comment should NOT reuse first comment's parent ID
+
+Correct logic:
+
+```js
+reply.parent_comment_id === targetComment.id
+```
+
+Fix:
+
+* replyTarget state reset after submit
+* proper parent_comment_id assignment
+* no stale closure/state bug
+* no reused reply refs
+
+========================================
+4. COMMENTS & REPLIES LAYOUT BROKEN IN PROFILE POSTS
+====================================================
+
+Current issue:
+
+* when opening posts from profile
+* captions, comments, and replies all appear mixed together beside each other
+* comments show near caption area
+
+Fix layout completely to Instagram style.
+
+Requirements:
+
+* caption displayed separately
+* comments displayed in dedicated comments section BELOW caption
+* replies nested under comments only
+* comments should NOT appear beside caption
+
+Correct layout:
+
+POST MEDIA
+
+Actions
+Likes
+
+Username + caption
+
+---
+
+## Comments Box
+
+Comment 1
+Reply 1
+
+Comment 2
+Reply 2
+
+Add Comment Input
+
+========================================
+5. CREATE SEPARATE COMMENTS BOX
+===============================
+
+Create dedicated comments container below caption.
+
+Requirements:
+
+* comments inside separate scrollable box/container
+* comments visually separated from caption
+* add divider/border between caption and comments
+
+Example:
+
+```css
+.comments-container {
+  margin-top: 16px;
+  border-top: 1px solid rgba(255,255,255,0.08);
+  padding-top: 12px;
+}
+```
+
+========================================
+6. REPLIES SHOULD LOOK SMALLER THAN COMMENTS
+============================================
+
+Current issue:
+
+* replies look same size as comments
+
+Fix:
+
+* replies visually smaller
+* slightly reduced font size
+* nested indentation
+* lighter opacity/background
+
+Example:
+
+```css
+.reply {
+  margin-left: 42px;
+  font-size: 0.92rem;
+  opacity: 0.9;
+}
+```
+
+========================================
+7. STORY EDITOR BUTTONS CUTTING ON MOBILE
+=========================================
+
+Current issue:
+
+* story editor buttons/tools are half cut on phones
+* controls overflow outside viewport
+* bottom toolbar broken on small screens
+
+Fix:
+
+* fully responsive story editor toolbar
+* safe-area padding
+* no cut buttons
+* proper wrapping/resizing
+
+Requirements:
+
+* toolbar visible on all screen sizes
+* supports Android + iPhone
+* no overlap with gesture/navigation bars
+
+Use:
+
+```css
+padding-bottom: env(safe-area-inset-bottom);
+```
+
+========================================
+8. STORY IMAGE STILL CUTTING FROM SIDES
+=======================================
+
+Current issue:
+
+* zooming out still cuts image horizontally
+* cropper bounds math still broken
+
+Fix:
+
+* image fully visible during zoom out
+* proper contain behavior
+* dynamic transform bounds
+* no clipping
+
+Story editor should behave exactly like Instagram.
+
+========================================
+9. STORY IMAGE ROTATION STILL NOT WORKING
+=========================================
+
+Fix completely:
+
+* two-finger rotate gesture
+* rotation transform support
+* smooth animations
+* persistent rotation after save
+
+Transform state:
+
+```js
+scale
+rotation
+translateX
+translateY
+```
+
+========================================
+10. STORY EDITOR ERRORS / POPUPS
+================================
+
+Current issue:
+
+* random popup errors while editing/uploading story
+
+Fix:
+
+* debug transform state
+* prevent undefined errors
+* prevent upload crashes
+* add proper try/catch handling
+* stable editor state management
+
+========================================
+11. BANNER EDIT SAVE STILL BROKEN
+=================================
+
+Current issue:
+
+* after editing/repositioning banner
+* profile still shows old banner/crop
+
+Fix:
+
+* save banner URL correctly
+* save banner_position_y correctly
+* invalidate cache after save
+* refresh profile state immediately
+
+Requirements:
+
+* updated banner visible instantly
+* persistent after refresh
+
+========================================
+12. BOTTOM NAVBAR RESTORE
+=========================
+
+Current issue:
+
+* Chirp and Flow buttons disappeared
+* Create + Notifications + Messages added incorrectly
+
+Fix navbar exactly.
+
+Bottom navbar should ONLY contain 5 buttons:
+
+1. Home
+2. Explore
+3. Chirp
+4. Flow
+5. Profile
+
+Remove from bottom navbar:
+
+* Create
+* Notifications
+* Messages
+
+Notifications/messages should remain accessible elsewhere only.
+
+========================================
+13. MOBILE NAVBAR RESPONSIVENESS
+================================
+
+Requirements:
+
+* all icons visible
+* equal spacing
+* no overflow
+* no hidden buttons
+* proper safe-area support
+
+Use:
+
+```css
+justify-content: space-around;
+```
+
+========================================
+14. GLOBAL STATE MANAGEMENT
+===========================
+
+Implement proper centralized app state.
+
+Use:
+
+* Zustand OR React Query OR Context API
+
+Fix globally:
+
+* likes desync
+* follows desync
+* stale posts
+* duplicate local states
+* inconsistent replies/comments
+* stale profile data
+
+========================================
+15. FINAL QUALITY REQUIREMENTS
+==============================
+
+Do NOT break:
+
+* realtime messaging
+* typing indicators
+* GIF support
+* mention system
+* unread badges
+* story uploads
+* realtime presence
+
+Final result should feel like:
+
+* Instagram
+* Threads
+* Twitter/X
+
+Requirements:
+✅ Stable mobile UI
+✅ Correct nested replies
+✅ Proper comments layout
+✅ Consistent likes/follows everywhere
+✅ Responsive story editor
+✅ No cut buttons on mobile
+✅ Correct navbar restored
+✅ Smooth realtime syncing
+✅ No stale cache/state issues
+✅ Production-quality UX
