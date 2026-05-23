@@ -93,8 +93,25 @@ function useCreateChirp() {
 }
 
 function useLikeChirp() {
+  const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: number) => apiFetch(`/api/chirps/${id}/like`, { method: "POST" }),
+    onSuccess: (data: any, id: number) => {
+      qc.setQueryData<{ items: ChirpData[]; hasMore: boolean; nextCursor: number | null }>(
+        ["chirps"],
+        (old) => {
+          if (!old) return old;
+          return {
+            ...old,
+            items: old.items.map((c) =>
+              c.id === id
+                ? { ...c, isLiked: data.isLiked, likesCount: data.likesCount }
+                : c
+            ),
+          };
+        }
+      );
+    },
   });
 }
 
@@ -157,9 +174,9 @@ function ChirpCard({ chirp, onReply, isNested = false, onOpen }: { chirp: ChirpD
   const serverLikeRef = useRef({ liked: chirp.isLiked, count: chirp.likesCount });
 
   useEffect(() => {
-    if (likeMut.isPending) return;
-    // Only sync from server data if it changed from what we last got from the server
-    // This prevents reverting our optimistic update before the cache refreshes
+    // Only sync from server data if it changed from what we last confirmed from the server.
+    // Do NOT include likeMut.isPending in deps — that transition was the cause of spurious reverts
+    // because the query cache still held the old isLiked:false at the moment isPending flipped.
     if (
       chirp.isLiked !== serverLikeRef.current.liked ||
       chirp.likesCount !== serverLikeRef.current.count
@@ -168,7 +185,8 @@ function ChirpCard({ chirp, onReply, isNested = false, onOpen }: { chirp: ChirpD
       setLocalLiked(chirp.isLiked);
       setLocalLikes(chirp.likesCount);
     }
-  }, [chirp.isLiked, chirp.likesCount, likeMut.isPending]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chirp.isLiked, chirp.likesCount]);
 
   const handleLike = (e: React.MouseEvent) => {
     e.stopPropagation();
