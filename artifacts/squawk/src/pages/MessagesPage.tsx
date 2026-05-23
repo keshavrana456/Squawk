@@ -232,7 +232,7 @@ export default function MessagesPage() {
     <div className="absolute inset-0 flex w-full bg-background overflow-hidden">
       {/* Sidebar */}
       <div
-        className={`w-full md:w-[320px] lg:w-[380px] shrink-0 border-r border-border bg-background flex flex-col h-full ${
+        className={`w-full md:w-[320px] lg:w-[380px] shrink-0 border-r border-border bg-background flex flex-col h-full pt-14 md:pt-0 pb-safe-nav md:pb-0 ${
           selectedConvId ? "hidden md:flex" : "flex"
         }`}
       >
@@ -528,7 +528,7 @@ export default function MessagesPage() {
       </div>
 
       {/* Main: Chat */}
-      <div className={`flex-1 bg-background flex flex-col h-full ${!selectedConvId ? "hidden md:flex" : "flex"}`}>
+      <div className={`flex-1 bg-background flex flex-col overflow-hidden pt-14 md:pt-0 pb-safe-nav md:pb-0 ${!selectedConvId ? "hidden md:flex" : "flex"}`}>
         {selectedConvId ? (
           <ChatView
             conversationId={selectedConvId}
@@ -698,7 +698,7 @@ function ChatView({ conversationId, onBack, me, conversation }: any) {
   let lastDayStr = "";
 
   return (
-    <>
+    <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
       {/* Header */}
       <div className="h-16 border-b border-border bg-background flex items-center px-4 shrink-0 shadow-sm z-10 relative">
         <button onClick={onBack} className="md:hidden mr-3 p-2 -ml-2 text-muted-foreground hover:text-foreground">
@@ -773,7 +773,7 @@ function ChatView({ conversationId, onBack, me, conversation }: any) {
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-1 no-scrollbar">
+      <div className="flex-1 min-h-0 overflow-y-auto p-4 flex flex-col gap-1 no-scrollbar">
         {isLoading ? (
           <div className="flex-1 flex items-center justify-center">
             <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
@@ -895,7 +895,7 @@ function ChatView({ conversationId, onBack, me, conversation }: any) {
       </div>
 
       {/* Input bar */}
-      <div className="p-3 border-t border-border bg-background shrink-0 relative">
+      <div className="p-3 border-t border-border bg-background shrink-0 relative pb-safe">
         <AnimatePresence>
           {showGifPicker && (
             <GifPicker
@@ -959,6 +959,6 @@ function ChatView({ conversationId, onBack, me, conversation }: any) {
           </Button>
         </div>
       </div>
-    </>
+    </div>
   );
 }
