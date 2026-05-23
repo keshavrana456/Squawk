@@ -323,7 +323,7 @@ export default function PostPage() {
           </div>
 
           {/* Scrollable: Caption + Comments */}
-          <div className="flex-1 overflow-y-auto no-scrollbar">
+          <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar max-h-[52vh] md:max-h-none">
             {/* Caption */}
             {post.caption && (
               <div className="px-4 pt-4 pb-3 border-b border-border/50">
@@ -433,7 +433,7 @@ export default function PostPage() {
                                 <button
                                   className="font-semibold hover:text-foreground"
                                   onClick={() => {
-                                    setReplyTo({ username: reply.author?.username, commentId: reply.id });
+                                    setReplyTo({ username: reply.author?.username, commentId: comment.id });
                                     setTimeout(() => document.getElementById("post-comment-input")?.focus(), 100);
                                   }}
                                 >Reply</button>
