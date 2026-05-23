@@ -1,7 +1,8 @@
 import { Link } from "wouter";
 import { useState, useEffect } from "react";
 import { BadgeCheck } from "lucide-react";
-import { useFollowUser, useUnfollowUser, type UserSummary } from "@workspace/api-client-react";
+import { useFollowUser, useUnfollowUser, getGetUserByUsernameQueryKey, type UserSummary } from "@workspace/api-client-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 
@@ -12,6 +13,7 @@ interface UserCardProps {
 export default function UserCard({ user }: UserCardProps) {
   const followMutation = useFollowUser();
   const unfollowMutation = useUnfollowUser();
+  const queryClient = useQueryClient();
   const [isFollowing, setIsFollowing] = useState(user.isFollowing);
 
   useEffect(() => {
@@ -21,17 +23,37 @@ export default function UserCard({ user }: UserCardProps) {
   const getInitials = (name: string) => name ? name.charAt(0).toUpperCase() : '?';
   const avatarColor = `hsl(${user.username.length * 50 % 360}, 70%, 50%)`;
 
+  const patchProfileCache = (newFollowing: boolean) => {
+    queryClient.setQueryData(getGetUserByUsernameQueryKey(user.username), (old: any) =>
+      old ? { ...old, isFollowing: newFollowing, followersCount: (old.followersCount ?? 0) + (newFollowing ? 1 : -1) } : old
+    );
+    queryClient.setQueriesData({
+      predicate: (q) => {
+        const data = queryClient.getQueryData(q.queryKey);
+        if (Array.isArray(data)) return (data as any[]).some((u: any) => u?.username === user.username);
+        return false;
+      }
+    }, (old: any) =>
+      Array.isArray(old)
+        ? old.map((u: any) => u?.username === user.username ? { ...u, isFollowing: newFollowing } : u)
+        : old
+    );
+  };
+
   const handleFollowToggle = () => {
     const newFollowing = !isFollowing;
     setIsFollowing(newFollowing);
-    
+    patchProfileCache(newFollowing);
+
     if (newFollowing) {
       followMutation.mutate({ username: user.username }, {
-        onError: () => setIsFollowing(false)
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: getGetUserByUsernameQueryKey(user.username) }),
+        onError: () => { setIsFollowing(false); patchProfileCache(false); },
       });
     } else {
       unfollowMutation.mutate({ username: user.username }, {
-        onError: () => setIsFollowing(true)
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: getGetUserByUsernameQueryKey(user.username) }),
+        onError: () => { setIsFollowing(true); patchProfileCache(true); },
       });
     }
   };

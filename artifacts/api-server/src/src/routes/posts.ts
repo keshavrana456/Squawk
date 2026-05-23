@@ -95,7 +95,13 @@ router.get("/posts/trending", async (req, res): Promise<void> => {
 router.get("/posts/:id", async (req, res): Promise<void> => {
   const params = GetPostParams.safeParse(req.params);
   if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
-  const currentUser = (req as any).currentUser as typeof usersTable.$inferSelect | undefined;
+
+  const clerkId = getAuth(req).userId ?? undefined;
+  let currentUserId: number | undefined;
+  if (clerkId) {
+    const cur = await resolveUser(clerkId);
+    currentUserId = cur?.id;
+  }
 
   const [row] = await db.select({ post: postsTable, author: usersTable })
     .from(postsTable)
@@ -103,7 +109,7 @@ router.get("/posts/:id", async (req, res): Promise<void> => {
     .where(eq(postsTable.id, params.data.id));
 
   if (!row) { res.status(404).json({ error: "Post not found" }); return; }
-  const withMeta = await buildPostWithMeta(row.post, row.author, currentUser?.id);
+  const withMeta = await buildPostWithMeta(row.post, row.author, currentUserId);
   res.json(withMeta);
 });
 

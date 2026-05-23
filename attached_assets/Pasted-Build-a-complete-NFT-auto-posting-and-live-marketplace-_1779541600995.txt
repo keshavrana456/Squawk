@@ -1,0 +1,142 @@
+Build a complete NFT auto-posting and live marketplace activity system for my website “My Talking Squad”.
+
+Main Goal:
+Whenever a Squad NFT gets sold on OpenSea, the website should automatically detect the sale and create a beautiful post/feed activity automatically.
+
+Features Required:
+
+1. Real-Time NFT Sale Tracking
+
+* Connect OpenSea API or Reservoir API
+* Detect every NFT sale instantly
+* Fetch:
+
+  * NFT image
+  * NFT name/ID
+  * Sale price
+  * Currency (ETH/POL)
+  * Buyer username or wallet
+  * Seller username or wallet
+  * Transaction link
+  * Sale timestamp
+
+2. Auto Generated Feed Posts
+   When a sale happens:
+
+* Automatically create a post in website feed
+* Include:
+
+  * NFT image
+  * Username
+  * Price
+  * Stylish caption
+  * Collection branding
+* Post should appear instantly without page reload
+
+Example caption:
+“🦜 Squad #1024 just joined a new owner for 0.8 ETH!”
+
+3. 10K Sales Celebration System
+   When collection reaches 10,000 sales:
+
+* Trigger massive celebration popup
+* Confetti animation
+* Fireworks effect
+* Animated banner
+* Auto generated special post
+* Show milestone counter
+
+4. Beautiful NFT Cards
+   Generate stylish cards automatically using:
+
+* Gradient backgrounds
+* NFT image
+* Glow effects
+* Username
+* Price tag
+* Squad branding
+
+5. Database Integration
+   Use Supabase for:
+
+* Storing NFT sales
+* Feed posts
+* User interactions
+* Milestone tracking
+
+Create tables:
+
+* nft_sales
+* nft_posts
+* nft_milestones
+
+6. Backend Requirements
+   Use:
+
+* Node.js
+* Express
+* Cron jobs or WebSockets
+* Axios for API requests
+
+Backend should:
+
+* Poll OpenSea every few seconds
+* Avoid duplicate posts
+* Store latest processed sale
+* Handle API rate limits
+* Retry failed requests
+
+7. Frontend Requirements
+
+* Create live NFT activity feed
+* Auto-refresh in real-time
+* Mobile responsive
+* Smooth animations
+* Loading skeletons
+* Hover effects
+* Modern dark UI matching My Talking Squad style
+
+8. Additional Features
+
+* Whale alert for expensive sales
+* Rare NFT detector
+* Floor price tracker
+* Trending traders section
+* Live sales counter
+* Sound effect when NFT sells
+* Notification popup
+* “Recently Sold” sidebar
+
+9. Optional Social Automation
+   Automatically post NFT sales to:
+
+* Twitter/X
+* Discord
+* Telegram
+
+10. Performance & Security
+
+* Optimize API usage
+* Secure API keys using .env
+* Prevent duplicate event processing
+* Cache NFT metadata
+* Fast loading UI
+
+11. Deployment
+    Deploy:
+
+* Frontend on Vercel
+* Backend on Railway/Render
+* Database on Supabase
+
+12. Design Style
+    UI should feel:
+
+* Futuristic
+* Gaming inspired
+* Neon glowing
+* Animated
+* Cute but premium
+* Similar to Web3 dashboards
+
+Use the existing My Talking Squad pink parrot branding and match the current website aesthetic.
