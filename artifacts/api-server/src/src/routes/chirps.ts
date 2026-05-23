@@ -5,7 +5,8 @@ import {
   chirpsTable, chirpLikesTable, chirpSavesTable, chirpCommentsTable,
   notificationsTable,
 } from "@workspace/db";
-import { requireUser } from "../lib/auth";
+import { requireUser, optionalUser } from "../lib/auth";
+import { emitToUser } from "../lib/socket";
 import { buildUserSummary } from "../lib/userHelpers";
 
 const router: IRouter = Router();
@@ -70,7 +71,7 @@ async function buildChirpWithMeta(chirp: typeof chirpsTable.$inferSelect, author
 }
 
 // GET /chirps — timeline feed (top-level only)
-router.get("/chirps", async (req, res): Promise<void> => {
+router.get("/chirps", optionalUser, async (req, res): Promise<void> => {
   const limit = Math.min(parseInt(String(req.query.limit ?? "20"), 10), 50);
   const cursor = req.query.cursor ? parseInt(String(req.query.cursor), 10) : null;
   const currentUser = (req as any).currentUser as typeof usersTable.$inferSelect | undefined;
@@ -179,7 +180,7 @@ router.post("/chirps", requireUser, async (req, res): Promise<void> => {
 });
 
 // GET /chirps/trending — trending hashtags
-router.get("/chirps/trending", async (_req, res): Promise<void> => {
+router.get("/chirps/trending", optionalUser, async (_req, res): Promise<void> => {
   const rows = await db.select({
     hashtag: sql<string>`unnest(${chirpsTable.hashtags})`,
     count: sql<number>`count(*)::int`,
@@ -193,7 +194,7 @@ router.get("/chirps/trending", async (_req, res): Promise<void> => {
 });
 
 // GET /chirps/:id — single chirp with replies
-router.get("/chirps/:id", async (req, res): Promise<void> => {
+router.get("/chirps/:id", optionalUser, async (req, res): Promise<void> => {
   const chirpId = parseInt(req.params.id, 10);
   const currentUser = (req as any).currentUser as typeof usersTable.$inferSelect | undefined;
 
@@ -242,6 +243,14 @@ router.post("/chirps/:id/like", requireUser, async (req, res): Promise<void> => 
         type: "like",
         message: chirp.content?.slice(0, 100) ?? null,
       }).onConflictDoNothing();
+      emitToUser(chirp.authorId, "notification", {
+        type: "like",
+        actorUsername: currentUser.username,
+        actorDisplayName: currentUser.displayName,
+        actorAvatarUrl: currentUser.avatarUrl,
+        message: chirp.content?.slice(0, 100) ?? null,
+        createdAt: new Date().toISOString(),
+      });
     }
   }
 
@@ -322,7 +331,7 @@ router.delete("/chirps/:id", requireUser, async (req, res): Promise<void> => {
 });
 
 // GET /chirps/:id/comments — replies
-router.get("/chirps/:id/comments", async (req, res): Promise<void> => {
+router.get("/chirps/:id/comments", optionalUser, async (req, res): Promise<void> => {
   const chirpId = parseInt(req.params.id, 10);
   const currentUser = (req as any).currentUser as typeof usersTable.$inferSelect | undefined;
 

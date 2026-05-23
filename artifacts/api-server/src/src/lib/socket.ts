@@ -118,7 +118,7 @@ export function getIO(): SocketIOServer {
   return io;
 }
 
-export function emitToUser(userId: string, event: string, data: unknown) {
+export function emitToUser(userId: number | string, event: string, data: unknown) {
   try {
     getIO().to(`user:${userId}`).emit(event, data);
   } catch {}

@@ -2,6 +2,7 @@ import { Router, type IRouter } from "express";
 import { eq, and, notInArray, sql, desc } from "drizzle-orm";
 import { db, usersTable, followsTable, postsTable, notificationsTable } from "@workspace/db";
 import { requireAuth, requireUser, resolveUser } from "../lib/auth";
+import { emitToUser } from "../lib/socket";
 import { clerkClient, getAuth } from "@clerk/express";
 import { buildUserProfile, buildUserSummary, buildPostWithMeta, buildPostsWithMeta } from "../lib/userHelpers";
 import {
@@ -262,6 +263,14 @@ router.post("/follows/:username", requireUser, async (req, res): Promise<void> =
       actorId: currentUser.id,
       type: "follow",
     }).onConflictDoNothing();
+    emitToUser(target.id, "notification", {
+      type: "follow",
+      actorUsername: currentUser.username,
+      actorDisplayName: currentUser.displayName,
+      actorAvatarUrl: currentUser.avatarUrl,
+      message: null,
+      createdAt: new Date().toISOString(),
+    });
   }
 
   const [countResult] = await db.select({ count: sql<number>`count(*)::int` })

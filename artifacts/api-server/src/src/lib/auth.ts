@@ -24,6 +24,20 @@ export async function resolveUser(clerkId: string) {
   }
 }
 
+export async function optionalUser(req: Request, _res: Response, next: NextFunction): Promise<void> {
+  const auth = getAuth(req);
+  const clerkId = auth?.userId;
+  if (clerkId) {
+    try {
+      const user = await resolveUser(clerkId);
+      if (user) (req as any).currentUser = user;
+    } catch {
+      // treat as unauthenticated — don't block the request
+    }
+  }
+  next();
+}
+
 export async function requireUser(req: Request, res: Response, next: NextFunction): Promise<void> {
   const auth = getAuth(req);
   const clerkId = auth?.userId;
