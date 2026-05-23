@@ -48,6 +48,9 @@ app.use(
   })),
 );
 
+app.get("/", (_req, res) => res.json({ ok: true }));
+app.get("/health", (_req, res) => res.json({ status: "ok" }));
+
 app.use("/api", router);
 
 export default app;

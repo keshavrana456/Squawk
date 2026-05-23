@@ -1,0 +1,127 @@
+You are a senior full-stack DevOps engineer.
+
+I have a monorepo project with:
+- React (Vite) frontend
+- Node.js (Express) backend
+- Supabase PostgreSQL database
+- Clerk authentication
+- WebSockets (socket.io)
+
+Current issues on Render + Vercel:
+- "Cannot GET /"
+- DATABASE_URL missing or incorrect
+- wrong backend entry file / build output mismatch
+- unclear environment variables setup
+- deployment instability
+
+YOUR TASK:
+
+━━━━━━━━━━━━━━━━━━━━━━━
+1. PROJECT ANALYSIS
+━━━━━━━━━━━━━━━━━━━━━━━
+- Identify backend entry file (src/index.ts / server.ts)
+- Identify frontend entry (Vite app)
+- Identify correct build output (dist structure)
+- Identify workspace structure (@workspace/api-server, db, etc.)
+
+━━━━━━━━━━━━━━━━━━━━━━━
+2. BACKEND FIX (CRITICAL)
+━━━━━━━━━━━━━━━━━━━━━━━
+Ensure Express backend has:
+
+- app.get("/") → returns { ok: true }
+- app.get("/health") → returns { status: "ok" }
+- app.listen(process.env.PORT)
+
+Ensure no route is missing causing:
+"Cannot GET /"
+
+━━━━━━━━━━━━━━━━━━━━━━━
+3. DATABASE CONFIG (SUPABASE)
+━━━━━━━━━━━━━━━━━━━━━━━
+- Use ONLY:
+  process.env.DATABASE_URL
+
+- Ensure proper connection handling
+- Ensure URL encoding for special characters
+- Ensure no hardcoded credentials
+
+━━━━━━━━━━━━━━━━━━━━━━━
+4. ENVIRONMENT VARIABLES (IMPORTANT)
+━━━━━━━━━━━━━━━━━━━━━━━
+
+Backend (.env / Render):
+- DATABASE_URL= (Supabase Postgres connection string)
+- NODE_ENV=production
+- PORT=optional (Render provides automatically)
+
+Frontend (.env / Vercel):
+- VITE_CLERK_PUBLISHABLE_KEY=
+- VITE_CLERK_PROXY_URL= (if used)
+- VITE_API_BASE_URL= (Render backend URL)
+
+Clerk backend (if used):
+- CLERK_SECRET_KEY=
+
+Socket.io (if used):
+- SOCKET_SERVER_URL=
+
+Supabase:
+- DATABASE_URL (ONLY in backend, never frontend)
+
+━━━━━━━━━━━━━━━━━━━━━━━
+5. API KEYS HANDLING RULES
+━━━━━━━━━━━━━━━━━━━━━━━
+- NEVER expose secret keys in frontend
+- Only VITE_* variables go to frontend
+- DATABASE_URL only in backend
+- Clerk secret key only backend
+- Supabase anon key only frontend if required
+- Validate all env vars at startup and throw error if missing
+
+━━━━━━━━━━━━━━━━━━━━━━━
+6. BUILD FIX
+━━━━━━━━━━━━━━━━━━━━━━━
+- Ensure backend build output is correct:
+  dist/index.js OR correct compiled entry
+- Fix start command:
+  node dist/index.js (or correct path)
+- Fix Vite build:
+  npm run build / pnpm build
+
+━━━━━━━━━━━━━━━━━━━━━━━
+7. RENDER DEPLOYMENT CONFIG
+━━━━━━━━━━━━━━━━━━━━━━━
+- Build command: pnpm install && pnpm build
+- Start command: node dist/index.js
+- Add env vars listed above
+- Ensure correct root directory
+
+━━━━━━━━━━━━━━━━━━━━━━━
+8. VERCEL DEPLOYMENT (FRONTEND ONLY)
+━━━━━━━━━━━━━━━━━━━━━━━
+- Root: frontend
+- Build: vite build
+- Output: dist
+- Add VITE_* env variables only
+
+━━━━━━━━━━━━━━━━━━━━━━━
+9. FINAL VALIDATION CHECK
+━━━━━━━━━━━━━━━━━━━━━━━
+- /health returns 200 OK
+- / returns JSON response
+- No DATABASE_URL errors
+- No missing env crashes
+- Frontend connects successfully to backend
+- Auth (Clerk) works
+- Database queries work
+
+━━━━━━━━━━━━━━━━━━━━━━━
+OUTPUT REQUIRED:
+━━━━━━━━━━━━━━━━━━━━━━━
+- Corrected folder structure
+- Correct Render config
+- Correct Vercel config
+- Fixed env variable list (clearly separated frontend/backend)
+- Exact deploy steps
+- Root cause of current errors in simple words

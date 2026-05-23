@@ -1,6 +1,13 @@
 import app from "./app";
 import { logger } from "./lib/logger";
 
+const REQUIRED_ENV = ["DATABASE_URL", "CLERK_SECRET_KEY", "PORT"] as const;
+for (const key of REQUIRED_ENV) {
+  if (!process.env[key]) {
+    throw new Error(`Required environment variable "${key}" is missing. Set it before starting the server.`);
+  }
+}
+
 const rawPort = process.env["PORT"];
 
 if (!rawPort) {
