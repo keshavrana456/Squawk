@@ -3,6 +3,7 @@ import {
   useGetUserByUsername, useGetUserPosts, useGetMe,
   useFollowUser, useUnfollowUser, useUpdateMyProfile,
   useGetUserFollowers, useGetUserFollowing, useGetActiveStories,
+  getGetMeQueryKey, getGetUserByUsernameQueryKey,
   type Post, type UserSummary,
 } from "@workspace/api-client-react";
 import { useState, useEffect, useRef } from "react";
@@ -138,6 +139,9 @@ export default function ProfilePage() {
   const [showStoryUpload, setShowStoryUpload] = useState(false);
   const [bannerUploading, setBannerUploading] = useState(false);
   const [avatarUploading, setAvatarUploading] = useState(false);
+  // Local override for immediate preview after upload (before server cache refreshes)
+  const [localBannerUrl, setLocalBannerUrl] = useState<string | null>(null);
+  const [localAvatarUrl, setLocalAvatarUrl] = useState<string | null>(null);
   const [show10kStats, setShow10kStats] = useState(false);
   const [storyViewerOpen, setStoryViewerOpen] = useState(false);
 
@@ -195,9 +199,16 @@ export default function ProfilePage() {
   const handleBannerUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    // Reset input so same file can be re-selected
+    e.target.value = "";
     setBannerUploading(true);
+    // Immediately show a local preview
+    const objectUrl = URL.createObjectURL(file);
+    setLocalBannerUrl(objectUrl);
     try {
       const url = await uploadFile(file);
+      // Update local preview to the real persistent URL (cache-busted)
+      setLocalBannerUrl(url + "?t=" + Date.now());
       await updateProfileMutation.mutateAsync({
         data: {
           displayName: profile?.displayName ?? me?.displayName ?? "",
@@ -206,17 +217,31 @@ export default function ProfilePage() {
           coverUrl: url,
         },
       });
-      refetchProfile();
-    } catch (e) { console.error(e); }
-    finally { setBannerUploading(false); }
+      // Invalidate all relevant caches so the new banner persists after reload
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() }),
+        queryClient.invalidateQueries({ queryKey: getGetUserByUsernameQueryKey(username || "") }),
+        refetchProfile(),
+      ]);
+    } catch (err) {
+      console.error(err);
+      // Revert local preview on failure
+      setLocalBannerUrl(null);
+    } finally {
+      setBannerUploading(false);
+    }
   };
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    e.target.value = "";
     setAvatarUploading(true);
+    const objectUrl = URL.createObjectURL(file);
+    setLocalAvatarUrl(objectUrl);
     try {
       const url = await uploadFile(file);
+      setLocalAvatarUrl(url + "?t=" + Date.now());
       await updateProfileMutation.mutateAsync({
         data: {
           displayName: profile?.displayName ?? me?.displayName ?? "",
@@ -225,16 +250,27 @@ export default function ProfilePage() {
           coverUrl: profile?.coverUrl ?? me?.coverUrl ?? null,
         },
       });
-      refetchProfile();
-      queryClient.invalidateQueries({ queryKey: ["getMe"] });
-    } catch (e) { console.error(e); }
-    finally { setAvatarUploading(false); }
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() }),
+        queryClient.invalidateQueries({ queryKey: getGetUserByUsernameQueryKey(username || "") }),
+        refetchProfile(),
+      ]);
+    } catch (err) {
+      console.error(err);
+      setLocalAvatarUrl(null);
+    } finally {
+      setAvatarUploading(false);
+    }
   };
 
   const handleAvatarClick = () => {
     if (!isMe) return;
-    // Clicking own avatar opens story upload (not PFP upload)
-    setShowStoryUpload(true);
+    // Own PFP click → open story viewer if active story exists, else open story upload
+    if (hasActiveStory && storyGroups && profileStoryGroupIndex >= 0) {
+      setStoryViewerOpen(true);
+    } else {
+      setShowStoryUpload(true);
+    }
   };
 
   if (isLoading) {
@@ -287,32 +323,33 @@ export default function ProfilePage() {
 
       {/* Cover / Banner */}
       <div className="h-48 md:h-64 w-full relative border-b border-border overflow-hidden bg-gradient-to-br from-primary/20 via-pink-400/15 to-[#c084fc]/20">
-        {profile.coverUrl && (
-          <img
-            src={profile.coverUrl}
+        {/* Show localBannerUrl first (immediate preview), then profile.coverUrl */}
+        {(localBannerUrl || profile.coverUrl) && (
+          <motion.img
+            key={localBannerUrl || profile.coverUrl}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.3 }}
+            src={localBannerUrl || profile.coverUrl!}
             alt="Banner"
             className="absolute inset-0 w-full h-full object-cover"
             style={{ objectPosition: `center ${50 + ((profile as any).bannerOffsetY ?? 0)}%` }}
           />
         )}
-        {isMe && (
-          <>
-            <label htmlFor="profile-banner-upload" className="absolute inset-0 flex items-center justify-center cursor-pointer bg-black/0 hover:bg-black/30 transition-colors opacity-0 hover:opacity-100">
-              <div className="flex flex-col items-center gap-2 text-white">
-                {bannerUploading
-                  ? <div className="w-7 h-7 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                  : <><ImagePlus className="w-7 h-7" /><span className="text-sm font-semibold">Change Banner</span></>
-                }
-              </div>
-            </label>
-            <label htmlFor="profile-banner-upload" className="absolute bottom-3 right-3 btn-water cursor-pointer text-white text-xs font-semibold px-3 py-1.5 rounded-full flex items-center gap-1.5">
-              {bannerUploading
-                ? <div className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                : <ImagePlus className="w-3.5 h-3.5" />
-              }
-              {bannerUploading ? "Uploading..." : "Edit banner"}
-            </label>
-          </>
+        {/* Loading overlay while uploading */}
+        {bannerUploading && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/40 z-10">
+            <div className="w-8 h-8 border-3 border-white/30 border-t-white rounded-full animate-spin" />
+          </div>
+        )}
+        {/* Hover-to-change overlay (no permanent button) */}
+        {isMe && !bannerUploading && (
+          <label htmlFor="profile-banner-upload" className="absolute inset-0 flex items-center justify-center cursor-pointer bg-black/0 hover:bg-black/30 transition-colors opacity-0 hover:opacity-100 group">
+            <div className="flex flex-col items-center gap-2 text-white opacity-0 group-hover:opacity-100 transition-opacity">
+              <ImagePlus className="w-7 h-7 drop-shadow" />
+              <span className="text-sm font-semibold drop-shadow">Change Banner</span>
+            </div>
+          </label>
         )}
       </div>
 
@@ -324,52 +361,40 @@ export default function ProfilePage() {
             {/* Story ring — glows pink when active story exists */}
             <div
               className={`w-32 h-32 md:w-40 md:h-40 rounded-full p-[3px] border-4 border-background shadow-2xl transition-all ${
-                hasActiveStory
+                hasActiveStory || isMe
                   ? "bg-gradient-to-tr from-primary to-[#c084fc] cursor-pointer"
                   : "bg-gradient-to-tr from-primary/30 to-[#c084fc]/30"
               }`}
               style={hasActiveStory ? {
                 boxShadow: "0 0 0 3px hsl(var(--background)), 0 0 20px 4px rgba(236,72,153,0.6), 0 0 40px 8px rgba(192,132,252,0.3)",
               } : undefined}
-              onClick={() => {
-                if (hasActiveStory && storyGroups && profileStoryGroupIndex >= 0) {
-                  setStoryViewerOpen(true);
-                }
-              }}
+              onClick={handleAvatarClick}
             >
-              <div className="w-full h-full rounded-full overflow-hidden bg-card relative group">
+              <div className="w-full h-full rounded-full overflow-hidden bg-card relative">
                 <Avatar className="w-full h-full">
-                  <AvatarImage src={profile.avatarUrl || ""} className="object-cover" />
+                  <AvatarImage src={localAvatarUrl || profile.avatarUrl || ""} className="object-cover" />
                   <AvatarFallback style={{ backgroundColor: `hsl(${profile.username.length * 50 % 360}, 70%, 50%)`, color: "white", fontSize: "3rem" }}>
                     {getInitials(profile.displayName)}
                   </AvatarFallback>
                 </Avatar>
-
-                {/* Hover overlay — opens Add Story for own profile */}
-                {isMe && (
-                  <div
-                    className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1 cursor-pointer rounded-full"
-                    onClick={e => { e.stopPropagation(); setShowStoryUpload(true); }}
-                  >
-                    <PlusCircle className="w-7 h-7 text-white" />
-                    <span className="text-[10px] text-white font-semibold">Add Story</span>
+                {avatarUploading && (
+                  <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-full">
+                    <div className="w-7 h-7 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                   </div>
                 )}
               </div>
             </div>
 
-            {/* Story add / view buttons for own profile */}
+            {/* Plus button for own profile — always shows to add story */}
             {isMe && (
-              <div className="absolute bottom-2 right-0 flex flex-col gap-1">
-                <button
-                  onClick={() => setShowStoryUpload(true)}
-                  className="w-9 h-9 bg-primary rounded-full border-4 border-background flex items-center justify-center shadow-lg hover:bg-primary/90 transition-colors z-10"
-                  title="Add to story"
-                  style={{ boxShadow: "0 0 10px 2px rgba(236,72,153,0.5)" }}
-                >
-                  <PlusCircle className="w-5 h-5 text-white" />
-                </button>
-              </div>
+              <button
+                onClick={e => { e.stopPropagation(); setShowStoryUpload(true); }}
+                className="absolute bottom-2 right-0 w-9 h-9 bg-primary rounded-full border-4 border-background flex items-center justify-center shadow-lg hover:bg-primary/90 transition-colors z-10"
+                title="Add to story"
+                style={{ boxShadow: "0 0 10px 2px rgba(236,72,153,0.5)" }}
+              >
+                <PlusCircle className="w-5 h-5 text-white" />
+              </button>
             )}
           </div>
 
