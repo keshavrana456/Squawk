@@ -404,11 +404,37 @@ function ChirpComposer({ me, replyTo, onClose, onPosted }: {
   const [mediaType, setMediaType] = useState<string | null>(null);
   const [mediaPreview, setMediaPreview] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const emojiPickerRef = useRef<HTMLDivElement>(null);
   const createMut = useCreateChirp();
 
   useEffect(() => { textareaRef.current?.focus(); }, []);
+
+  useEffect(() => {
+    if (!showEmojiPicker) return;
+    const handler = (e: MouseEvent) => {
+      if (emojiPickerRef.current && !emojiPickerRef.current.contains(e.target as Node)) {
+        setShowEmojiPicker(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [showEmojiPicker]);
+
+  const insertAtCursor = (text: string) => {
+    const el = textareaRef.current;
+    if (!el) return;
+    const start = el.selectionStart ?? content.length;
+    const end = el.selectionEnd ?? content.length;
+    const newContent = content.slice(0, start) + text + content.slice(end);
+    setContent(newContent);
+    setTimeout(() => {
+      el.focus();
+      el.setSelectionRange(start + text.length, start + text.length);
+    }, 0);
+  };
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -551,10 +577,45 @@ function ChirpComposer({ me, replyTo, onClose, onPosted }: {
             >
               <ImageIcon className="w-5 h-5" />
             </button>
-            <button className="p-2 text-primary hover:bg-primary/10 rounded-full transition-colors">
-              <Smile className="w-5 h-5" />
-            </button>
-            <button className="p-2 text-primary hover:bg-primary/10 rounded-full transition-colors">
+            <div className="relative" ref={emojiPickerRef}>
+              <button
+                className="p-2 text-primary hover:bg-primary/10 rounded-full transition-colors"
+                onClick={() => setShowEmojiPicker(v => !v)}
+                type="button"
+                title="Emoji"
+              >
+                <Smile className="w-5 h-5" />
+              </button>
+              {showEmojiPicker && (
+                <div className="absolute bottom-10 left-0 z-50 bg-card border border-border rounded-2xl shadow-xl p-3 w-72">
+                  <div className="grid grid-cols-8 gap-1">
+                    {[
+                      "😂","😍","🔥","💯","👀","🥳","😭","✨",
+                      "🚀","💀","🫡","🤣","😎","🫶","❤️","💜",
+                      "🤩","😤","🥲","😮","🤔","🫠","💅","👏",
+                      "🙌","👊","💪","🎉","🎯","⚡","🌊","🌙",
+                      "🦋","🐉","🦄","🌸","💎","🏆","👑","🎭",
+                      "😈","👾","🤖","🫣","😅","🥹","😇","🤯",
+                    ].map(emoji => (
+                      <button
+                        key={emoji}
+                        className="text-xl hover:bg-muted rounded-lg p-1 transition-colors leading-none"
+                        onClick={() => { insertAtCursor(emoji); setShowEmojiPicker(false); }}
+                        type="button"
+                      >
+                        {emoji}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+            <button
+              className="p-2 text-primary hover:bg-primary/10 rounded-full transition-colors"
+              onClick={() => insertAtCursor("#")}
+              type="button"
+              title="Add hashtag"
+            >
               <Hash className="w-5 h-5" />
             </button>
           </div>
