@@ -238,9 +238,16 @@ export default function PostPage() {
                 </Avatar>
                 <div className="text-[15px]">
                   <span className="font-semibold mr-2">{post.author.username}</span>
-                  {post.caption}
-                  <div className="mt-1 flex flex-wrap gap-1 text-primary">
-                    {post.hashtags.map((tag: string) => <span key={tag}>#{tag}</span>)}
+                  {post.caption.split(/(#\w+)/g).map((part, i) =>
+                    /^#\w+/.test(part)
+                      ? <Link key={i} href={`/explore/hashtags/${part.slice(1)}`} className="text-primary hover:underline font-medium">{part}</Link>
+                      : part
+                  )}
+                  <div className="mt-1 flex flex-wrap gap-1">
+                    {post.hashtags.filter((tag: string) => !post.caption.includes(`#${tag}`))
+                      .map((tag: string) => (
+                        <Link key={tag} href={`/explore/hashtags/${tag}`} className="text-primary hover:underline text-sm font-medium">#{tag}</Link>
+                      ))}
                   </div>
                   <div className="text-xs text-muted-foreground mt-2">
                     {formatDistanceToNow(new Date(post.createdAt))} ago

@@ -3,6 +3,7 @@ import { Link, useSearch as useRouteSearch } from "wouter";
 import {
   Send, Plus, ArrowLeft, MessageCircle, Search, X, Users, UserPlus,
   Image as ImageIcon, Smile, CornerDownRight, Check, CheckCheck, Circle,
+  Phone, Video,
 } from "lucide-react";
 import {
   useGetConversations, useGetMessages, useSendMessage, useCreateConversation,
@@ -16,6 +17,7 @@ import { format, isToday, isYesterday } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQueryClient } from "@tanstack/react-query";
 import { useSocket } from "@/contexts/SocketContext";
+import { useCall } from "@/contexts/CallContext";
 
 const GIPHY_KEY = (import.meta as any).env?.VITE_GIPHY_API_KEY || "dc6zaTOxFJmzC";
 
@@ -578,6 +580,7 @@ function ChatView({ conversationId, onBack, me, conversation }: any) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { socket, isUserOnline } = useSocket();
+  const { startCall, activeCall } = useCall();
 
   const isGroup = conversation?.isGroup;
   const otherUser = !isGroup
@@ -712,29 +715,60 @@ function ChatView({ conversationId, onBack, me, conversation }: any) {
             </div>
           </div>
         ) : otherUser ? (
-          <Link href={`/profile/${otherUser.username}`} className="flex items-center gap-3 group">
-            <div className="relative shrink-0">
-              <Avatar className="w-10 h-10 border border-border">
-                <AvatarImage src={otherUser.avatarUrl || ""} />
-                <AvatarFallback>{otherUser.displayName?.charAt(0)}</AvatarFallback>
-              </Avatar>
-              {isUserOnline(otherUser.id) && (
-                <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-background" />
-              )}
-            </div>
-            <div>
-              <div className="font-semibold text-foreground group-hover:text-primary transition-colors">
-                {otherUser.displayName}
-              </div>
-              <div className="text-xs text-muted-foreground">
-                {isUserOnline(otherUser.id) ? (
-                  <span className="text-green-500 font-medium">Active now</span>
-                ) : (
-                  `@${otherUser.username}`
+          <>
+            <Link href={`/profile/${otherUser.username}`} className="flex items-center gap-3 group flex-1 min-w-0">
+              <div className="relative shrink-0">
+                <Avatar className="w-10 h-10 border border-border">
+                  <AvatarImage src={otherUser.avatarUrl || ""} />
+                  <AvatarFallback>{otherUser.displayName?.charAt(0)}</AvatarFallback>
+                </Avatar>
+                {isUserOnline(otherUser.id) && (
+                  <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-background" />
                 )}
               </div>
+              <div className="min-w-0">
+                <div className="font-semibold text-foreground group-hover:text-primary transition-colors truncate">
+                  {otherUser.displayName}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  {isUserOnline(otherUser.id) ? (
+                    <span className="text-green-500 font-medium">Active now</span>
+                  ) : (
+                    `@${otherUser.username}`
+                  )}
+                </div>
+              </div>
+            </Link>
+            {/* Call buttons */}
+            <div className="flex items-center gap-1 ml-2 shrink-0">
+              <button
+                onClick={() => {
+                  if (!me || activeCall) return;
+                  const fromUser = { id: me.id, displayName: me.displayName || me.username || "User", username: me.username || "", avatarUrl: me.avatarUrl || null };
+                  const toUser = { id: otherUser.id, displayName: otherUser.displayName || otherUser.username || "User", username: otherUser.username || "", avatarUrl: otherUser.avatarUrl || null };
+                  startCall(toUser, "voice", fromUser);
+                }}
+                disabled={!!activeCall}
+                title="Voice call"
+                className="w-9 h-9 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <Phone className="w-4.5 h-4.5" style={{ width: 18, height: 18 }} />
+              </button>
+              <button
+                onClick={() => {
+                  if (!me || activeCall) return;
+                  const fromUser = { id: me.id, displayName: me.displayName || me.username || "User", username: me.username || "", avatarUrl: me.avatarUrl || null };
+                  const toUser = { id: otherUser.id, displayName: otherUser.displayName || otherUser.username || "User", username: otherUser.username || "", avatarUrl: otherUser.avatarUrl || null };
+                  startCall(toUser, "video", fromUser);
+                }}
+                disabled={!!activeCall}
+                title="Video call"
+                className="w-9 h-9 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <Video className="w-4.5 h-4.5" style={{ width: 18, height: 18 }} />
+              </button>
             </div>
-          </Link>
+          </>
         ) : null}
       </div>
 

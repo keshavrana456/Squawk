@@ -213,7 +213,7 @@ function Reel({ post, muted, setMuted }: { post: any; muted: boolean; setMuted: 
         onDoubleClick={handleDoubleTap}
       >
         {/* 9:16 constrained frame */}
-        <div className="relative h-full w-full md:h-full md:aspect-[9/16] md:max-w-[calc(100vh*9/16)] overflow-hidden">
+        <div className="relative h-full w-full md:h-full md:aspect-[9/16] md:max-w-[calc(100dvh*9/16)] overflow-hidden">
           {post.mediaType === "video" ? (
             <video
               ref={videoRef}

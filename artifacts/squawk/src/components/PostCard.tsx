@@ -58,6 +58,26 @@ export default function PostCard({ post, onLike, onSave, onComment }: PostCardPr
   const [showComments, setShowComments] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const mediaContainerRef = useRef<HTMLDivElement>(null);
+
+  // Auto-pause video when scrolled out of view
+  useEffect(() => {
+    if (post.mediaType !== "video" || !videoRef.current || !mediaContainerRef.current) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        const v = videoRef.current;
+        if (!v) return;
+        if (entry.isIntersecting) {
+          v.play().catch(() => {});
+        } else {
+          v.pause();
+        }
+      },
+      { threshold: 0.3 }
+    );
+    observer.observe(mediaContainerRef.current);
+    return () => observer.disconnect();
+  }, [post.mediaType]);
 
   // Sync from server whenever the post prop updates (e.g. React Query refetch)
   // Skip sync while a like mutation is in-flight to avoid reverting optimistic updates
@@ -256,6 +276,7 @@ export default function PostCard({ post, onLike, onSave, onComment }: PostCardPr
 
         {/* Media */}
         <div
+          ref={mediaContainerRef}
           className="relative w-full overflow-hidden"
           style={{
             aspectRatio: post.mediaType === "video" ? "16/9" : undefined,

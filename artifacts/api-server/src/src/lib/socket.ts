@@ -57,6 +57,41 @@ export function initSocket(httpServer: HttpServer): SocketIOServer {
       socket.to(`conversation:${conversationId}`).emit("stop_typing", { userId: typingUserId });
     });
 
+    // ── WebRTC Call Signaling ──────────────────────────────────────────────────
+    // call_invite: caller → callee  (includes offer SDP + caller info)
+    socket.on("call_invite", (data: {
+      targetUserId: number;
+      callType: "voice" | "video";
+      offer: RTCSessionDescriptionInit;
+      fromUser: { id: number; displayName: string; username: string; avatarUrl: string | null };
+    }) => {
+      io!.to(`user:${data.targetUserId}`).emit("call_invite", {
+        fromUser: data.fromUser,
+        callType: data.callType,
+        offer: data.offer,
+      });
+    });
+
+    // call_accepted: callee → caller  (includes answer SDP)
+    socket.on("call_accepted", (data: { targetUserId: number; answer: RTCSessionDescriptionInit }) => {
+      io!.to(`user:${data.targetUserId}`).emit("call_accepted", { answer: data.answer });
+    });
+
+    // call_declined: callee → caller
+    socket.on("call_declined", (data: { targetUserId: number }) => {
+      io!.to(`user:${data.targetUserId}`).emit("call_declined", {});
+    });
+
+    // call_ended: either party → other
+    socket.on("call_ended", (data: { targetUserId: number }) => {
+      io!.to(`user:${data.targetUserId}`).emit("call_ended", {});
+    });
+
+    // ice_candidate: exchange between peers
+    socket.on("ice_candidate", (data: { targetUserId: number; candidate: RTCIceCandidateInit }) => {
+      io!.to(`user:${data.targetUserId}`).emit("ice_candidate", { candidate: data.candidate });
+    });
+
     socket.on("disconnect", () => {
       if (dbUserId !== undefined) {
         const sockets = onlineUsers.get(dbUserId);
