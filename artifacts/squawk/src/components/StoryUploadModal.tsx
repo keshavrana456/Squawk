@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from "react";
-import { X, UploadCloud, Type, Send, Smile, RotateCcw } from "lucide-react";
+import { X, UploadCloud, Type, Send, Smile, RotateCcw, FlipHorizontal } from "lucide-react";
 import { useGetMe } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -40,7 +40,7 @@ export default function StoryUploadModal({ open, onClose, onSuccess }: StoryUplo
   const [error, setError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
 
-  // Image transform state
+  // Image transform state — start at scale=1, no pan, no rotation
   const [tx, setTx] = useState(0);
   const [ty, setTy] = useState(0);
   const [scale, setScale] = useState(1);
@@ -62,7 +62,7 @@ export default function StoryUploadModal({ open, onClose, onSuccess }: StoryUplo
   const lastPinchScale = useRef<number>(1);
   const lastPinchAngle = useRef<number | null>(null);
   const lastPinchRotation = useRef<number>(0);
-  const textDragging = useRef<{ id: string; startX: number; startY: number; origX: number; origY: number } | null>(null);
+  const textDragging = useRef<{ id: string; startX: number; startY: number } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const reset = () => {
@@ -75,6 +75,8 @@ export default function StoryUploadModal({ open, onClose, onSuccess }: StoryUplo
 
   const handleFile = (f: File) => {
     setError(null);
+    // Reset transform when new file is loaded so image appears at natural size
+    setTx(0); setTy(0); setScale(1); setRotation(0);
     if (f.type.startsWith("video/")) {
       const url = URL.createObjectURL(f);
       const vid = document.createElement("video");
@@ -106,7 +108,6 @@ export default function StoryUploadModal({ open, onClose, onSuccess }: StoryUplo
     return () => el.removeEventListener("wheel", onWheel);
   }, [file]);
 
-  // ── Helper: get angle between two touch points ──────────────────────────────
   const getPinchInfo = () => {
     const pts = Array.from(ptrCache.current.values());
     if (pts.length < 2) return null;
@@ -115,69 +116,63 @@ export default function StoryUploadModal({ open, onClose, onSuccess }: StoryUplo
     return { dist, angle };
   };
 
-  // ── Pointer events for pan + pinch + rotate ─────────────────────────────────
   const onCanvasPointerDown = useCallback((e: React.PointerEvent) => {
     if (editingId) return;
-    ptrCache.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
-    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-    if (ptrCache.current.size === 1) {
-      dragOrigin.current = { startX: e.clientX, startY: e.clientY, origTx: tx, origTy: ty };
-      lastPinchDist.current = null;
-      lastPinchAngle.current = null;
-    } else if (ptrCache.current.size === 2) {
-      dragOrigin.current = null;
-      const info = getPinchInfo();
-      if (info) {
-        lastPinchDist.current = info.dist;
-        lastPinchAngle.current = info.angle;
+    try {
+      ptrCache.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+      if (ptrCache.current.size === 1) {
+        dragOrigin.current = { startX: e.clientX, startY: e.clientY, origTx: tx, origTy: ty };
+        lastPinchDist.current = null;
+        lastPinchAngle.current = null;
+      } else if (ptrCache.current.size === 2) {
+        dragOrigin.current = null;
+        const info = getPinchInfo();
+        if (info) {
+          lastPinchDist.current = info.dist;
+          lastPinchAngle.current = info.angle;
+        }
+        lastPinchScale.current = scale;
+        lastPinchRotation.current = rotation;
       }
-      lastPinchScale.current = scale;
-      lastPinchRotation.current = rotation;
-    }
+    } catch { /* ignore gesture errors */ }
   }, [editingId, tx, ty, scale, rotation]);
 
   const onCanvasPointerMove = useCallback((e: React.PointerEvent) => {
-    ptrCache.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
-
-    if (ptrCache.current.size >= 2) {
-      // Pinch zoom + rotation
-      const info = getPinchInfo();
-      if (info && lastPinchDist.current !== null) {
-        const newScale = Math.max(0.1, Math.min(10, lastPinchScale.current * (info.dist / lastPinchDist.current)));
-        setScale(newScale);
+    try {
+      ptrCache.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (ptrCache.current.size >= 2) {
+        const info = getPinchInfo();
+        if (info && lastPinchDist.current !== null && lastPinchDist.current > 0) {
+          setScale(Math.max(0.1, Math.min(10, lastPinchScale.current * (info.dist / lastPinchDist.current))));
+        }
+        if (info && lastPinchAngle.current !== null) {
+          setRotation(lastPinchRotation.current + (info.angle - lastPinchAngle.current));
+        }
+      } else if (ptrCache.current.size === 1 && dragOrigin.current && textDragging.current === null) {
+        setTx(dragOrigin.current.origTx + (e.clientX - dragOrigin.current.startX));
+        setTy(dragOrigin.current.origTy + (e.clientY - dragOrigin.current.startY));
       }
-      if (info && lastPinchAngle.current !== null) {
-        const angleDelta = info.angle - lastPinchAngle.current;
-        setRotation(lastPinchRotation.current + angleDelta);
-      }
-    } else if (ptrCache.current.size === 1 && dragOrigin.current && textDragging.current === null) {
-      // Pan image
-      const dx = e.clientX - dragOrigin.current.startX;
-      const dy = e.clientY - dragOrigin.current.startY;
-      setTx(dragOrigin.current.origTx + dx);
-      setTy(dragOrigin.current.origTy + dy);
-    }
+    } catch { /* ignore gesture errors */ }
   }, []);
 
   const onCanvasPointerUp = useCallback((e: React.PointerEvent) => {
-    ptrCache.current.delete(e.pointerId);
-    if (ptrCache.current.size < 2) {
-      lastPinchDist.current = null;
-      lastPinchAngle.current = null;
-    }
-    if (ptrCache.current.size === 0) {
-      dragOrigin.current = null;
-    }
+    try {
+      ptrCache.current.delete(e.pointerId);
+      if (ptrCache.current.size < 2) {
+        lastPinchDist.current = null;
+        lastPinchAngle.current = null;
+      }
+      if (ptrCache.current.size === 0) dragOrigin.current = null;
+    } catch { /* ignore */ }
   }, []);
 
   // ── Text layer pointer drag ─────────────────────────────────────────────────
   const onTextPointerDown = useCallback((e: React.PointerEvent, id: string) => {
     e.stopPropagation();
-    const layer = textLayers.find(t => t.id === id);
-    if (!layer) return;
-    textDragging.current = { id, startX: e.clientX, startY: e.clientY, origX: layer.x, origY: layer.y };
-    (e.target as HTMLElement).setPointerCapture(e.pointerId);
-  }, [textLayers]);
+    textDragging.current = { id, startX: e.clientX, startY: e.clientY };
+    try { (e.target as HTMLElement).setPointerCapture(e.pointerId); } catch {}
+  }, []);
 
   const onTextPointerMove = useCallback((e: React.PointerEvent) => {
     if (!textDragging.current || !canvasRef.current) return;
@@ -185,25 +180,20 @@ export default function StoryUploadModal({ open, onClose, onSuccess }: StoryUplo
     const rect = canvasRef.current.getBoundingClientRect();
     const dx = ((e.clientX - textDragging.current.startX) / rect.width) * 100;
     const dy = ((e.clientY - textDragging.current.startY) / rect.height) * 100;
+    const id = textDragging.current.id;
     setTextLayers(prev => prev.map(t =>
-      t.id === textDragging.current!.id
-        ? { ...t, x: Math.max(5, Math.min(95, t.x + dx)), y: Math.max(5, Math.min(95, t.y + dy)) }
-        : t
+      t.id === id ? { ...t, x: Math.max(5, Math.min(95, t.x + dx)), y: Math.max(5, Math.min(95, t.y + dy)) } : t
     ));
     textDragging.current.startX = e.clientX;
     textDragging.current.startY = e.clientY;
   }, []);
 
-  const onTextPointerUp = useCallback(() => {
-    textDragging.current = null;
-  }, []);
+  const onTextPointerUp = useCallback(() => { textDragging.current = null; }, []);
 
   // ── Text layer management ───────────────────────────────────────────────────
   const addTextLayer = () => {
     const id = Math.random().toString(36).slice(2);
-    setTextLayers(prev => [...prev, {
-      id, text: "", x: 50, y: 50, fontSize: 22, color: editColor, bgStyle: editBg,
-    }]);
+    setTextLayers(prev => [...prev, { id, text: "", x: 50, y: 50, fontSize: 22, color: editColor, bgStyle: editBg }]);
     setEditingId(id);
     setEditingText("");
   };
@@ -258,7 +248,6 @@ export default function StoryUploadModal({ open, onClose, onSuccess }: StoryUplo
       }
       const { mediaUrl } = await uploadRes.json();
 
-      // Build textLayers: prepend transform metadata (including rotation), then actual text layers
       const allLayers: any[] = [
         { [TRANSFORM_KEY]: true, x: tx, y: ty, scale, rotation },
         ...textLayers,
@@ -275,7 +264,7 @@ export default function StoryUploadModal({ open, onClose, onSuccess }: StoryUplo
           mediaUrl,
           mediaType: file.type.startsWith("video/") ? "video" : "image",
           caption,
-          objectFit: "cover",
+          objectFit: "contain",
           textLayers: JSON.stringify(allLayers),
         }),
       });
@@ -297,9 +286,7 @@ export default function StoryUploadModal({ open, onClose, onSuccess }: StoryUplo
   };
 
   const isVideo = file?.type.startsWith("video/") ?? false;
-
-  // Media transform — includes scale, translation, and rotation
-  // Use contain-style bounds to prevent clipping: scale determines visibility
+  // Image transform — contain by default (scale=1 shows full image), user can pinch to zoom
   const mediaTransform = `translate(calc(-50% + ${tx}px), calc(-50% + ${ty}px)) scale(${scale}) rotate(${rotation}deg)`;
 
   return (
@@ -329,11 +316,12 @@ export default function StoryUploadModal({ open, onClose, onSuccess }: StoryUplo
             onClick={e => e.stopPropagation()}
           >
             {/* ── TOP BAR ── */}
-            <div className={`flex items-center justify-between px-4 py-3 ${
-              file
-                ? "absolute top-0 left-0 right-0 z-20 bg-gradient-to-b from-black/70 to-transparent pointer-events-none"
-                : "border-b border-border bg-card"
-            }`}
+            <div
+              className={`flex items-center justify-between px-4 py-3 ${
+                file
+                  ? "absolute top-0 left-0 right-0 z-20 bg-gradient-to-b from-black/70 to-transparent pointer-events-none"
+                  : "border-b border-border bg-card"
+              }`}
               style={{ paddingTop: file ? "calc(env(safe-area-inset-top, 0px) + 12px)" : undefined }}
             >
               <button
@@ -398,26 +386,20 @@ export default function StoryUploadModal({ open, onClose, onSuccess }: StoryUplo
                 <div
                   ref={canvasRef}
                   className="absolute inset-0 bg-black overflow-hidden"
-                  style={{
-                    cursor: editingId ? "default" : "grab",
-                    touchAction: "none",
-                    /* Ensure bottom toolbar area is not covered by safe area */
-                    bottom: 0,
-                  }}
+                  style={{ cursor: editingId ? "default" : "grab", touchAction: "none" }}
                   onPointerDown={onCanvasPointerDown}
                   onPointerMove={onCanvasPointerMove}
                   onPointerUp={onCanvasPointerUp}
                   onPointerLeave={onCanvasPointerUp}
                 >
-                  {/* Media — free-form transform with rotation */}
+                  {/* Media — use contain so full image is visible at scale=1 */}
                   {isVideo ? (
                     <video
                       src={preview}
                       className="absolute"
                       style={{
                         top: "50%", left: "50%",
-                        width: "100%",
-                        height: "100%",
+                        width: "100%", height: "100%",
                         objectFit: "contain",
                         transform: mediaTransform,
                         transformOrigin: "center center",
@@ -432,23 +414,23 @@ export default function StoryUploadModal({ open, onClose, onSuccess }: StoryUplo
                       className="absolute"
                       style={{
                         top: "50%", left: "50%",
-                        width: "100%",
-                        height: "100%",
+                        width: "100%", height: "100%",
                         objectFit: "contain",
                         transform: mediaTransform,
                         transformOrigin: "center center",
                         pointerEvents: "none",
                         userSelect: "none",
                         WebkitUserSelect: "none",
+                        maxWidth: "none",
                       }}
                       alt="Story preview"
                       draggable={false}
                     />
                   )}
 
-                  {/* Pinch / drag hint — fades after 2s */}
+                  {/* Gesture hint */}
                   <div
-                    className="absolute bottom-20 left-0 right-0 flex justify-center pointer-events-none z-20"
+                    className="absolute bottom-24 left-0 right-0 flex justify-center pointer-events-none z-20"
                     style={{ opacity: scale === 1 && tx === 0 && ty === 0 && rotation === 0 ? 1 : 0, transition: "opacity 1.5s 1s" }}
                   >
                     <div className="bg-black/55 text-white/80 text-xs px-3 py-1.5 rounded-full">
@@ -461,13 +443,7 @@ export default function StoryUploadModal({ open, onClose, onSuccess }: StoryUplo
                     <div
                       key={layer.id}
                       className="absolute touch-none select-none"
-                      style={{
-                        left: `${layer.x}%`,
-                        top: `${layer.y}%`,
-                        transform: "translate(-50%, -50%)",
-                        zIndex: 10,
-                        cursor: "grab",
-                      }}
+                      style={{ left: `${layer.x}%`, top: `${layer.y}%`, transform: "translate(-50%, -50%)", zIndex: 10, cursor: "grab" }}
                       onPointerDown={e => onTextPointerDown(e, layer.id)}
                       onPointerMove={onTextPointerMove}
                       onPointerUp={onTextPointerUp}
@@ -485,15 +461,15 @@ export default function StoryUploadModal({ open, onClose, onSuccess }: StoryUplo
                     </div>
                   ))}
 
-                  {/* Emoji strip */}
+                  {/* Emoji strip — slides up from above toolbar */}
                   <AnimatePresence>
                     {showEmojiStrip && (
                       <motion.div
                         initial={{ y: 80, opacity: 0 }}
                         animate={{ y: 0, opacity: 1 }}
                         exit={{ y: 80, opacity: 0 }}
-                        className="absolute left-0 right-0 z-20 px-3 py-2 flex gap-2 overflow-x-auto no-scrollbar bg-black/60 backdrop-blur-md"
-                        style={{ bottom: "calc(56px + env(safe-area-inset-bottom, 0px))" }}
+                        className="absolute left-0 right-0 z-20 px-3 py-2 flex gap-2 overflow-x-auto no-scrollbar bg-black/70 backdrop-blur-md"
+                        style={{ bottom: "calc(64px + env(safe-area-inset-bottom, 0px))" }}
                       >
                         {EMOJI_STRIP.map(e => (
                           <button
@@ -515,7 +491,7 @@ export default function StoryUploadModal({ open, onClose, onSuccess }: StoryUplo
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/50 gap-3 px-4"
+                        className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/60 gap-3 px-4"
                         onClick={e => e.stopPropagation()}
                       >
                         <div className="flex items-center gap-2 flex-wrap justify-center">
@@ -573,52 +549,57 @@ export default function StoryUploadModal({ open, onClose, onSuccess }: StoryUplo
                   </AnimatePresence>
                 </div>
 
-                {/* ── TOOLBAR ── */}
+                {/* ── RIGHT-SIDE ICON TOOLBAR ── */}
                 <div
-                  className="absolute left-0 right-0 z-20 bg-black/80 backdrop-blur-md border-t border-white/10"
-                  style={{
-                    bottom: 0,
-                    paddingBottom: "max(env(safe-area-inset-bottom, 0px), 8px)",
-                    paddingTop: "12px",
-                    paddingLeft: "16px",
-                    paddingRight: "16px",
-                  }}
+                  className="absolute right-3 z-20 flex flex-col gap-3"
+                  style={{ top: "50%", transform: "translateY(-50%)" }}
                 >
-                  <div className="flex items-center justify-between gap-2">
-                    <button
-                      onClick={() => addTextLayer()}
-                      className="flex items-center gap-1.5 px-3 py-2 rounded-full bg-white/15 text-white text-xs font-semibold hover:bg-white/25 transition-colors shrink-0"
-                    >
-                      <Type className="w-3.5 h-3.5" />
-                      Text
-                    </button>
+                  {/* Add Text */}
+                  <button
+                    onClick={addTextLayer}
+                    title="Add text"
+                    className="w-10 h-10 rounded-full bg-black/60 backdrop-blur-sm text-white flex items-center justify-center hover:bg-black/80 transition-colors border border-white/10 active:scale-95"
+                  >
+                    <Type className="w-5 h-5" />
+                  </button>
 
-                    <button
-                      onClick={() => setShowEmojiStrip(v => !v)}
-                      className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-white text-xs font-semibold transition-colors shrink-0 ${
-                        showEmojiStrip ? "bg-primary/70" : "bg-white/15 hover:bg-white/25"
-                      }`}
-                    >
-                      <Smile className="w-3.5 h-3.5" />
-                      Sticker
-                    </button>
+                  {/* Stickers / Emoji */}
+                  <button
+                    onClick={() => setShowEmojiStrip(v => !v)}
+                    title="Stickers"
+                    className={`w-10 h-10 rounded-full backdrop-blur-sm text-white flex items-center justify-center transition-colors border active:scale-95 ${
+                      showEmojiStrip ? "bg-primary/80 border-primary" : "bg-black/60 border-white/10 hover:bg-black/80"
+                    }`}
+                  >
+                    <Smile className="w-5 h-5" />
+                  </button>
 
-                    {/* Rotate button */}
-                    <button
-                      onClick={() => setRotation(r => r + 90)}
-                      className="flex items-center gap-1.5 px-3 py-2 rounded-full bg-white/15 text-white text-xs font-semibold hover:bg-white/25 transition-colors shrink-0"
-                    >
-                      <RotateCcw className="w-3.5 h-3.5" />
-                      Rotate
-                    </button>
+                  {/* Rotate 90° */}
+                  <button
+                    onClick={() => setRotation(r => r + 90)}
+                    title="Rotate 90°"
+                    className="w-10 h-10 rounded-full bg-black/60 backdrop-blur-sm text-white flex items-center justify-center hover:bg-black/80 transition-colors border border-white/10 active:scale-95"
+                  >
+                    <RotateCcw className="w-5 h-5" />
+                  </button>
 
-                    <button
-                      onClick={() => { setFile(null); setPreview(null); setTextLayers([]); setTx(0); setTy(0); setScale(1); setRotation(0); }}
-                      className="w-9 h-9 rounded-full bg-white/15 text-white flex items-center justify-center hover:bg-white/25 transition-colors shrink-0"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
+                  {/* Reset transform */}
+                  <button
+                    onClick={() => { setTx(0); setTy(0); setScale(1); setRotation(0); }}
+                    title="Reset view"
+                    className="w-10 h-10 rounded-full bg-black/60 backdrop-blur-sm text-white flex items-center justify-center hover:bg-black/80 transition-colors border border-white/10 active:scale-95"
+                  >
+                    <FlipHorizontal className="w-5 h-5" />
+                  </button>
+
+                  {/* Clear / pick new image */}
+                  <button
+                    onClick={() => { setFile(null); setPreview(null); setTextLayers([]); setTx(0); setTy(0); setScale(1); setRotation(0); }}
+                    title="Choose different image"
+                    className="w-10 h-10 rounded-full bg-black/60 backdrop-blur-sm text-white flex items-center justify-center hover:bg-red-500/70 transition-colors border border-white/10 active:scale-95"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
                 </div>
 
                 {error && (

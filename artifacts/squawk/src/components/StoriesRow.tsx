@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Plus, X, ChevronLeft, ChevronRight, Eye, Users, Trash2, MoreVertical } from "lucide-react";
+import { Plus, X, ChevronLeft, ChevronRight, Eye, Users, Trash2, MoreVertical, Pause } from "lucide-react";
 import {
   useGetActiveStories,
   useGetMe,
@@ -21,24 +21,26 @@ type TextLayer = {
   [key: string]: any;
 };
 
-type MediaTransform = { tx: number; ty: number; scale: number } | null;
+type MediaTransform = { tx: number; ty: number; scale: number; rotation?: number } | null;
 
 function parseTextLayers(raw: string | null | undefined): { layers: TextLayer[]; transform: MediaTransform } {
   if (!raw) return { layers: [], transform: null };
   try {
     const parsed = JSON.parse(raw) as any[];
-    // New format: __transform entry
     const transformEntry = parsed.find(l => l[TRANSFORM_KEY]);
-    // Legacy format: __imageOffset entry (objectPosition percentage)
     const legacyEntry = parsed.find(l => l[LEGACY_OFFSET_KEY]);
     const layers = parsed.filter(l => !l[TRANSFORM_KEY] && !l[LEGACY_OFFSET_KEY]) as TextLayer[];
 
     let transform: MediaTransform = null;
     if (transformEntry) {
-      transform = { tx: transformEntry.x ?? 0, ty: transformEntry.y ?? 0, scale: transformEntry.scale ?? 1 };
+      transform = {
+        tx: transformEntry.x ?? 0,
+        ty: transformEntry.y ?? 0,
+        scale: transformEntry.scale ?? 1,
+        rotation: transformEntry.rotation ?? 0,
+      };
     } else if (legacyEntry) {
-      // Legacy: x/y are 0–100% offsets, convert to ~pixel nudge approximation
-      transform = { tx: (legacyEntry.x - 50) * 2, ty: (legacyEntry.y - 50) * 2, scale: 1 };
+      transform = { tx: (legacyEntry.x - 50) * 2, ty: (legacyEntry.y - 50) * 2, scale: 1, rotation: 0 };
     }
     return { layers, transform };
   } catch { return { layers: [], transform: null }; }
@@ -55,6 +57,7 @@ export function StoryViewer({ groups: initialGroups, startIndex, onClose, onStor
   const [groupIndex, setGroupIndex] = useState(startIndex);
   const [storyIndex, setStoryIndex] = useState(0);
   const [progress, setProgress] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
   const [showViews, setShowViews] = useState(false);
   const [viewsList, setViewsList] = useState<any[]>([]);
   const [viewsLoading, setViewsLoading] = useState(false);
@@ -66,6 +69,10 @@ export function StoryViewer({ groups: initialGroups, startIndex, onClose, onStor
   const queryClient = useQueryClient();
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  // Use a ref for isPaused to avoid stale closures inside setInterval
+  const isPausedRef = useRef(false);
+  // For differentiating tap vs hold
+  const pointerDownTimeRef = useRef<number>(0);
 
   const currentGroup = groups[groupIndex];
   const currentStory = currentGroup?.stories[storyIndex];
@@ -75,6 +82,16 @@ export function StoryViewer({ groups: initialGroups, startIndex, onClose, onStor
   const TICK = 50;
 
   const { layers: textLayers, transform: mediaTransform } = parseTextLayers((currentStory as any)?.textLayers);
+
+  // Sync ref with state
+  useEffect(() => { isPausedRef.current = isPaused; }, [isPaused]);
+
+  // Pause/resume video
+  useEffect(() => {
+    const v = videoRef.current;
+    if (!v) return;
+    if (isPaused) { v.pause(); } else { v.play().catch(() => {}); }
+  }, [isPaused]);
 
   const goNext = useCallback(() => {
     if (storyIndex < (currentGroup?.stories.length ?? 1) - 1) {
@@ -97,6 +114,7 @@ export function StoryViewer({ groups: initialGroups, startIndex, onClose, onStor
   useEffect(() => {
     if (currentStory) markViewed.mutate({ id: currentStory.id });
     setShowViews(false);
+    setIsPaused(false);
   }, [currentStory?.id]);
 
   useEffect(() => {
@@ -104,19 +122,32 @@ export function StoryViewer({ groups: initialGroups, startIndex, onClose, onStor
     if (intervalRef.current) clearInterval(intervalRef.current);
     setProgress(0);
     intervalRef.current = setInterval(() => {
+      if (isPausedRef.current) return;
       setProgress(p => {
         if (p >= 100) { clearInterval(intervalRef.current!); goNext(); return 100; }
         return p + (TICK / IMAGE_DURATION) * 100;
       });
     }, TICK);
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
-  }, [storyIndex, groupIndex, isVideo]);
+  }, [storyIndex, groupIndex, isVideo, goNext]);
 
   const handleVideoTimeUpdate = () => {
     const v = videoRef.current;
     if (v && v.duration) setProgress((v.currentTime / v.duration) * 100);
   };
   const handleVideoEnded = () => goNext();
+
+  // Pause on hold — track pointer down on the media area
+  const handleMediaPointerDown = (e: React.PointerEvent) => {
+    pointerDownTimeRef.current = Date.now();
+    setIsPaused(true);
+  };
+  const handleMediaPointerUp = (e: React.PointerEvent) => {
+    setIsPaused(false);
+  };
+  const handleMediaPointerLeave = (e: React.PointerEvent) => {
+    setIsPaused(false);
+  };
 
   const loadViews = async () => {
     if (!currentStory) return;
@@ -139,7 +170,6 @@ export function StoryViewer({ groups: initialGroups, startIndex, onClose, onStor
     try {
       const res = await fetch(`/api/stories/${currentStory.id}`, { method: "DELETE" });
       if (!res.ok) throw new Error("Delete failed");
-      // Remove this story from local group
       const newGroups = groups.map((g, gi) => {
         if (gi !== groupIndex) return g;
         return { ...g, stories: g.stories.filter((_, si) => si !== storyIndex) };
@@ -149,12 +179,7 @@ export function StoryViewer({ groups: initialGroups, startIndex, onClose, onStor
       setShowMenu(false);
       queryClient.invalidateQueries({ queryKey: ["getActiveStories"] });
       onStoryDeleted?.();
-      // If no more stories, close
-      if (newGroups.length === 0) {
-        onClose();
-        return;
-      }
-      // Adjust indices
+      if (newGroups.length === 0) { onClose(); return; }
       const newGroupIndex = Math.min(groupIndex, newGroups.length - 1);
       setGroupIndex(newGroupIndex);
       setStoryIndex(0);
@@ -167,7 +192,7 @@ export function StoryViewer({ groups: initialGroups, startIndex, onClose, onStor
 
   const getInitials = (n: string) => n ? n.charAt(0).toUpperCase() : '?';
   const mediaCssTransform = mediaTransform
-    ? `translate(calc(-50% + ${mediaTransform.tx}px), calc(-50% + ${mediaTransform.ty}px)) scale(${mediaTransform.scale})`
+    ? `translate(calc(-50% + ${mediaTransform.tx}px), calc(-50% + ${mediaTransform.ty}px)) scale(${mediaTransform.scale}) rotate(${mediaTransform.rotation ?? 0}deg)`
     : "translate(-50%, -50%)";
 
   return (
@@ -180,9 +205,7 @@ export function StoryViewer({ groups: initialGroups, startIndex, onClose, onStor
     >
       <div
         className="relative w-full max-w-sm h-full max-h-[100dvh] md:max-h-[680px] md:rounded-2xl overflow-hidden bg-black flex flex-col"
-        style={{
-          boxShadow: "0 0 40px 6px rgba(192,132,252,0.35), 0 0 80px 16px rgba(236,72,153,0.15)",
-        }}
+        style={{ boxShadow: "0 0 40px 6px rgba(192,132,252,0.35), 0 0 80px 16px rgba(236,72,153,0.15)" }}
         onClick={e => e.stopPropagation()}
       >
         {/* Blurred background */}
@@ -199,8 +222,11 @@ export function StoryViewer({ groups: initialGroups, startIndex, onClose, onStor
           {currentGroup.stories.map((s, i) => (
             <div key={s.id} className="flex-1 h-[3px] bg-white/30 rounded-full overflow-hidden">
               <div
-                className="h-full bg-white rounded-full transition-none"
-                style={{ width: i < storyIndex ? '100%' : i === storyIndex ? `${progress}%` : '0%' }}
+                className="h-full bg-white rounded-full"
+                style={{
+                  width: i < storyIndex ? '100%' : i === storyIndex ? `${progress}%` : '0%',
+                  transition: isPaused ? 'none' : undefined,
+                }}
               />
             </div>
           ))}
@@ -218,7 +244,6 @@ export function StoryViewer({ groups: initialGroups, startIndex, onClose, onStor
               {new Date(currentStory.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
             </p>
           </div>
-          {/* Views button for story owner */}
           {isMyStory && (
             <button
               onClick={e => { e.stopPropagation(); toggleViews(); }}
@@ -228,7 +253,6 @@ export function StoryViewer({ groups: initialGroups, startIndex, onClose, onStor
               {(currentStory as any).viewsCount ?? 0}
             </button>
           )}
-          {/* 3-dot menu for own stories */}
           {isMyStory && (
             <div className="relative">
               <button
@@ -265,7 +289,13 @@ export function StoryViewer({ groups: initialGroups, startIndex, onClose, onStor
         </div>
 
         {/* Media */}
-        <div className="flex-1 relative z-10 overflow-hidden">
+        <div
+          className="flex-1 relative z-10 overflow-hidden select-none"
+          onPointerDown={handleMediaPointerDown}
+          onPointerUp={handleMediaPointerUp}
+          onPointerLeave={handleMediaPointerLeave}
+          style={{ touchAction: "none" }}
+        >
           {isVideo ? (
             <video
               ref={videoRef}
@@ -274,7 +304,7 @@ export function StoryViewer({ groups: initialGroups, startIndex, onClose, onStor
               className="absolute w-full h-full"
               style={{
                 top: "50%", left: "50%",
-                objectFit: "cover",
+                objectFit: "contain",
                 transform: mediaCssTransform,
                 transformOrigin: "center center",
               }}
@@ -290,11 +320,12 @@ export function StoryViewer({ groups: initialGroups, startIndex, onClose, onStor
               className="absolute w-full h-full"
               style={{
                 top: "50%", left: "50%",
-                objectFit: "cover",
+                objectFit: "contain",
                 transform: mediaCssTransform,
                 transformOrigin: "center center",
               }}
               alt=""
+              draggable={false}
             />
           )}
 
@@ -303,12 +334,7 @@ export function StoryViewer({ groups: initialGroups, startIndex, onClose, onStor
             <div
               key={layer.id ?? i}
               className="absolute pointer-events-none select-none"
-              style={{
-                left: `${layer.x}%`,
-                top: `${layer.y}%`,
-                transform: "translate(-50%, -50%)",
-                zIndex: 15,
-              }}
+              style={{ left: `${layer.x}%`, top: `${layer.y}%`, transform: "translate(-50%, -50%)", zIndex: 15 }}
             >
               <div
                 className={`px-2 py-1 rounded-lg text-center max-w-[200px] break-words ${
@@ -324,16 +350,43 @@ export function StoryViewer({ groups: initialGroups, startIndex, onClose, onStor
 
           {/* Caption overlay */}
           {caption && textLayers.length === 0 && (
-            <div className="absolute bottom-16 left-0 right-0 flex justify-center px-4 z-10">
+            <div className="absolute bottom-16 left-0 right-0 flex justify-center px-4 z-10 pointer-events-none">
               <div className="bg-black/50 backdrop-blur-md rounded-xl px-4 py-2 max-w-[85%] text-center">
                 <p className="text-white text-sm font-medium leading-snug break-words">{caption}</p>
               </div>
             </div>
           )}
 
-          {/* Tap zones */}
-          <div className="absolute inset-y-0 left-0 w-1/3 z-10" onClick={e => { e.stopPropagation(); goPrev(); }} />
-          <div className="absolute inset-y-0 right-0 w-1/3 z-10" onClick={e => { e.stopPropagation(); goNext(); }} />
+          {/* Pause indicator */}
+          <AnimatePresence>
+            {isPaused && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                transition={{ duration: 0.12 }}
+                className="absolute inset-0 flex items-center justify-center pointer-events-none z-20"
+              >
+                <div className="w-14 h-14 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center">
+                  <Pause className="w-7 h-7 text-white fill-white" />
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Tap zones — use onClick so they fire only on short taps, not holds */}
+          <div
+            className="absolute inset-y-0 left-0 w-1/3 z-25"
+            onClick={e => { e.stopPropagation(); goPrev(); }}
+            onPointerDown={e => e.stopPropagation()}
+            onPointerUp={e => e.stopPropagation()}
+          />
+          <div
+            className="absolute inset-y-0 right-0 w-1/3 z-25"
+            onClick={e => { e.stopPropagation(); goNext(); }}
+            onPointerDown={e => e.stopPropagation()}
+            onPointerUp={e => e.stopPropagation()}
+          />
         </div>
 
         {/* Views panel (owner only) */}
@@ -393,13 +446,13 @@ export function StoryViewer({ groups: initialGroups, startIndex, onClose, onStor
         {/* Desktop nav arrows */}
         <button
           className="absolute left-2 top-1/2 -translate-y-1/2 z-30 w-9 h-9 bg-black/40 rounded-full flex items-center justify-center text-white hover:bg-black/60 transition-colors hidden md:flex"
-          onClick={goPrev}
+          onClick={e => { e.stopPropagation(); goPrev(); }}
         >
           <ChevronLeft className="w-5 h-5" />
         </button>
         <button
           className="absolute right-2 top-1/2 -translate-y-1/2 z-30 w-9 h-9 bg-black/40 rounded-full flex items-center justify-center text-white hover:bg-black/60 transition-colors hidden md:flex"
-          onClick={goNext}
+          onClick={e => { e.stopPropagation(); goNext(); }}
         >
           <ChevronRight className="w-5 h-5" />
         </button>
@@ -497,7 +550,7 @@ export default function StoriesRow() {
   return (
     <>
       <div className="flex gap-4 p-4 overflow-x-auto no-scrollbar border-b border-border" data-testid="stories-row">
-        {/* Add Story — always shown, always opens upload */}
+        {/* Add Story */}
         <div
           className="flex flex-col items-center gap-1 shrink-0 cursor-pointer group"
           data-testid="story-add"
@@ -533,59 +586,63 @@ export default function StoriesRow() {
               <div className="w-full h-full rounded-full border-2 border-background overflow-hidden bg-muted">
                 <Avatar className="w-full h-full rounded-none">
                   <AvatarImage src={me?.avatarUrl || ''} className="object-cover" />
-                  <AvatarFallback className="bg-muted text-muted-foreground font-semibold">
+                  <AvatarFallback className="bg-primary/20 text-primary font-semibold">
                     {me?.displayName?.charAt(0)?.toUpperCase() ?? 'Me'}
                   </AvatarFallback>
                 </Avatar>
               </div>
             </div>
-            <span className="text-xs text-foreground truncate w-16 text-center font-medium">My Story</span>
+            <span className="text-xs text-foreground font-medium truncate w-16 text-center">Your Story</span>
           </div>
         )}
 
-        {/* Other Stories */}
-        {storyGroups?.map((group, idx) => {
-          if (group.user.id === (me as any)?.id) return null;
-          const avatarColor = `hsl(${group.user.username.length * 50 % 360}, 70%, 50%)`;
-          const hasUnviewed = group.hasUnviewed;
-
+        {/* Other users' stories */}
+        {storyGroups?.filter(g => g.user.username !== me?.username).map((group, idx) => {
+          const realIdx = storyGroups!.findIndex(g => g.user.username === group.user.username);
+          const hasUnviewed = group.stories.some(s => !(s as any).isViewed);
           return (
             <div
               key={group.user.id}
               className="flex flex-col items-center gap-1 shrink-0 cursor-pointer group"
-              onClick={() => openViewer(idx)}
-              data-testid={`story-${group.user.username}`}
+              onClick={() => setViewerGroupIndex(realIdx)}
             >
               <div
-                className={`relative w-16 h-16 rounded-full p-[2px] transition-all group-hover:scale-105 ${hasUnviewed ? 'bg-gradient-to-tr from-primary to-[#c084fc]' : 'bg-gradient-to-tr from-primary/25 to-[#c084fc]/25'}`}
-                style={hasUnviewed ? { boxShadow: '0 0 14px 3px rgba(192,132,252,0.55), 0 0 28px 6px rgba(236,72,153,0.25)' } : undefined}
+                className={`relative w-16 h-16 rounded-full p-[2px] transition-transform group-hover:scale-105 ${
+                  hasUnviewed
+                    ? "bg-gradient-to-tr from-primary to-[#c084fc]"
+                    : "bg-muted border border-border"
+                }`}
+                style={hasUnviewed ? { boxShadow: "0 0 10px 2px rgba(192,132,252,0.4)" } : undefined}
               >
                 <div className="w-full h-full rounded-full border-2 border-background overflow-hidden bg-muted">
                   <Avatar className="w-full h-full rounded-none">
                     <AvatarImage src={group.user.avatarUrl || ''} className="object-cover" />
-                    <AvatarFallback style={{ backgroundColor: avatarColor, color: 'white' }}>
+                    <AvatarFallback className="bg-muted text-muted-foreground font-semibold">
                       {getInitials(group.user.displayName)}
                     </AvatarFallback>
                   </Avatar>
                 </div>
               </div>
-              <span className="text-xs text-foreground truncate w-16 text-center">{group.user.username}</span>
+              <span className="text-xs text-muted-foreground truncate w-16 text-center">{group.user.username}</span>
             </div>
           );
         })}
       </div>
 
-      <StoryUploadModal open={uploadOpen} onClose={() => setUploadOpen(false)} onSuccess={handleUploadSuccess} />
-
+      {/* Story Viewer */}
       <AnimatePresence>
-        {viewerGroupIndex !== null && storyGroups && storyGroups.length > 0 && (
+        {viewerGroupIndex !== null && storyGroups && (
           <StoryViewer
             groups={storyGroups}
             startIndex={viewerGroupIndex}
             onClose={closeViewer}
+            onStoryDeleted={() => refetch()}
           />
         )}
       </AnimatePresence>
+
+      {/* Upload Modal */}
+      <StoryUploadModal open={uploadOpen} onClose={() => setUploadOpen(false)} onSuccess={handleUploadSuccess} />
     </>
   );
 }

@@ -1,0 +1,462 @@
+Fix all remaining issues and implement the final missing premium social-media features across the app. Existing realtime systems, chats, likes, stories, and navigation must remain stable while adding these upgrades.
+
+========================================
+
+1. SHARED POSTS IN DMS (INSTAGRAM STYLE)
+   ========================================
+
+Current issue:
+
+* shared posts still send plain links/URLs
+
+Fix:
+
+* send full embedded post cards in DMs
+* include:
+
+  * media preview
+  * username
+  * avatar
+  * caption preview
+  * post type
+
+Correct structure:
+
+```js id="jlwm110"
+{
+  type: "shared_post",
+  shared_post_id,
+  shared_by
+}
+```
+
+Requirements:
+
+* clickable preview card
+* open full post modal on click
+* preserve likes/comments state
+* support image/video/carousel/reposts
+
+If deleted:
+
+```text id="jlwm111"
+This post is unavailable
+```
+
+========================================
+2. STORY IMAGE INITIAL SIZE FIX
+===============================
+
+Current issue:
+
+* story image still loads cropped/zoomed automatically
+
+Fix:
+
+* uploaded image should first appear in ORIGINAL uncropped size
+* no forced crop
+* use contain behavior initially
+
+Use:
+
+```css id="jlwm112"
+object-fit: contain;
+```
+
+Requirements:
+
+* full image visible initially
+* manual crop/zoom later
+* no side clipping
+
+========================================
+3. STORY EDITOR STABILITY FIXES
+===============================
+
+Current issue:
+
+* random popup errors during editing/uploading
+
+Fix:
+
+* stabilize transform state
+* prevent undefined gesture errors
+* proper try/catch handling
+* no upload race conditions
+
+Requirements:
+
+* smooth Android/iPhone editing
+* no crashes while rotating/scaling
+
+========================================
+4. BANNER SAVE/CACHE FIX
+========================
+
+Current issue:
+
+* updated banner still shows old version after save
+
+Fix:
+
+* invalidate cache after save
+* refresh profile query instantly
+* save banner_position_y properly
+
+Ensure:
+
+```sql id="jlwm113"
+banner_url
+banner_position_y
+```
+
+persist correctly.
+
+========================================
+5. COMMENTS BOX SEPARATION
+==========================
+
+Fix layout completely.
+
+Requirements:
+
+* captions separate from comments
+* comments inside dedicated comments container
+* replies nested under comments only
+
+Correct structure:
+
+POST MEDIA
+
+Actions
+Likes
+
+Username + caption
+
+---
+
+## Comments Container
+
+Comment
+Reply
+
+Comment
+Reply
+
+Add Comment Input
+
+========================================
+6. REPLIES SHOULD LOOK SMALLER
+==============================
+
+Requirements:
+
+* smaller reply text
+* smaller avatars
+* nested indentation
+* lighter background
+
+Example:
+
+```css id="jlwm114"
+.reply {
+  margin-left: 42px;
+  font-size: 0.9rem;
+  opacity: 0.9;
+}
+```
+
+========================================
+7. GLOBAL FOLLOW STATE SYNC
+===========================
+
+Fix follow state globally.
+
+Requirements:
+
+* same follow state everywhere
+* centralized cache syncing
+
+Apply to:
+
+* feed
+* profile
+* explore
+* search
+* modals
+* user cards
+
+========================================
+8. STORY DELETE FEATURE
+=======================
+
+Add:
+
+* delete own story option
+* confirmation modal
+* realtime story removal
+* storage cleanup
+
+Popup:
+
+```text id="jlwm115"
+Delete this story?
+This action cannot be undone.
+```
+
+========================================
+9. USERNAME CHANGE LIMIT
+========================
+
+Add:
+
+* username can change only once every 14 days
+* backend validation
+* cooldown UI
+
+Add field:
+
+```sql id="jlwm116"
+username_last_changed_at
+```
+
+========================================
+10. MUSIC LIBRARY SYSTEM
+========================
+
+Add Instagram-like music feature.
+
+Requirements:
+
+* searchable music library
+* story music stickers
+* post music support
+* draggable music labels
+* trimming UI
+* song previews
+
+Use:
+
+* Audius API
+  OR
+* Deezer API
+
+========================================
+11. VOICE & VIDEO CALLS
+=======================
+
+Add:
+
+* voice calls
+* video calls
+* incoming call UI
+* mute/unmute
+* camera toggle
+* speaker toggle
+
+Use:
+
+* Agora
+  OR
+* ZegoCloud
+
+========================================
+12. CLICKABLE HASHTAGS
+======================
+
+Add hashtag support.
+
+Requirements:
+
+* clickable hashtags
+* hashtag explore pages
+* hashtag search
+
+Regex:
+
+```js id="jlwm117"
+/#(\w+)/g
+```
+
+========================================
+13. ADVANCED STORY FEATURES
+===========================
+
+Add:
+
+* story progress bars
+* pause-on-hold
+* story replies
+* story seen tracking
+* preload next story
+* smooth transitions
+
+========================================
+14. NOTIFICATION READ SYSTEM
+============================
+
+Requirements:
+
+* auto mark notifications as read
+* realtime unread decrement
+* persistent DB read state
+
+========================================
+15. MEDIA FALLBACK HANDLING
+===========================
+
+Fix:
+
+* broken media URLs
+* empty black media boxes
+
+Add:
+
+* graceful fallback UI
+* loading failure handling
+
+========================================
+16. SETTINGS & EDIT PROFILE RESTRUCTURE
+=======================================
+
+Edit Profile should ONLY contain:
+
+* profile photo
+* banner
+* username
+* bio
+* links
+* save changes
+
+Move:
+
+* privacy
+* notifications
+* appearance
+* security
+* blocked users
+* logout
+
+into Settings page.
+
+========================================
+17. @MENTION SUGGESTIONS IN STORIES
+===================================
+
+Add Instagram-style tagging in stories.
+
+Requirements:
+
+* when typing @ inside story text
+* show live user suggestions popup
+* same system as comments/chirps
+
+Features:
+
+* searchable usernames
+* avatar + username suggestions
+* clickable suggestions
+* realtime filtering
+
+After selecting:
+
+* insert tagged username automatically
+* clickable mention in final story
+
+========================================
+18. @MENTIONS IN CHIRPS
+=======================
+
+Ensure chirps support:
+
+* live @mention suggestions
+* clickable tagged usernames
+* realtime mention navigation
+
+Same behavior as:
+
+* Instagram captions
+* Twitter/X mentions
+
+========================================
+19. HASHTAG BUTTON IN CHIRPS
+============================
+
+Current issue:
+
+* hashtag button not working
+
+Fix:
+
+* hashtag insertion button
+* hashtag autocomplete
+* clickable hashtags
+* hashtag parsing
+
+Requirements:
+
+* hashtags searchable
+* hashtag explore pages
+* realtime navigation
+
+========================================
+20. EMOJI BUTTON IN CHIRPS
+==========================
+
+Current issue:
+
+* emoji button not functioning properly
+
+Fix:
+
+* fully working emoji picker
+* emoji insertion at cursor position
+* mobile-friendly picker
+
+Requirements:
+
+* smooth emoji search
+* recent emojis
+* category tabs
+* responsive UI
+
+========================================
+21. GLOBAL STATE MANAGEMENT
+===========================
+
+Implement production-grade centralized state architecture.
+
+Use:
+
+* React Query normalization
+* Zustand OR Context API
+
+Fix globally:
+
+* stale likes
+* stale follows
+* duplicated state
+* refresh inconsistencies
+* story desync
+
+========================================
+22. FINAL APP QUALITY TARGET
+============================
+
+App should feel like:
+
+* Instagram
+* Threads
+* Twitter/X
+
+Requirements:
+✅ Stable realtime systems
+✅ Smooth animations
+✅ Responsive mobile layouts
+✅ Embedded shared posts
+✅ Advanced comments/replies
+✅ Story tagging system
+✅ Emoji + hashtag support
+✅ Premium story editor
+✅ Stable cache/state syncing
+✅ Production-grade social media UX
