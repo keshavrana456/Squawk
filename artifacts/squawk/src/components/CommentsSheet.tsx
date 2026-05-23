@@ -1,8 +1,8 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Send, Heart, MessageCircle, CornerDownRight } from "lucide-react";
+import { X, Send, Heart, MessageCircle, CornerDownRight, Trash2 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useGetPostComments } from "@workspace/api-client-react";
+import { useGetPostComments, useGetMe } from "@workspace/api-client-react";
 import { formatDistanceToNow } from "date-fns";
 import { Link } from "wouter";
 
@@ -39,12 +39,14 @@ export default function CommentsSheet({ postId, commentsCount, isOpen, onClose }
     query: { enabled: isOpen && postId > 0 },
   });
   const rawComments: any[] = Array.isArray(commentsData) ? commentsData : [];
+  const { data: me } = useGetMe({ query: { enabled: isOpen } });
 
   const [text, setText] = useState("");
   const [replyTo, setReplyTo] = useState<{ username: string; commentId: number } | null>(null);
   const [likeStates, setLikeStates] = useState<Record<number, LikeState>>({});
   const [mentionQuery, setMentionQuery] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Reset state when closed
@@ -82,6 +84,18 @@ export default function CommentsSheet({ postId, commentsCount, isOpen, onClose }
       setLikeStates(prev => ({ ...prev, [commentId]: current }));
     }
   }, []);
+
+  const handleDeleteComment = useCallback(async (commentId: number) => {
+    setDeletingId(commentId);
+    try {
+      const res = await fetch(`/api/comments/${commentId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (res.ok) refetch();
+    } catch {}
+    setDeletingId(null);
+  }, [refetch]);
 
   const handleTextChange = (val: string) => {
     setText(val);
@@ -308,6 +322,16 @@ export default function CommentsSheet({ postId, commentsCount, isOpen, onClose }
                                 </span>
                               )}
                             </button>
+                            {(me as any)?.id === c.author?.id && (
+                              <button
+                                className="flex items-center gap-1 text-xs text-muted-foreground hover:text-red-500 transition-colors disabled:opacity-40"
+                                onClick={() => handleDeleteComment(c.id)}
+                                disabled={deletingId === c.id}
+                              >
+                                <Trash2 className="w-3 h-3" />
+                                <span>Delete</span>
+                              </button>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -362,6 +386,16 @@ export default function CommentsSheet({ postId, commentsCount, isOpen, onClose }
                                     </span>
                                   )}
                                 </button>
+                                {(me as any)?.id === reply.author?.id && (
+                                  <button
+                                    className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-red-500 transition-colors disabled:opacity-40"
+                                    onClick={() => handleDeleteComment(reply.id)}
+                                    disabled={deletingId === reply.id}
+                                  >
+                                    <Trash2 className="w-2.5 h-2.5" />
+                                    <span>Delete</span>
+                                  </button>
+                                )}
                               </div>
                             </div>
                           </div>
