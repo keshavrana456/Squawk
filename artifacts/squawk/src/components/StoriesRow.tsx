@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Plus, X, ChevronLeft, ChevronRight, Eye, Users } from "lucide-react";
+import { Plus, X, ChevronLeft, ChevronRight, Eye, Users, Trash2, MoreVertical } from "lucide-react";
 import {
   useGetActiveStories,
   useGetMe,
@@ -9,6 +9,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { motion, AnimatePresence } from "framer-motion";
 import StoryUploadModal from "./StoryUploadModal";
+import { useQueryClient } from "@tanstack/react-query";
 
 const IMAGE_DURATION = 5000;
 const TRANSFORM_KEY = "__transform";
@@ -44,15 +45,25 @@ function parseTextLayers(raw: string | null | undefined): { layers: TextLayer[];
 }
 
 // ─── Story Viewer ─────────────────────────────────────────────────────────────
-export function StoryViewer({ groups, startIndex, onClose }: { groups: StoryGroup[]; startIndex: number; onClose: () => void }) {
+export function StoryViewer({ groups: initialGroups, startIndex, onClose, onStoryDeleted }: {
+  groups: StoryGroup[];
+  startIndex: number;
+  onClose: () => void;
+  onStoryDeleted?: () => void;
+}) {
+  const [groups, setGroups] = useState(initialGroups);
   const [groupIndex, setGroupIndex] = useState(startIndex);
   const [storyIndex, setStoryIndex] = useState(0);
   const [progress, setProgress] = useState(0);
   const [showViews, setShowViews] = useState(false);
   const [viewsList, setViewsList] = useState<any[]>([]);
   const [viewsLoading, setViewsLoading] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
   const markViewed = useViewStory();
   const { data: me } = useGetMe();
+  const queryClient = useQueryClient();
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -122,6 +133,36 @@ export function StoryViewer({ groups, startIndex, onClose }: { groups: StoryGrou
     setShowViews(v => !v);
   };
 
+  const handleDeleteStory = async () => {
+    if (!currentStory || isDeleting) return;
+    setIsDeleting(true);
+    try {
+      const res = await fetch(`/api/stories/${currentStory.id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Delete failed");
+      // Remove this story from local group
+      const newGroups = groups.map((g, gi) => {
+        if (gi !== groupIndex) return g;
+        return { ...g, stories: g.stories.filter((_, si) => si !== storyIndex) };
+      }).filter(g => g.stories.length > 0);
+      setGroups(newGroups);
+      setShowDeleteConfirm(false);
+      setShowMenu(false);
+      queryClient.invalidateQueries({ queryKey: ["getActiveStories"] });
+      onStoryDeleted?.();
+      // If no more stories, close
+      if (newGroups.length === 0) {
+        onClose();
+        return;
+      }
+      // Adjust indices
+      const newGroupIndex = Math.min(groupIndex, newGroups.length - 1);
+      setGroupIndex(newGroupIndex);
+      setStoryIndex(0);
+      setProgress(0);
+    } catch (e) { console.error(e); }
+    finally { setIsDeleting(false); }
+  };
+
   if (!currentGroup || !currentStory) return null;
 
   const getInitials = (n: string) => n ? n.charAt(0).toUpperCase() : '?';
@@ -186,6 +227,37 @@ export function StoryViewer({ groups, startIndex, onClose }: { groups: StoryGrou
               <Eye className="w-3.5 h-3.5" />
               {(currentStory as any).viewsCount ?? 0}
             </button>
+          )}
+          {/* 3-dot menu for own stories */}
+          {isMyStory && (
+            <div className="relative">
+              <button
+                className="w-8 h-8 flex items-center justify-center text-white/80 hover:text-white rounded-full hover:bg-white/10 transition-colors"
+                onClick={e => { e.stopPropagation(); setShowMenu(v => !v); }}
+              >
+                <MoreVertical className="w-4 h-4" />
+              </button>
+              <AnimatePresence>
+                {showMenu && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.9, y: -4 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.9, y: -4 }}
+                    transition={{ duration: 0.12 }}
+                    className="absolute right-0 top-10 bg-black/90 backdrop-blur-md border border-white/10 rounded-2xl overflow-hidden shadow-2xl min-w-[160px] z-50"
+                    onClick={e => e.stopPropagation()}
+                  >
+                    <button
+                      className="w-full flex items-center gap-3 px-4 py-3 text-red-400 hover:bg-white/10 transition-colors text-sm font-medium"
+                      onClick={e => { e.stopPropagation(); setShowMenu(false); setShowDeleteConfirm(true); }}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      Delete Story
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
           )}
           <button className="w-8 h-8 flex items-center justify-center text-white/80 hover:text-white" onClick={onClose}>
             <X className="w-5 h-5" />
@@ -336,6 +408,56 @@ export function StoryViewer({ groups, startIndex, onClose }: { groups: StoryGrou
       <button className="absolute top-4 right-4 z-40 text-white/60 hover:text-white hidden md:block" onClick={onClose}>
         <X className="w-6 h-6" />
       </button>
+
+      {/* Delete confirmation modal */}
+      <AnimatePresence>
+        {showDeleteConfirm && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 z-50 flex items-center justify-center p-6 bg-black/70"
+            onClick={e => e.stopPropagation()}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              transition={{ type: "spring", damping: 24, stiffness: 340 }}
+              className="bg-[#1a1a2e] border border-white/10 rounded-3xl p-6 w-full max-w-xs shadow-2xl"
+            >
+              <div className="flex flex-col items-center text-center gap-4">
+                <div className="w-14 h-14 rounded-full bg-red-500/15 flex items-center justify-center">
+                  <Trash2 className="w-7 h-7 text-red-400" />
+                </div>
+                <div>
+                  <h3 className="text-white font-bold text-lg">Delete this story?</h3>
+                  <p className="text-white/50 text-sm mt-1">This action cannot be undone.</p>
+                </div>
+                <div className="flex gap-3 w-full">
+                  <button
+                    className="flex-1 py-2.5 rounded-full border border-white/20 text-white/80 text-sm font-semibold hover:bg-white/10 transition-colors"
+                    onClick={() => setShowDeleteConfirm(false)}
+                    disabled={isDeleting}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    className="flex-1 py-2.5 rounded-full bg-red-500 text-white text-sm font-bold hover:bg-red-600 transition-colors flex items-center justify-center gap-2"
+                    onClick={handleDeleteStory}
+                    disabled={isDeleting}
+                  >
+                    {isDeleting
+                      ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      : <><Trash2 className="w-4 h-4" />Delete</>
+                    }
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }

@@ -269,7 +269,14 @@ export default function ProfilePage() {
 
       {/* Cover / Banner */}
       <div className="h-48 md:h-64 w-full relative border-b border-border overflow-hidden bg-gradient-to-br from-primary/20 via-pink-400/15 to-[#c084fc]/20">
-        {profile.coverUrl && <img src={profile.coverUrl} alt="Banner" className="absolute inset-0 w-full h-full object-cover" />}
+        {profile.coverUrl && (
+          <img
+            src={profile.coverUrl}
+            alt="Banner"
+            className="absolute inset-0 w-full h-full object-cover"
+            style={{ objectPosition: `center ${50 + ((profile as any).bannerOffsetY ?? 0)}%` }}
+          />
+        )}
         {isMe && (
           <>
             <label htmlFor="profile-banner-upload" className="absolute inset-0 flex items-center justify-center cursor-pointer bg-black/0 hover:bg-black/30 transition-colors opacity-0 hover:opacity-100">
@@ -320,16 +327,14 @@ export default function ProfilePage() {
                   </AvatarFallback>
                 </Avatar>
 
-                {/* PFP upload overlay (own profile only) */}
+                {/* Hover overlay — opens Add Story for own profile */}
                 {isMe && (
                   <div
                     className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1 cursor-pointer rounded-full"
-                    onClick={e => { e.stopPropagation(); handleAvatarClick(); }}
+                    onClick={e => { e.stopPropagation(); setShowStoryUpload(true); }}
                   >
-                    {avatarUploading
-                      ? <div className="w-6 h-6 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                      : <><Camera className="w-6 h-6 text-white" /><span className="text-[10px] text-white font-semibold">Change</span></>
-                    }
+                    <PlusCircle className="w-7 h-7 text-white" />
+                    <span className="text-[10px] text-white font-semibold">Add Story</span>
                   </div>
                 )}
               </div>
@@ -354,7 +359,7 @@ export default function ProfilePage() {
           <div className="flex gap-3 md:pb-4 z-10 w-full md:w-auto flex-wrap">
             {isMe ? (
               <div className="flex gap-2 w-full md:w-auto flex-wrap">
-                <Link href="/settings" className="flex-1 md:flex-initial">
+                <Link href="/edit-profile" className="flex-1 md:flex-initial">
                   <Button
                     className="w-full md:w-36 font-semibold rounded-full text-white border-0"
                     style={pinkGlowStyle}

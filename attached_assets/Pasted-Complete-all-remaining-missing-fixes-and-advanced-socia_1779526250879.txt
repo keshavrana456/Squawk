@@ -1,0 +1,441 @@
+Complete all remaining missing fixes and advanced social media features that are still not implemented or not fully working.
+
+========================================
+
+1. STORY DELETE SYSTEM
+   ========================================
+
+Add full delete functionality for own stories.
+
+Requirements:
+
+* 3-dot menu OR long press on own story
+* Delete Story option
+* confirmation popup before delete
+* realtime story removal
+* delete from DB + Supabase storage
+* remove empty story groups after deletion
+
+Popup:
+
+```text
+Delete this story?
+This action cannot be undone.
+```
+
+Only story owner can delete.
+
+========================================
+2. ADVANCED STORY IMAGE EDITOR
+==============================
+
+Fix story editor completely.
+
+Current issues:
+
+* zooming out cuts image from sides
+* no image rotation
+* poor crop behavior
+
+Add:
+
+* pinch-to-zoom
+* drag repositioning
+* two-finger rotation
+* smooth gestures
+* proper bounds handling
+* Instagram-like cropper
+
+Use transform state:
+
+```js
+scale
+translateX
+translateY
+rotation
+```
+
+Prevent:
+
+* clipping
+* image disappearing
+* broken crop
+
+========================================
+3. BANNER REPOSITION SYSTEM
+===========================
+
+Add editable banner positioning in Edit Profile.
+
+Requirements:
+
+* drag banner image vertically
+* reposition crop area
+* live preview
+* persistent saved position
+
+Store:
+
+```sql
+banner_position_y
+```
+
+Apply transform everywhere profile banner renders.
+
+========================================
+4. USERNAME CHANGE LIMIT
+========================
+
+Add Instagram-like username cooldown.
+
+Requirements:
+
+* username can only change once every 14 days
+* backend validation required
+* show remaining cooldown days
+
+Add field:
+
+```sql
+username_last_changed_at
+```
+
+UI message:
+
+```text
+You can change your username again in 9 days.
+```
+
+========================================
+5. VIDEO AUTOPAUSE SYSTEM
+=========================
+
+Fix feed videos continuing playback after scrolling away.
+
+Requirements:
+
+* auto pause offscreen videos
+* only one video plays at a time
+* no background audio
+* IntersectionObserver implementation
+
+Apply to:
+
+* feed
+* reels
+* stories
+* explore
+
+========================================
+6. SHARED POST PREVIEW IN DMS
+=============================
+
+Fix shared posts sending only plain URLs.
+
+Requirements:
+
+* full embedded post preview in chats
+* image/video thumbnail
+* username
+* caption preview
+* clickable post card
+
+Use:
+
+```js
+type: "shared_post"
+```
+
+NOT plain links only.
+
+========================================
+7. FULL NOTIFICATION READ SYSTEM
+================================
+
+Unread badges already exist but complete the logic.
+
+Requirements:
+
+* auto clear after viewing
+* mark notifications/messages as read
+* realtime badge decrement
+* persistent read state in DB
+
+Use:
+
+```sql
+is_read BOOLEAN DEFAULT false
+```
+
+========================================
+8. CAPTION & COMMENT SEPARATION
+===============================
+
+Fix single post view.
+
+Requirements:
+
+* captions render separately from comments
+* captions NOT treated as comments
+* Instagram-style layout
+
+Correct order:
+
+* media
+* actions
+* likes
+* caption
+* comments
+
+========================================
+9. REPOSTED CHIRPS FIX
+======================
+
+Fix blank repost cards in profiles.
+
+Requirements:
+
+* fetch original chirp/post
+* render original content
+* repost attribution label
+* prevent empty repost cards
+
+Handle:
+
+* images
+* videos
+* deleted posts
+* mentions
+* hashtags
+
+========================================
+10. VOICE & VIDEO CALL SYSTEM
+=============================
+
+Add complete calling system.
+
+Requirements:
+
+* voice call
+* video call
+* incoming call screen
+* mute/unmute
+* camera toggle
+* speaker toggle
+* call decline/end
+
+Use:
+
+* Agora OR ZegoCloud
+
+Add realtime signaling.
+
+========================================
+11. STORY VIEWER MOBILE FIXES
+=============================
+
+Fix fullscreen story layout.
+
+Requirements:
+
+* replace all 100vh with 100dvh
+* no giant black spaces
+* no tiny centered story
+* proper fullscreen behavior
+
+Story viewer should:
+
+* fill screen correctly
+* support mobile safe areas
+
+========================================
+12. GLOBAL LIKE/FOLLOW STATE SYNC
+=================================
+
+Ensure consistent state everywhere.
+
+Currently partially fixed only.
+
+Requirements:
+
+* same like state across:
+
+  * feed
+  * profile
+  * explore
+  * modals
+  * reposts
+* same follow state everywhere
+
+Implement:
+
+* centralized global state
+* optimistic updates
+* realtime sync
+
+========================================
+13. CLICKABLE HASHTAGS
+======================
+
+Add hashtag parser.
+
+Requirements:
+
+* clickable hashtags
+* hashtag explore pages
+* realtime hashtag search
+
+Regex:
+
+```js
+/#(\w+)/g
+```
+
+Routing:
+
+```js
+/explore/tags/:tag
+```
+
+========================================
+14. ADVANCED STORY FEATURES
+===========================
+
+Add:
+
+* story progress bars
+* story seen tracking
+* story replies
+* pause-on-hold
+* tap navigation
+* preload next story
+* smooth animations
+
+Instagram-style experience required.
+
+========================================
+15. EDIT PROFILE & SETTINGS RESTRUCTURE
+=======================================
+
+Move non-profile settings into Settings page.
+
+Edit Profile should ONLY contain:
+
+* profile photo
+* banner
+* username
+* bio
+* links
+* Save Changes
+
+Move:
+
+* privacy
+* notifications
+* security
+* appearance
+* blocked users
+* logout
+* account settings
+
+into Settings page.
+
+========================================
+16. MEDIA FALLBACK HANDLING
+===========================
+
+Fix empty black media boxes.
+
+Requirements:
+
+* validate media URLs
+* add fallback UI
+* prevent broken containers
+* graceful loading errors
+
+========================================
+17. COMPLETE REALTIME NOTIFICATIONS
+===================================
+
+Add realtime notifications for:
+
+* likes
+* follows
+* mentions
+* comments
+* replies
+* story replies
+* shared posts
+
+Realtime badge updates required.
+
+========================================
+18. STORY DUPLICATION VALIDATION
+================================
+
+Story duplication was partially fixed.
+
+Ensure fix applies everywhere:
+
+* feed story row
+* story viewer
+* profile stories
+* story counts
+* story modals
+
+No duplicate current-user story entries anywhere.
+
+========================================
+19. MOBILE SAFE AREA FIXES
+==========================
+
+Fix all mobile spacing issues.
+
+Requirements:
+
+* navbar safe spacing
+* sticky comment input
+* no hidden bottom content
+* iPhone safe area support
+* Android gesture-safe layout
+
+========================================
+20. GLOBAL STATE MANAGEMENT
+===========================
+
+Implement proper app-wide state management.
+
+Use:
+
+* Zustand OR Context API
+
+Fix:
+
+* refresh desync
+* stale likes
+* stale follows
+* inconsistent unread counts
+* duplicated data
+* outdated story state
+
+========================================
+21. FINAL APP QUALITY TARGET
+============================
+
+Make app production-grade like Instagram/Twitter.
+
+Requirements:
+
+* smooth animations
+* optimized performance
+* realtime consistency
+* premium mobile UX
+* zero duplicated data
+* proper caching
+* lazy loading
+* responsive design
+* polished transitions
+* stable realtime sockets
+* fully optimized Supabase integration
+* buttery smooth scrolling
+* no UI flickers or layout jumps

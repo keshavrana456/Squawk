@@ -159,6 +159,22 @@ router.post("/stories/:id/view", requireUser, async (req, res): Promise<void> =>
   res.json({ success: true });
 });
 
+// DELETE /stories/:id — owner deletes their own story
+router.delete("/stories/:id", requireUser, async (req, res): Promise<void> => {
+  const currentUser = (req as any).currentUser as typeof usersTable.$inferSelect;
+  const storyId = parseInt(String(req.params.id), 10);
+  if (isNaN(storyId)) { res.status(400).json({ error: "Invalid story ID" }); return; }
+
+  const [story] = await db.select().from(storiesTable).where(eq(storiesTable.id, storyId));
+  if (!story) { res.status(404).json({ error: "Story not found" }); return; }
+  if (story.authorId !== currentUser.id) { res.status(403).json({ error: "Forbidden" }); return; }
+
+  await db.delete(storyViewsTable).where(eq(storyViewsTable.storyId, storyId));
+  await db.delete(storiesTable).where(eq(storiesTable.id, storyId));
+
+  res.json({ success: true });
+});
+
 // GET /stories/:id/views — returns list of viewers (for story owner)
 router.get("/stories/:id/views", requireUser, async (req, res): Promise<void> => {
   const currentUser = (req as any).currentUser as typeof usersTable.$inferSelect;

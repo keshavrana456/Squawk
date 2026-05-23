@@ -36,6 +36,7 @@ export async function buildUserProfile(user: typeof usersTable.$inferSelect, cur
     website: user.website ?? null,
     isVerified: user.isVerified,
     isFounder: user.isFounder,
+    bannerOffsetY: (user as any).bannerOffsetY ?? 0,
     followersCount: followersCountResult[0]?.count ?? 0,
     followingCount: followingCountResult[0]?.count ?? 0,
     postsCount: postsCountResult[0]?.count ?? 0,

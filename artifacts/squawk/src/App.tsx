@@ -31,6 +31,7 @@ const UploadPage = lazy(() => import("./pages/UploadPage"));
 const ProfilePage = lazy(() => import("./pages/ProfilePage"));
 const PostPage = lazy(() => import("./pages/PostPage"));
 const SettingsPage = lazy(() => import("./pages/SettingsPage"));
+const EditProfilePage = lazy(() => import("./pages/EditProfilePage"));
 const ChirpsPage = lazy(() => import("./pages/ChirpsPage"));
 
 function PageLoader() {
@@ -522,6 +523,7 @@ function Router() {
       <ProtectedRoute path="/profile/:username" component={ProfilePage} />
       <ProtectedRoute path="/post/:id" component={PostPage} />
       <ProtectedRoute path="/settings" component={SettingsPage} />
+      <ProtectedRoute path="/edit-profile" component={EditProfilePage} />
       
       <Route>
         <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4 text-center">

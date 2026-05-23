@@ -1,0 +1,325 @@
+currenlty website take alot of time in opening and switching features and windows fix this speed up and 
+
+Improve the Edit Profile and Settings system UI/UX completely.
+
+========================================
+
+1. ADD BANNER POSITION ADJUSTMENT
+   ========================================
+
+Current issue:
+Users cannot properly position their profile banner/cover image.
+
+Add feature:
+
+* User can move banner image up/down vertically while editing profile
+* Similar to Facebook/Twitter banner repositioning
+* User should control visible crop area
+
+Requirements:
+
+* Enable drag gesture only in Edit Profile page
+* Allow vertical repositioning
+* Smooth touch dragging on mobile
+* Live preview while adjusting
+* Save final banner position permanently
+
+Store:
+
+```sql id="jlwm41"
+banner_position_y
+```
+
+OR:
+
+```sql id="jlwm42"
+banner_offset
+```
+
+Apply saved transform when rendering profile banner.
+
+========================================
+2. BANNER GESTURE CONTROLS
+==========================
+
+Add:
+
+* drag up/down
+* smooth inertia
+* touch support
+* mouse drag support
+* proper boundaries
+
+Prevent:
+
+* banner disappearing completely
+* overdragging outside limits
+
+Use:
+
+```css id="jlwm43"
+touch-action: none;
+user-select: none;
+```
+
+========================================
+3. SAVE BANNER POSITION
+=======================
+
+After clicking Save Changes:
+
+* banner position should persist
+* same crop should appear everywhere
+* no reset after refresh
+
+========================================
+4. MOVE SETTINGS OPTIONS OUT OF EDIT PROFILE
+============================================
+
+Current issue:
+Too many settings/options cluttering Edit Profile page.
+
+Fix:
+Move non-profile-edit options into Settings page.
+
+========================================
+5. KEEP ONLY PROFILE EDITING INSIDE EDIT PROFILE
+================================================
+
+Edit Profile should ONLY contain:
+
+* profile photo
+* banner photo
+* banner adjustment
+* username
+* bio
+* links
+* display name
+* Save Changes button
+
+========================================
+6. MOVE EXTRA OPTIONS INTO SETTINGS PAGE
+========================================
+
+Move these types of options into Settings:
+
+* privacy
+* notifications
+* blocked users
+* theme
+* account settings
+* security
+* password
+* appearance
+* app preferences
+* data settings
+* logout
+* account management
+
+========================================
+7. SAVE CHANGES BUTTON POSITION
+===============================
+
+Keep:
+
+* editable profile fields
+* Save Changes button
+
+inside Edit Profile only.
+
+Move all unrelated controls/options after Save button into Settings page instead.
+
+========================================
+8. IMPROVE EDIT PROFILE UX
+==========================
+
+Add:
+
+* sticky Save button on mobile
+* smooth transitions
+* live preview updates
+* loading indicators
+* unsaved changes warning
+
+========================================
+9. MOBILE RESPONSIVENESS
+========================
+
+Ensure:
+
+* smooth drag gestures on Android/iPhone
+* no overflow issues
+* no accidental scrolling while adjusting banner
+* proper fullscreen crop experience
+
+========================================
+10. FINAL EXPECTED RESULT
+=========================
+
+After implementation:
+✅ User can reposition banner vertically
+✅ Banner crop persists permanently
+✅ Smooth mobile drag controls
+✅ Cleaner Edit Profile page
+✅ Proper separation between Edit Profile and Settings
+✅ Better mobile UX
+✅ Instagram/Twitter/Facebook-like banner editing experience
+
+
+Add a story deletion system so users can delete their own stories after uploading.
+
+========================================
+FEATURE REQUIREMENTS
+====================
+
+1. ALLOW USERS TO DELETE THEIR OWN STORIES
+   ========================================
+
+Current issue:
+After uploading a story, there is no option to remove/delete it.
+
+Add:
+
+* delete story option/menu
+* long press OR 3-dot menu on own stories
+* confirmation popup before deletion
+
+Only story owner should see delete option.
+
+========================================
+2. STORY OPTIONS MENU
+=====================
+
+For own stories add:
+
+* Delete Story
+* View Story Views
+* Share Story
+* Save Story
+
+Use:
+
+* 3-dot menu
+  OR
+* long press menu
+
+========================================
+3. DELETE CONFIRMATION MODAL
+============================
+
+Before deleting:
+show confirmation popup:
+
+```text id="jlwm51"
+Delete this story?
+This action cannot be undone.
+```
+
+Buttons:
+
+* Cancel
+* Delete
+
+========================================
+4. DELETE FROM DATABASE & STORAGE
+=================================
+
+When deleting:
+
+* remove story record from database
+* remove story media from Supabase Storage
+* remove story views/replies if needed
+
+Delete:
+
+```sql id="jlwm52"
+stories
+```
+
+and associated storage file.
+
+========================================
+5. REALTIME STORY REMOVAL
+=========================
+
+After deletion:
+
+* story should disappear instantly
+* remove from:
+
+  * feed stories row
+  * profile stories
+  * story viewer
+  * highlights (if needed)
+
+Realtime sync required.
+
+========================================
+6. FIX STORY GROUPING AFTER DELETE
+==================================
+
+Ensure:
+
+* no duplicate “My Story”
+* no empty story circles
+* no broken viewer after deletion
+
+If all stories deleted:
+
+* remove story group entirely
+
+========================================
+7. MOBILE UX IMPROVEMENTS
+=========================
+
+Add:
+
+* smooth delete animation
+* loading state while deleting
+* toast message after success
+
+Example:
+
+```text id="jlwm53"
+Story deleted successfully
+```
+
+========================================
+8. SECURITY RULES
+=================
+
+Ensure:
+
+* users can ONLY delete their own stories
+* backend validation required
+* secure Supabase policies
+
+Prevent:
+
+* deleting others' stories
+* unauthorized storage deletion
+
+========================================
+9. OPTIONAL ADVANCED FEATURES
+=============================
+
+Optional:
+
+* archive deleted stories
+* recover recently deleted stories
+* story trash folder
+* auto-delete after 24h still works
+
+========================================
+10. FINAL EXPECTED RESULT
+=========================
+
+After implementation:
+✅ Users can delete their own stories
+✅ Stories disappear instantly after deletion
+✅ Storage files removed properly
+✅ Realtime syncing works
+✅ No duplicate or broken story circles
+✅ Smooth Instagram-like story management experience
+
+  move the create post option in top left and move the notification button in side of message button only for mobile and tabs

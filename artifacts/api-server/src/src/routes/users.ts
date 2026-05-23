@@ -92,6 +92,9 @@ router.put("/users/me/profile", requireUser, async (req, res): Promise<void> => 
   if (parsed.data.avatarUrl !== undefined) updateData.avatarUrl = parsed.data.avatarUrl;
   if (parsed.data.coverUrl !== undefined) updateData.coverUrl = parsed.data.coverUrl;
   if (parsed.data.website !== undefined) updateData.website = parsed.data.website ?? null;
+  if ((parsed.data as any).bannerOffsetY !== undefined) {
+    (updateData as any).bannerOffsetY = Math.max(-45, Math.min(45, Number((parsed.data as any).bannerOffsetY) || 0));
+  }
 
   // Handle username change
   if ((parsed.data as any).username !== undefined) {

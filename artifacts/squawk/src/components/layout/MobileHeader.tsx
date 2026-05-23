@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { Bell, MessageCircle } from "lucide-react";
+import { Bell, MessageCircle, PlusSquare } from "lucide-react";
 import { useGetUnreadNotificationCount, useGetMe } from "@workspace/api-client-react";
 import { useUser } from "@clerk/react";
 
@@ -17,13 +17,10 @@ export default function MobileHeader() {
 
   return (
     <header className="md:hidden fixed top-0 left-0 right-0 z-40 flex items-center justify-between px-2 py-2 bg-background/90 backdrop-blur-xl border-b border-border">
-      {/* Left: notifications */}
-      <Link href="/notifications">
-        <div className="relative p-2.5 rounded-full hover:bg-muted transition-colors">
-          <Bell className="w-6 h-6 text-foreground" />
-          {unreadCount > 0 && (
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-primary rounded-full border-2 border-background" />
-          )}
+      {/* Left: create post */}
+      <Link href="/upload">
+        <div className="p-2.5 rounded-full hover:bg-muted transition-colors">
+          <PlusSquare className="w-6 h-6 text-foreground" />
         </div>
       </Link>
 
@@ -32,12 +29,22 @@ export default function MobileHeader() {
         <img src={`${BASE}/logo.png`} alt="Squawk" className="h-8 w-auto" />
       </Link>
 
-      {/* Right: messages */}
-      <Link href="/messages">
-        <div className="p-2.5 rounded-full hover:bg-muted transition-colors">
-          <MessageCircle className="w-6 h-6 text-foreground" />
-        </div>
-      </Link>
+      {/* Right: notifications + messages side by side */}
+      <div className="flex items-center gap-0.5">
+        <Link href="/notifications">
+          <div className="relative p-2.5 rounded-full hover:bg-muted transition-colors">
+            <Bell className="w-6 h-6 text-foreground" />
+            {unreadCount > 0 && (
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-primary rounded-full border-2 border-background" />
+            )}
+          </div>
+        </Link>
+        <Link href="/messages">
+          <div className="p-2.5 rounded-full hover:bg-muted transition-colors">
+            <MessageCircle className="w-6 h-6 text-foreground" />
+          </div>
+        </Link>
+      </div>
     </header>
   );
 }
