@@ -99,10 +99,6 @@ router.get("/posts/:id", async (req, res): Promise<void> => {
     .where(eq(postsTable.id, params.data.id));
 
   if (!row) { res.status(404).json({ error: "Post not found" }); return; }
-
-  // Increment views
-  await db.update(postsTable).set({ viewsCount: sql`${postsTable.viewsCount} + 1` }).where(eq(postsTable.id, params.data.id));
-
   const withMeta = await buildPostWithMeta(row.post, row.author, currentUser?.id);
   res.json(withMeta);
 });
@@ -138,6 +134,7 @@ router.post("/posts/:id/like", requireUser, async (req, res): Promise<void> => {
   } else {
     await db.insert(likesTable).values({ userId: currentUser.id, postId: params.data.id });
     isLiked = true;
+
     // Notify post author
     const [post] = await db.select().from(postsTable).where(eq(postsTable.id, params.data.id));
     if (post && post.authorId !== currentUser.id) {
@@ -166,16 +163,13 @@ router.post("/posts/:id/save", requireUser, async (req, res): Promise<void> => {
     and(eq(savesTable.userId, currentUser.id), eq(savesTable.postId, params.data.id))
   );
 
-  let isSaved: boolean;
   if (existing) {
     await db.delete(savesTable).where(eq(savesTable.id, existing.id));
-    isSaved = false;
+    res.json({ isSaved: false });
   } else {
     await db.insert(savesTable).values({ userId: currentUser.id, postId: params.data.id });
-    isSaved = true;
+    res.json({ isSaved: true });
   }
-
-  res.json({ isSaved });
 });
 
 // GET /users/me/saved
@@ -231,6 +225,7 @@ router.get("/posts/:id/comments", async (req, res): Promise<void> => {
     authorId: r.comment.authorId,
     author: buildUserSummary(r.author),
     content: r.comment.content,
+    parentCommentId: r.comment.parentCommentId ?? null,
     createdAt: r.comment.createdAt.toISOString(),
     likesCount: likeCountMap.get(r.comment.id) ?? 0,
     isLiked: myLikeSet.has(r.comment.id),
@@ -246,10 +241,16 @@ router.post("/posts/:id/comments", requireUser, async (req, res): Promise<void> 
   const body = CreateCommentBody.safeParse(req.body);
   if (!body.success) { res.status(400).json({ error: body.error.message }); return; }
 
+  // Accept optional parentCommentId from body (not in OpenAPI spec but used by frontend)
+  const parentCommentId = typeof (req.body as any).parentCommentId === "number"
+    ? (req.body as any).parentCommentId
+    : null;
+
   const [comment] = await db.insert(commentsTable).values({
     postId: params.data.id,
     authorId: currentUser.id,
     content: body.data.content,
+    parentCommentId,
   }).returning();
 
   // Notify post author
@@ -270,14 +271,17 @@ router.post("/posts/:id/comments", requireUser, async (req, res): Promise<void> 
     authorId: comment.authorId,
     author: buildUserSummary(currentUser),
     content: comment.content,
+    parentCommentId: comment.parentCommentId ?? null,
     createdAt: comment.createdAt.toISOString(),
+    likesCount: 0,
+    isLiked: false,
   });
 });
 
 // POST /comments/:id/like  (toggle)
 router.post("/comments/:id/like", requireUser, async (req, res): Promise<void> => {
   const currentUser = (req as any).currentUser as typeof usersTable.$inferSelect;
-  const commentId = parseInt(req.params.id, 10);
+  const commentId = parseInt(req.params.id as string, 10);
   if (isNaN(commentId)) { res.status(400).json({ error: "Invalid comment id" }); return; }
 
   const [existing] = await db.select().from(commentLikesTable).where(

@@ -245,8 +245,26 @@ export default function ProfilePage() {
   const handleFollow = () => {
     const newFollowing = !isFollowing;
     setIsFollowing(newFollowing);
-    if (newFollowing) followMutation.mutate({ username: profile.username }, { onError: () => setIsFollowing(false) });
-    else unfollowMutation.mutate({ username: profile.username }, { onError: () => setIsFollowing(true) });
+
+    const invalidateFollowCaches = () => {
+      // Refetch the profile so follower counts update and isFollowing is fresh
+      refetchProfile();
+      // Invalidate the followers/following lists
+      queryClient.invalidateQueries({ queryKey: ["getUserFollowers", profile.username] });
+      queryClient.invalidateQueries({ queryKey: ["getUserFollowing", (me as any)?.username] });
+    };
+
+    if (newFollowing) {
+      followMutation.mutate({ username: profile.username }, {
+        onSuccess: invalidateFollowCaches,
+        onError: () => setIsFollowing(false),
+      });
+    } else {
+      unfollowMutation.mutate({ username: profile.username }, {
+        onSuccess: invalidateFollowCaches,
+        onError: () => setIsFollowing(true),
+      });
+    }
   };
 
   const getInitials = (n: string) => n ? n.charAt(0).toUpperCase() : "?";

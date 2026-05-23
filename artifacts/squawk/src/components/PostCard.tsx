@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, useLocation } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -32,7 +32,6 @@ import {
   AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
   AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { useRef } from "react";
 
 interface PostCardProps {
   post: Post;
@@ -92,27 +91,41 @@ export default function PostCard({ post, onLike, onSave, onComment }: PostCardPr
   const getInitials = (name: string) => name ? name.charAt(0).toUpperCase() : "?";
   const avatarColor = `hsl(${post.author.username.length * 50 % 360}, 70%, 50%)`;
 
+  // Patch ALL query caches that may contain this post — ensures like state is consistent everywhere
   const patchCache = (isLikedVal: boolean, likesCountVal: number) => {
     const patchPosts = (posts: any[]) =>
       posts.map((p: any) =>
         p.id === post.id ? { ...p, isLiked: isLikedVal, likesCount: likesCountVal } : p
       );
-    queryClient.setQueriesData({ queryKey: ["feed"] }, (old: any) =>
-      old?.posts ? { ...old, posts: patchPosts(old.posts) } : old
-    );
+
+    // Patch feed queries (any key that contains "feed")
     queryClient.setQueriesData({ queryKey: getGetFeedQueryKey() }, (old: any) =>
       old?.posts ? { ...old, posts: patchPosts(old.posts) } : old
     );
+    // Patch user posts query
     queryClient.setQueriesData({ queryKey: getGetUserPostsQueryKey(post.author.username) }, (old: any) =>
-      Array.isArray(old) ? patchPosts(old) : old
+      Array.isArray(old) ? patchPosts(old) :
+      old?.posts ? { ...old, posts: patchPosts(old.posts) } : old
     );
+    // Patch generic list
     queryClient.setQueriesData({ queryKey: getListPostsQueryKey() }, (old: any) =>
       old?.posts ? { ...old, posts: patchPosts(old.posts) } : old
     );
-    // Also patch the individual post cache so PostPage shows correct like state
+    // Patch individual post cache (PostPage uses this)
     queryClient.setQueryData(getGetPostQueryKey(post.id), (old: any) =>
       old ? { ...old, isLiked: isLikedVal, likesCount: likesCountVal } : old
     );
+    // Also patch any query that is an array and contains this post id
+    queryClient.setQueriesData({ predicate: (query) => {
+      const data = queryClient.getQueryData(query.queryKey);
+      if (Array.isArray(data)) return (data as any[]).some((p: any) => p?.id === post.id);
+      if ((data as any)?.posts) return (data as any).posts.some((p: any) => p?.id === post.id);
+      return false;
+    }}, (old: any) => {
+      if (Array.isArray(old)) return patchPosts(old);
+      if (old?.posts) return { ...old, posts: patchPosts(old.posts) };
+      return old;
+    });
   };
 
   const handleLike = () => {
@@ -151,7 +164,6 @@ export default function PostCard({ post, onLike, onSave, onComment }: PostCardPr
   const handleDelete = () => {
     deleteMutation.mutate({ id: post.id }, {
       onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ["feed"] });
         queryClient.invalidateQueries({ queryKey: getGetFeedQueryKey() });
         queryClient.invalidateQueries({ queryKey: getListPostsQueryKey() });
         queryClient.invalidateQueries({ queryKey: getGetUserPostsQueryKey(post.author.username) });
@@ -300,9 +312,7 @@ export default function PostCard({ post, onLike, onSave, onComment }: PostCardPr
                 loop
                 playsInline
               />
-              {/* Gradient */}
               <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/40 pointer-events-none" />
-              {/* Mute toggle */}
               <button
                 onClick={handleMuteToggle}
                 className="absolute bottom-3 right-3 p-2 rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors z-10"
@@ -310,7 +320,6 @@ export default function PostCard({ post, onLike, onSave, onComment }: PostCardPr
               >
                 {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
               </button>
-              {/* Open in Flow badge */}
               <div className="absolute top-3 left-3 flex items-center gap-1.5 bg-black/55 backdrop-blur-sm text-white text-xs font-semibold px-2.5 py-1.5 rounded-full pointer-events-none z-10">
                 <PlaySquare className="w-3.5 h-3.5" />
                 Tap to open in Flow
@@ -381,6 +390,7 @@ export default function PostCard({ post, onLike, onSave, onComment }: PostCardPr
 
           <div className="font-semibold text-sm mb-1">{likesCount.toLocaleString()} likes</div>
 
+          {/* Caption in its own block, separated from comments */}
           {renderCaption(post.caption, post.hashtags)}
 
           {post.commentsCount > 0 && (

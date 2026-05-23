@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from "react";
-import { X, UploadCloud, Type, Send, Smile } from "lucide-react";
+import { X, UploadCloud, Type, Send, Smile, RotateCcw } from "lucide-react";
 import { useGetMe } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -44,6 +44,7 @@ export default function StoryUploadModal({ open, onClose, onSuccess }: StoryUplo
   const [tx, setTx] = useState(0);
   const [ty, setTy] = useState(0);
   const [scale, setScale] = useState(1);
+  const [rotation, setRotation] = useState(0);
 
   // Text layers
   const [textLayers, setTextLayers] = useState<DraggableText[]>([]);
@@ -53,18 +54,20 @@ export default function StoryUploadModal({ open, onClose, onSuccess }: StoryUplo
   const [editBg, setEditBg] = useState<DraggableText["bgStyle"]>("none");
   const [showEmojiStrip, setShowEmojiStrip] = useState(false);
 
-  // Pointer tracking for pan + pinch
+  // Pointer tracking for pan + pinch + rotate
   const canvasRef = useRef<HTMLDivElement>(null);
   const ptrCache = useRef<Map<number, { x: number; y: number }>>(new Map());
   const dragOrigin = useRef<{ startX: number; startY: number; origTx: number; origTy: number } | null>(null);
   const lastPinchDist = useRef<number | null>(null);
   const lastPinchScale = useRef<number>(1);
+  const lastPinchAngle = useRef<number | null>(null);
+  const lastPinchRotation = useRef<number>(0);
   const textDragging = useRef<{ id: string; startX: number; startY: number; origX: number; origY: number } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const reset = () => {
     setFile(null); setPreview(null); setError(null); setUploading(false);
-    setTx(0); setTy(0); setScale(1);
+    setTx(0); setTy(0); setScale(1); setRotation(0);
     setTextLayers([]); setEditingId(null); setEditingText(""); setShowEmojiStrip(false);
   };
 
@@ -97,19 +100,22 @@ export default function StoryUploadModal({ open, onClose, onSuccess }: StoryUplo
     const onWheel = (e: WheelEvent) => {
       e.preventDefault();
       const factor = e.deltaY < 0 ? 1.08 : 0.93;
-      setScale(s => Math.max(0.15, Math.min(12, s * factor)));
+      setScale(s => Math.max(0.1, Math.min(10, s * factor)));
     };
     el.addEventListener("wheel", onWheel, { passive: false });
     return () => el.removeEventListener("wheel", onWheel);
   }, [file]);
 
-  // ── Pointer events for pan + pinch ─────────────────────────────────────────
-  const getPinchDist = () => {
+  // ── Helper: get angle between two touch points ──────────────────────────────
+  const getPinchInfo = () => {
     const pts = Array.from(ptrCache.current.values());
     if (pts.length < 2) return null;
-    return Math.hypot(pts[1].x - pts[0].x, pts[1].y - pts[0].y);
+    const dist = Math.hypot(pts[1].x - pts[0].x, pts[1].y - pts[0].y);
+    const angle = Math.atan2(pts[1].y - pts[0].y, pts[1].x - pts[0].x) * (180 / Math.PI);
+    return { dist, angle };
   };
 
+  // ── Pointer events for pan + pinch + rotate ─────────────────────────────────
   const onCanvasPointerDown = useCallback((e: React.PointerEvent) => {
     if (editingId) return;
     ptrCache.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
@@ -117,22 +123,32 @@ export default function StoryUploadModal({ open, onClose, onSuccess }: StoryUplo
     if (ptrCache.current.size === 1) {
       dragOrigin.current = { startX: e.clientX, startY: e.clientY, origTx: tx, origTy: ty };
       lastPinchDist.current = null;
+      lastPinchAngle.current = null;
     } else if (ptrCache.current.size === 2) {
       dragOrigin.current = null;
-      lastPinchDist.current = getPinchDist();
+      const info = getPinchInfo();
+      if (info) {
+        lastPinchDist.current = info.dist;
+        lastPinchAngle.current = info.angle;
+      }
       lastPinchScale.current = scale;
+      lastPinchRotation.current = rotation;
     }
-  }, [editingId, tx, ty, scale]);
+  }, [editingId, tx, ty, scale, rotation]);
 
   const onCanvasPointerMove = useCallback((e: React.PointerEvent) => {
     ptrCache.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
     if (ptrCache.current.size >= 2) {
-      // Pinch zoom
-      const dist = getPinchDist();
-      if (dist !== null && lastPinchDist.current !== null) {
-        const newScale = Math.max(0.15, Math.min(12, lastPinchScale.current * (dist / lastPinchDist.current)));
+      // Pinch zoom + rotation
+      const info = getPinchInfo();
+      if (info && lastPinchDist.current !== null) {
+        const newScale = Math.max(0.1, Math.min(10, lastPinchScale.current * (info.dist / lastPinchDist.current)));
         setScale(newScale);
+      }
+      if (info && lastPinchAngle.current !== null) {
+        const angleDelta = info.angle - lastPinchAngle.current;
+        setRotation(lastPinchRotation.current + angleDelta);
       }
     } else if (ptrCache.current.size === 1 && dragOrigin.current && textDragging.current === null) {
       // Pan image
@@ -147,6 +163,7 @@ export default function StoryUploadModal({ open, onClose, onSuccess }: StoryUplo
     ptrCache.current.delete(e.pointerId);
     if (ptrCache.current.size < 2) {
       lastPinchDist.current = null;
+      lastPinchAngle.current = null;
     }
     if (ptrCache.current.size === 0) {
       dragOrigin.current = null;
@@ -170,7 +187,7 @@ export default function StoryUploadModal({ open, onClose, onSuccess }: StoryUplo
     const dy = ((e.clientY - textDragging.current.startY) / rect.height) * 100;
     setTextLayers(prev => prev.map(t =>
       t.id === textDragging.current!.id
-        ? { ...t, x: t.x + dx, y: t.y + dy }
+        ? { ...t, x: Math.max(5, Math.min(95, t.x + dx)), y: Math.max(5, Math.min(95, t.y + dy)) }
         : t
     ));
     textDragging.current.startX = e.clientX;
@@ -224,8 +241,9 @@ export default function StoryUploadModal({ open, onClose, onSuccess }: StoryUplo
 
   // ── Upload ─────────────────────────────────────────────────────────────────
   const handlePost = async () => {
-    if (!file) return;
-    setUploading(true); setError(null);
+    if (!file || uploading) return;
+    setUploading(true);
+    setError(null);
     try {
       const form = new FormData();
       form.append("file", file);
@@ -240,9 +258,9 @@ export default function StoryUploadModal({ open, onClose, onSuccess }: StoryUplo
       }
       const { mediaUrl } = await uploadRes.json();
 
-      // Build textLayers: prepend transform metadata, then actual text layers
+      // Build textLayers: prepend transform metadata (including rotation), then actual text layers
       const allLayers: any[] = [
-        { [TRANSFORM_KEY]: true, x: tx, y: ty, scale },
+        { [TRANSFORM_KEY]: true, x: tx, y: ty, scale, rotation },
         ...textLayers,
       ];
 
@@ -268,15 +286,21 @@ export default function StoryUploadModal({ open, onClose, onSuccess }: StoryUplo
 
       await queryClient.invalidateQueries({ queryKey: ["getStories"] });
       await queryClient.invalidateQueries({ queryKey: ["getActiveStories"] });
-      reset(); onSuccess?.(); onClose();
+      reset();
+      onSuccess?.();
+      onClose();
     } catch (e: any) {
       setError(e?.message || "Something went wrong. Please try again.");
+    } finally {
       setUploading(false);
     }
   };
 
   const isVideo = file?.type.startsWith("video/") ?? false;
-  const mediaTransform = `translate(calc(-50% + ${tx}px), calc(-50% + ${ty}px)) scale(${scale})`;
+
+  // Media transform — includes scale, translation, and rotation
+  // Use contain-style bounds to prevent clipping: scale determines visibility
+  const mediaTransform = `translate(calc(-50% + ${tx}px), calc(-50% + ${ty}px)) scale(${scale}) rotate(${rotation}deg)`;
 
   return (
     <AnimatePresence>
@@ -286,6 +310,7 @@ export default function StoryUploadModal({ open, onClose, onSuccess }: StoryUplo
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center backdrop-blur-sm"
+          style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
           onClick={handleClose}
         >
           <motion.div
@@ -308,7 +333,9 @@ export default function StoryUploadModal({ open, onClose, onSuccess }: StoryUplo
               file
                 ? "absolute top-0 left-0 right-0 z-20 bg-gradient-to-b from-black/70 to-transparent pointer-events-none"
                 : "border-b border-border bg-card"
-            }`}>
+            }`}
+              style={{ paddingTop: file ? "calc(env(safe-area-inset-top, 0px) + 12px)" : undefined }}
+            >
               <button
                 onClick={handleClose}
                 className="w-8 h-8 rounded-full bg-black/50 flex items-center justify-center hover:bg-black/70 transition-colors pointer-events-auto"
@@ -371,20 +398,27 @@ export default function StoryUploadModal({ open, onClose, onSuccess }: StoryUplo
                 <div
                   ref={canvasRef}
                   className="absolute inset-0 bg-black overflow-hidden"
-                  style={{ cursor: editingId ? "default" : "grab", touchAction: "none" }}
+                  style={{
+                    cursor: editingId ? "default" : "grab",
+                    touchAction: "none",
+                    /* Ensure bottom toolbar area is not covered by safe area */
+                    bottom: 0,
+                  }}
                   onPointerDown={onCanvasPointerDown}
                   onPointerMove={onCanvasPointerMove}
                   onPointerUp={onCanvasPointerUp}
                   onPointerLeave={onCanvasPointerUp}
                 >
-                  {/* Media — free-form transform */}
+                  {/* Media — free-form transform with rotation */}
                   {isVideo ? (
                     <video
                       src={preview}
-                      className="absolute w-full h-full"
+                      className="absolute"
                       style={{
                         top: "50%", left: "50%",
-                        objectFit: "cover",
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "contain",
                         transform: mediaTransform,
                         transformOrigin: "center center",
                         pointerEvents: "none",
@@ -395,10 +429,12 @@ export default function StoryUploadModal({ open, onClose, onSuccess }: StoryUplo
                   ) : (
                     <img
                       src={preview}
-                      className="absolute w-full h-full"
+                      className="absolute"
                       style={{
                         top: "50%", left: "50%",
-                        objectFit: "cover",
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "contain",
                         transform: mediaTransform,
                         transformOrigin: "center center",
                         pointerEvents: "none",
@@ -412,11 +448,11 @@ export default function StoryUploadModal({ open, onClose, onSuccess }: StoryUplo
 
                   {/* Pinch / drag hint — fades after 2s */}
                   <div
-                    className="absolute bottom-14 left-0 right-0 flex justify-center pointer-events-none z-20"
-                    style={{ opacity: scale === 1 && tx === 0 && ty === 0 ? 1 : 0, transition: "opacity 1.5s 1s" }}
+                    className="absolute bottom-20 left-0 right-0 flex justify-center pointer-events-none z-20"
+                    style={{ opacity: scale === 1 && tx === 0 && ty === 0 && rotation === 0 ? 1 : 0, transition: "opacity 1.5s 1s" }}
                   >
                     <div className="bg-black/55 text-white/80 text-xs px-3 py-1.5 rounded-full">
-                      Drag to pan · Pinch or scroll to zoom
+                      Drag · Pinch to zoom · Two fingers to rotate
                     </div>
                   </div>
 
@@ -456,7 +492,8 @@ export default function StoryUploadModal({ open, onClose, onSuccess }: StoryUplo
                         initial={{ y: 80, opacity: 0 }}
                         animate={{ y: 0, opacity: 1 }}
                         exit={{ y: 80, opacity: 0 }}
-                        className="absolute bottom-14 left-0 right-0 z-20 px-3 py-2 flex gap-2 overflow-x-auto no-scrollbar bg-black/60 backdrop-blur-md"
+                        className="absolute left-0 right-0 z-20 px-3 py-2 flex gap-2 overflow-x-auto no-scrollbar bg-black/60 backdrop-blur-md"
+                        style={{ bottom: "calc(56px + env(safe-area-inset-bottom, 0px))" }}
                       >
                         {EMOJI_STRIP.map(e => (
                           <button
@@ -537,31 +574,51 @@ export default function StoryUploadModal({ open, onClose, onSuccess }: StoryUplo
                 </div>
 
                 {/* ── TOOLBAR ── */}
-                <div className="absolute bottom-0 left-0 right-0 z-20 flex items-center justify-between gap-2 px-4 py-3 bg-black/80 backdrop-blur-md border-t border-white/10">
-                  <button
-                    onClick={() => addTextLayer()}
-                    className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-white/15 text-white text-xs font-semibold hover:bg-white/25 transition-colors"
-                  >
-                    <Type className="w-3.5 h-3.5" />
-                    Text
-                  </button>
+                <div
+                  className="absolute left-0 right-0 z-20 bg-black/80 backdrop-blur-md border-t border-white/10"
+                  style={{
+                    bottom: 0,
+                    paddingBottom: "max(env(safe-area-inset-bottom, 0px), 8px)",
+                    paddingTop: "12px",
+                    paddingLeft: "16px",
+                    paddingRight: "16px",
+                  }}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <button
+                      onClick={() => addTextLayer()}
+                      className="flex items-center gap-1.5 px-3 py-2 rounded-full bg-white/15 text-white text-xs font-semibold hover:bg-white/25 transition-colors shrink-0"
+                    >
+                      <Type className="w-3.5 h-3.5" />
+                      Text
+                    </button>
 
-                  <button
-                    onClick={() => setShowEmojiStrip(v => !v)}
-                    className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-white text-xs font-semibold transition-colors ${
-                      showEmojiStrip ? "bg-primary/70" : "bg-white/15 hover:bg-white/25"
-                    }`}
-                  >
-                    <Smile className="w-3.5 h-3.5" />
-                    Sticker
-                  </button>
+                    <button
+                      onClick={() => setShowEmojiStrip(v => !v)}
+                      className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-white text-xs font-semibold transition-colors shrink-0 ${
+                        showEmojiStrip ? "bg-primary/70" : "bg-white/15 hover:bg-white/25"
+                      }`}
+                    >
+                      <Smile className="w-3.5 h-3.5" />
+                      Sticker
+                    </button>
 
-                  <button
-                    onClick={() => { setFile(null); setPreview(null); setTextLayers([]); setTx(0); setTy(0); setScale(1); }}
-                    className="w-9 h-9 rounded-full bg-white/15 text-white flex items-center justify-center hover:bg-white/25 transition-colors"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
+                    {/* Rotate button */}
+                    <button
+                      onClick={() => setRotation(r => r + 90)}
+                      className="flex items-center gap-1.5 px-3 py-2 rounded-full bg-white/15 text-white text-xs font-semibold hover:bg-white/25 transition-colors shrink-0"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5" />
+                      Rotate
+                    </button>
+
+                    <button
+                      onClick={() => { setFile(null); setPreview(null); setTextLayers([]); setTx(0); setTy(0); setScale(1); setRotation(0); }}
+                      className="w-9 h-9 rounded-full bg-white/15 text-white flex items-center justify-center hover:bg-white/25 transition-colors shrink-0"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
 
                 {error && (

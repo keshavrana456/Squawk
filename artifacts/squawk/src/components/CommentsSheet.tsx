@@ -2,7 +2,7 @@ import { useState, useCallback, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Send, Heart, MessageCircle, CornerDownRight } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useGetPostComments, useCreateComment } from "@workspace/api-client-react";
+import { useGetPostComments } from "@workspace/api-client-react";
 import { formatDistanceToNow } from "date-fns";
 import { Link } from "wouter";
 
@@ -33,13 +33,23 @@ export default function CommentsSheet({ postId, commentsCount, isOpen, onClose }
   const { data: commentsData, isLoading, refetch } = useGetPostComments(postId, {
     query: { enabled: isOpen && postId > 0 },
   });
-  const comments: any[] = Array.isArray(commentsData) ? commentsData : [];
-  const createMutation = useCreateComment();
+  const rawComments: any[] = Array.isArray(commentsData) ? commentsData : [];
+
   const [text, setText] = useState("");
   const [replyTo, setReplyTo] = useState<{ username: string; commentId: number } | null>(null);
   const [likeStates, setLikeStates] = useState<Record<number, LikeState>>({});
   const [mentionQuery, setMentionQuery] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Reset state when closed
+  useEffect(() => {
+    if (!isOpen) {
+      setText("");
+      setReplyTo(null);
+      setMentionQuery(null);
+    }
+  }, [isOpen]);
 
   const getLikeState = (comment: any): LikeState => {
     if (likeStates[comment.id] !== undefined) return likeStates[comment.id];
@@ -81,20 +91,31 @@ export default function CommentsSheet({ postId, commentsCount, isOpen, onClose }
     inputRef.current?.focus();
   };
 
-  const handleSubmit = () => {
-    if (!text.trim() || postId <= 0) return;
+  const handleSubmit = async () => {
+    if (!text.trim() || postId <= 0 || isSubmitting) return;
+    setIsSubmitting(true);
+
     const content = replyTo ? `@${replyTo.username} ${text.trim()}` : text.trim();
-    createMutation.mutate(
-      { id: postId, data: { content } },
-      {
-        onSuccess: () => {
-          setText("");
-          setReplyTo(null);
-          setMentionQuery(null);
-          refetch();
-        },
+    const parentCommentId = replyTo?.commentId ?? null;
+
+    try {
+      const res = await fetch(`/api/posts/${postId}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ content, parentCommentId }),
+      });
+      if (res.ok) {
+        setText("");
+        setReplyTo(null);
+        setMentionQuery(null);
+        refetch();
       }
-    );
+    } catch {
+      // ignore
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const getInitials = (n: string) => (n ? n.charAt(0).toUpperCase() : "?");
@@ -103,31 +124,68 @@ export default function CommentsSheet({ postId, commentsCount, isOpen, onClose }
   };
 
   // Build commenter usernames for @mention suggestions
-  const allUsernames = [...new Set(comments.map((c: any) => c.author?.username).filter(Boolean))];
+  const allUsernames = [...new Set(rawComments.map((c: any) => c.author?.username).filter(Boolean))];
   const mentionSuggestions = mentionQuery !== null
     ? allUsernames.filter(u => u.toLowerCase().startsWith(mentionQuery.toLowerCase())).slice(0, 5)
     : [];
 
-  // Separate top-level comments from replies, deduplicating replies
-  const commenterUsernames = new Set(comments.map((c: any) => c.author?.username));
-  const isReply = (content: string) => {
-    if (!content.startsWith("@")) return false;
-    const mention = content.split(" ")[0].slice(1);
-    return commenterUsernames.has(mention);
-  };
+  // Separate top-level and replies using parentCommentId (preferred) or text-matching fallback
+  const topLevelComments = rawComments.filter((c: any) => !c.parentCommentId);
+  const replyComments = rawComments.filter((c: any) => !!c.parentCommentId);
 
-  const topLevel = comments.filter((c: any) => !isReply(c.content));
-  const replyItems = comments.filter((c: any) => isReply(c.content));
+  // For legacy comments (no parentCommentId), also detect text-based replies
+  const commenterUsernameSet = new Set(rawComments.map((c: any) => c.author?.username));
+  const legacyReplies = rawComments.filter((c: any) =>
+    !c.parentCommentId &&
+    c.content.startsWith("@") &&
+    commenterUsernameSet.has(c.content.split(" ")[0].slice(1))
+  );
+  const legacyTopLevel = rawComments.filter((c: any) =>
+    !c.parentCommentId &&
+    !(c.content.startsWith("@") && commenterUsernameSet.has(c.content.split(" ")[0].slice(1)))
+  );
 
-  // Dedup: each reply assigned to only the first matching top-level comment author
-  const usedReplyIds = new Set<number>();
-  const getRepliesFor = (username: string) => {
-    const matches = replyItems.filter(
-      (r: any) => r.content.startsWith(`@${username} `) && !usedReplyIds.has(r.id)
-    );
-    matches.forEach(r => usedReplyIds.add(r.id));
-    return matches;
-  };
+  // If all comments lack parentCommentId, use the legacy text-based approach
+  const hasParentInfo = replyComments.length > 0 || topLevelComments.some((c: any) => c.parentCommentId !== undefined);
+  const useParentIds = replyComments.length > 0;
+
+  const finalTopLevel = useParentIds ? topLevelComments : legacyTopLevel;
+  const getRepliesFor = useParentIds
+    ? (commentId: number) => replyComments.filter((r: any) => r.parentCommentId === commentId)
+    : (() => {
+        // Legacy: text-based grouping but assign to the LAST comment by that author (not first)
+        // to handle multi-comment same-author scenario correctly
+        const usedReplyIds = new Set<number>();
+        const commentsByAuthor: Record<string, any[]> = {};
+        for (const c of rawComments) {
+          const u = c.author?.username;
+          if (u) {
+            if (!commentsByAuthor[u]) commentsByAuthor[u] = [];
+            commentsByAuthor[u].push(c);
+          }
+        }
+        return (commentId: number) => {
+          const comment = rawComments.find((c: any) => c.id === commentId);
+          if (!comment) return [];
+          // Use this comment's author username to find replies
+          const authorUsername = comment.author?.username;
+          if (!authorUsername) return [];
+          // Find replies that @mention this author and are not yet used
+          const matches = legacyReplies.filter(
+            (r: any) =>
+              r.content.startsWith(`@${authorUsername} `) &&
+              !usedReplyIds.has(r.id) &&
+              // Assign to the LAST comment by this author that is <= this reply's creation time
+              commentsByAuthor[authorUsername]
+                ?.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                ?.find((c: any) => new Date(c.createdAt) <= new Date(r.createdAt))?.id === commentId
+          );
+          matches.forEach(r => usedReplyIds.add(r.id));
+          return matches;
+        };
+      })();
+
+  const displayCount = rawComments.length > 0 ? rawComments.length : commentsCount;
 
   return (
     <AnimatePresence>
@@ -154,7 +212,7 @@ export default function CommentsSheet({ postId, commentsCount, isOpen, onClose }
               <div className="flex items-center gap-2">
                 <MessageCircle className="w-4 h-4 text-muted-foreground" />
                 <span className="font-bold text-foreground text-base">
-                  {commentsCount > 0 ? `${commentsCount} Comments` : "Comments"}
+                  {displayCount > 0 ? `${displayCount} Comments` : "Comments"}
                 </span>
               </div>
               <button
@@ -166,24 +224,24 @@ export default function CommentsSheet({ postId, commentsCount, isOpen, onClose }
             </div>
 
             {/* Comments list */}
-            <div className="flex-1 overflow-y-auto px-4 py-3 space-y-4 no-scrollbar">
+            <div className="flex-1 overflow-y-auto px-4 py-3 space-y-1 no-scrollbar">
               {isLoading ? (
                 <div className="flex justify-center py-12">
                   <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
                 </div>
-              ) : comments.length === 0 ? (
+              ) : rawComments.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-16 gap-3 text-center">
                   <MessageCircle className="w-10 h-10 text-muted-foreground/30" />
                   <p className="text-muted-foreground text-sm">No comments yet. Be the first!</p>
                 </div>
               ) : (
-                topLevel.map((c: any) => {
+                finalTopLevel.map((c: any) => {
                   const likeState = getLikeState(c);
-                  const nestedReplies = getRepliesFor(c.author?.username);
+                  const nestedReplies = getRepliesFor(c.id);
                   return (
-                    <div key={c.id}>
+                    <div key={c.id} className="space-y-1">
                       {/* Top-level comment */}
-                      <div className="flex gap-3 items-start">
+                      <div className="flex gap-3 items-start py-2">
                         <Avatar className="w-8 h-8 shrink-0 border border-border">
                           <AvatarImage src={c.author?.avatarUrl || ""} />
                           <AvatarFallback className="bg-primary/20 text-primary text-xs font-bold">
@@ -231,12 +289,12 @@ export default function CommentsSheet({ postId, commentsCount, isOpen, onClose }
                         </div>
                       </div>
 
-                      {/* Nested replies */}
+                      {/* Nested replies — visually smaller and indented */}
                       {nestedReplies.map((reply: any) => {
                         const replyLikeState = getLikeState(reply);
                         return (
-                          <div key={reply.id} className="flex gap-2 items-start mt-2 ml-10">
-                            <CornerDownRight className="w-3 h-3 text-muted-foreground/50 mt-2 shrink-0" />
+                          <div key={reply.id} className="flex gap-2 items-start ml-10 pb-1">
+                            <CornerDownRight className="w-3 h-3 text-muted-foreground/40 mt-2 shrink-0" />
                             <Avatar className="w-6 h-6 shrink-0 border border-border">
                               <AvatarImage src={reply.author?.avatarUrl || ""} />
                               <AvatarFallback className="bg-primary/10 text-primary text-[10px] font-bold">
@@ -244,12 +302,12 @@ export default function CommentsSheet({ postId, commentsCount, isOpen, onClose }
                               </AvatarFallback>
                             </Avatar>
                             <div className="flex-1 min-w-0">
-                              <div className="bg-muted/60 rounded-xl rounded-tl-sm px-2.5 py-2">
+                              <div className="bg-muted/50 rounded-xl rounded-tl-sm px-2.5 py-2 border border-border/30">
                                 <Link href={`/profile/${reply.author?.username}`} className="font-semibold text-foreground text-xs hover:underline">
                                   {reply.author?.username}
                                 </Link>
                                 {" "}
-                                <span className="text-xs break-words leading-relaxed">
+                                <span className="text-xs text-foreground/90 break-words leading-relaxed">
                                   {renderCommentText(reply.content)}
                                 </span>
                               </div>
@@ -336,7 +394,7 @@ export default function CommentsSheet({ postId, commentsCount, isOpen, onClose }
                 />
                 <button
                   onClick={handleSubmit}
-                  disabled={!text.trim() || createMutation.isPending}
+                  disabled={!text.trim() || isSubmitting}
                   className="p-2.5 rounded-full text-primary disabled:opacity-40 hover:bg-primary/10 transition-colors shrink-0"
                 >
                   <Send className="w-5 h-5" />
