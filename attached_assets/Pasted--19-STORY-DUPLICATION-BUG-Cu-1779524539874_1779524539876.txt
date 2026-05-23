@@ -1,0 +1,236 @@
+========================================
+19. STORY DUPLICATION BUG
+=========================
+
+Current issue:
+
+* After uploading a story, two stories appear:
+
+  1. “My Story”
+  2. Same duplicate story under my username
+
+This creates duplicated story entries for same user.
+
+Fix:
+
+* Only ONE story group should exist per user
+* Current user's stories should merge into single story collection
+* Prevent duplicate rendering between:
+
+  * “My Story”
+  * username story item
+
+Correct behavior:
+
+* Current user should only see:
+  “Your Story” OR “My Story”
+* Not both simultaneously
+
+Fix story grouping logic.
+
+Current probable issue:
+Stories are being rendered twice:
+
+* once from currentUser logic
+* once again from all users stories array
+
+Fix by filtering current user from public stories list:
+
+```js id="jjlwm9"
+stories.filter(
+ story => story.user_id !== currentUser.id
+)
+```
+
+Then prepend only one “My Story” object.
+
+Ensure:
+
+* no duplicated story circles
+* no duplicated story viewers
+* no duplicated story counts
+
+========================================
+20. MESSAGE & NOTIFICATION BADGES
+=================================
+
+Add unread indicators/badges for:
+
+* DMs/messages
+* notifications
+
+Requirements:
+
+* Show unread count badge
+* Badge disappears after viewing
+* Realtime updates
+
+Examples:
+
+* message icon shows:
+  3
+* notification bell shows:
+  7
+
+After opening:
+
+* mark as read
+* badge count updates instantly
+
+Create proper fields:
+
+```sql id="ebjlwm"
+is_read BOOLEAN DEFAULT false
+```
+
+Required tables:
+
+```sql id="n8mjlwm"
+notifications
+- id
+- user_id
+- type
+- is_read
+- created_at
+```
+
+```sql id="5jlwm7"
+messages
+- is_read
+```
+
+Realtime behavior:
+
+* counts update instantly
+* unread count sync across all pages/devices
+
+UI requirements:
+
+* animated badge
+* red notification dot
+* smooth transitions
+
+========================================
+21. POST SHARING TO DMS BROKEN
+==============================
+
+Current issue:
+
+* Sharing a post into DMs only sends a link
+* Entire post preview is missing
+
+Fix:
+
+* Send full embedded post preview inside chat
+* Render shared post card similar to Instagram
+
+When sharing post:
+
+* include:
+
+  * post image/video
+  * username
+  * caption preview
+  * like count
+  * thumbnail
+  * clickable post preview
+
+Message should NOT appear as plain URL only.
+
+Required message structure:
+
+```js id="wjlwmq"
+{
+  type: "shared_post",
+  post_id,
+  shared_by,
+}
+```
+
+Then fetch full post data dynamically.
+
+Render inside chat as:
+
+* mini post card
+* image preview
+* clickable container
+
+Clicking shared post should:
+
+* open full post modal/page
+* navigate correctly
+
+Support:
+
+* image posts
+* video posts
+* carousel posts
+
+Ensure:
+
+* realtime delivery works
+* previews load fast
+* deleted posts handled gracefully
+
+========================================
+22. GLOBAL STATE CONSISTENCY
+============================
+
+Fix ALL state desync issues across app.
+
+Currently:
+
+* likes reset visually
+* follows reset visually
+* unread counts inconsistent
+* story duplication occurs
+* mentions not synced
+
+Implement proper global state management using:
+
+* Zustand OR Context API
+* realtime subscriptions
+* cache invalidation
+* optimistic updates
+
+Ensure:
+
+* same post always shows same like state everywhere
+* same follow state everywhere
+* same unread counts everywhere
+* same story state everywhere
+
+No UI mismatch after:
+
+* refresh
+* navigation
+* reopening pages
+* realtime updates
+
+========================================
+23. FINAL APP REQUIREMENTS
+==========================
+
+Make the app behave like a real production-grade Instagram clone with:
+
+* proper realtime syncing
+* persistent states
+* smooth mobile UX
+* premium UI
+* no duplicated data
+* no desync bugs
+* modern animations
+* optimized performance
+* reliable Supabase backend integration
+
+Ensure every feature works consistently across:
+
+* feed
+* profile
+* explore
+* stories
+* chat
+* notifications
+* search
+* mentions
+* shared posts

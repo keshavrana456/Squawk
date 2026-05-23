@@ -1,0 +1,464 @@
+Fix and upgrade the entire social media web app to production quality with proper realtime syncing, mobile responsiveness, story system, mentions, persistent states, and advanced chat features.
+
+CRITICAL BUGS TO FIX:
+
+========================================
+
+1. FOLLOW BUTTON STATE NOT PERSISTING
+   ========================================
+
+Current issue:
+
+* When I follow a user, button changes to “Following”
+* But after refresh or reopening profile/feed/explore, it changes back to “Follow”
+* Database count may update but UI state resets incorrectly
+
+Fix:
+
+* Properly persist follow relationship in database
+* Always check follow state on component load
+* Sync state globally across:
+
+  * feed
+  * profile
+  * explore
+  * search
+  * suggested users
+
+Required logic:
+
+* On page load fetch:
+
+```js id="dnt9mf"
+isFollowing
+```
+
+from follows table
+
+Create proper table:
+
+```sql id="x5mjlwm"
+follows
+- id
+- follower_id
+- following_id
+- created_at
+```
+
+Fix optimistic UI syncing and realtime updates.
+
+========================================
+2. LIKE BUTTON STATE NOT PERSISTING
+===================================
+
+Current issue:
+
+* Like count increases correctly
+* But heart icon becomes unfilled after refresh
+* Same post shows different like state in feed/profile/explore
+
+Fix:
+
+* Persist likes properly in database
+* Fetch liked state for current user everywhere
+* Sync state globally across app
+* Maintain same state after refresh
+
+Required table:
+
+```sql id="elv7e6"
+likes
+- id
+- user_id
+- post_id
+```
+
+Required logic:
+
+```js id="mjlwmc"
+isLiked = likes.some(
+ like => like.user_id === currentUser.id
+)
+```
+
+Ensure:
+
+* double tap like works
+* realtime like syncing
+* no desync between pages
+
+========================================
+3. STORY VIEWER MOBILE LAYOUT BROKEN
+====================================
+
+Fix fullscreen story system:
+
+* Replace ALL `100vh` with `100dvh`
+* Remove flex centering causing black empty spaces
+* Story should fully fill mobile screen
+* Fix tiny centered story issue
+
+Use:
+
+```css id="8aw6sx"
+position: fixed;
+inset: 0;
+height: 100dvh;
+width: 100%;
+background: black;
+```
+
+Story media:
+
+```css id="nmb0n7"
+width: 100%;
+height: 100%;
+object-fit: cover;
+```
+
+========================================
+4. STORY IMAGE EDITOR / CROPPER BUGS
+====================================
+
+Current issues:
+
+* Zooming out cuts image from sides
+* Image clipping/glitching
+* Cannot rotate image
+* Gesture handling broken
+
+Fix:
+
+* smooth pinch zoom
+* drag reposition
+* free rotate using gestures
+* maintain image visibility
+* prevent clipping outside bounds
+
+Add:
+
+* reset button
+* rotate button
+* gesture smoothing
+* proper transform state
+
+Use:
+
+```js id="2f0mnp"
+scale
+translateX
+translateY
+rotation
+```
+
+CSS:
+
+```css id="3x1kgj"
+touch-action: none;
+transform-origin: center;
+will-change: transform;
+```
+
+Story editor should behave like Instagram.
+
+========================================
+5. COMMENT REPLY SYSTEM BROKEN
+==============================
+
+Current issue:
+
+* Replies appear under every comment
+* Duplicate replies rendering
+
+Fix:
+
+* Properly filter using:
+
+```js id="13agvx"
+reply.parent_comment_id === comment.id
+```
+
+Support nested replies correctly.
+
+========================================
+6. CHAT SYSTEM IMPROVEMENTS
+===========================
+
+Fix chat layout:
+
+* proper spacing
+* responsive bubbles
+* hidden scrollbar
+* sticky input
+* bottom navbar overlap
+* mobile responsiveness
+
+Add:
+
+* Seen status
+* Delivered status
+* Sent status
+* Typing indicator
+* Active now indicator
+* Last seen
+
+Required fields:
+
+```sql id="yw50i7"
+is_seen
+is_delivered
+reply_to_message_id
+```
+
+========================================
+7. ADD REPLY FEATURE IN CHAT
+============================
+
+Allow:
+
+* swipe to reply
+* long press reply
+* quoted message preview
+
+Use:
+
+```sql id="egjtm8"
+reply_to_message_id
+```
+
+========================================
+8. ADD GIF SUPPORT
+==================
+
+Integrate:
+
+* Tenor API OR Giphy API
+
+Allow:
+
+* GIF picker
+* GIF sending
+* GIF preview
+
+Message types:
+
+```sql id="kl65mg"
+text
+image
+video
+gif
+audio
+file
+```
+
+========================================
+9. ADD CALL & VIDEO CALL
+========================
+
+Add:
+
+* voice call
+* video call
+* incoming call UI
+* mute/unmute
+* speaker toggle
+* camera toggle
+
+Use:
+
+* ZegoCloud OR Agora SDK
+
+========================================
+10. ACTIVE STATUS SYSTEM
+========================
+
+Create realtime online presence.
+
+Table:
+
+```sql id="x4g7vh"
+user_presence
+- user_id
+- is_online
+- last_seen
+```
+
+Show:
+
+* green online dot
+* active now
+* last seen
+
+========================================
+11. MENTION SYSTEM BROKEN
+=========================
+
+Current issues:
+
+* Typing @username gives no suggestions
+* Mentioned usernames are not clickable
+* Clicking mention does not open profile
+
+Fix completely.
+
+Requirements:
+
+* When user types @ show live user suggestions dropdown
+* Search usernames realtime
+* Keyboard navigation support
+* Mobile responsive suggestions popup
+
+Example:
+
+```text id="f5grh9"
+@keshav
+```
+
+should instantly suggest users.
+
+After posting:
+
+* Mention text becomes clickable
+* Clicking mention opens profile page
+* Mention should route correctly:
+
+```js id="k6m3cn"
+navigate(`/profile/${username}`)
+```
+
+Store mentions properly in captions/comments/messages.
+
+Use parser:
+
+```js id="d8slxv"
+const mentionRegex = /@(\w+)/g;
+```
+
+Render mentions as styled clickable links.
+
+========================================
+12. REALTIME NOTIFICATIONS
+==========================
+
+Add notifications for:
+
+* likes
+* follows
+* comments
+* mentions
+* messages
+* story replies
+
+========================================
+13. FIX MODALS & Z-INDEX
+========================
+
+Fix:
+
+* hidden overlays
+* broken sheets
+* overflow hidden issues
+* clipping problems
+
+Ensure:
+
+```css id="z1v3xo"
+z-index: 9999;
+```
+
+for modals.
+
+========================================
+14. MOBILE RESPONSIVENESS
+=========================
+
+Fix entire app on Android/iPhone:
+
+* no overflow
+* no broken heights
+* no hidden content
+* no navbar overlap
+* no black gaps
+
+Replace:
+
+```css id="q7a3os"
+100vh
+```
+
+with:
+
+```css id="3jlwm8"
+100dvh
+```
+
+========================================
+15. IMPROVE STORY SYSTEM
+========================
+
+Add:
+
+* story progress bars
+* tap navigation
+* story seen system
+* story replies
+* pause on hold
+* smooth animations
+
+========================================
+16. IMPROVE OVERALL UI
+======================
+
+Make app premium like Instagram:
+
+* smoother animations
+* modern gradients
+* glassmorphism
+* better shadows
+* loading skeletons
+* polished transitions
+
+========================================
+17. DATABASE & REALTIME IMPROVEMENTS
+====================================
+
+Create proper tables for:
+
+* follows
+* likes
+* messages
+* chats
+* story_views
+* notifications
+* mentions
+* calls
+* replies
+* reactions
+* user_presence
+
+Ensure:
+
+* realtime syncing
+* optimistic UI
+* state consistency everywhere
+* no refresh desync issues
+
+========================================
+18. PERFORMANCE OPTIMIZATION
+============================
+
+Add:
+
+* lazy loading
+* infinite scroll
+* optimized realtime subscriptions
+* image optimization
+* reduced mobile lag
+
+IMPORTANT:
+
+* Keep existing purple/pink dark theme
+* Maintain Instagram-like UI
+* Mobile-first design
+* Use Supabase realtime properly
+* Make app production-ready and smooth on all devices

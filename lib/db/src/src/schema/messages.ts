@@ -24,8 +24,12 @@ export const messagesTable = pgTable("messages", {
   id: serial("id").primaryKey(),
   conversationId: integer("conversation_id").notNull().references(() => conversationsTable.id, { onDelete: "cascade" }),
   senderId: integer("sender_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
-  content: text("content").notNull(),
+  content: text("content").notNull().default(""),
   mediaUrl: text("media_url"),
+  messageType: text("message_type").notNull().default("text"),
+  replyToMessageId: integer("reply_to_message_id"),
+  gifUrl: text("gif_url"),
+  sharedPostId: integer("shared_post_id"),
   isRead: boolean("is_read").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });

@@ -1,5 +1,5 @@
 import { Link } from "wouter";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { BadgeCheck } from "lucide-react";
 import { useFollowUser, useUnfollowUser, type UserSummary } from "@workspace/api-client-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -13,6 +13,10 @@ export default function UserCard({ user }: UserCardProps) {
   const followMutation = useFollowUser();
   const unfollowMutation = useUnfollowUser();
   const [isFollowing, setIsFollowing] = useState(user.isFollowing);
+
+  useEffect(() => {
+    setIsFollowing(user.isFollowing ?? false);
+  }, [user.id, user.isFollowing]);
 
   const getInitials = (name: string) => name ? name.charAt(0).toUpperCase() : '?';
   const avatarColor = `hsl(${user.username.length * 50 % 360}, 70%, 50%)`;

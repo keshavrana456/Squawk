@@ -423,6 +423,7 @@ export default function StoriesRow() {
 
         {/* Other Stories */}
         {storyGroups?.map((group, idx) => {
+          if (group.user.id === (me as any)?.id) return null;
           const avatarColor = `hsl(${group.user.username.length * 50 % 360}, 70%, 50%)`;
           const hasUnviewed = group.hasUnviewed;
 

@@ -1,9 +1,10 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Send, Heart, MessageCircle, CornerDownRight } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useGetPostComments, useCreateComment } from "@workspace/api-client-react";
 import { formatDistanceToNow } from "date-fns";
+import { Link } from "wouter";
 
 interface CommentsSheetProps {
   postId: number;
@@ -14,6 +15,20 @@ interface CommentsSheetProps {
 
 type LikeState = { isLiked: boolean; count: number };
 
+function renderCommentText(content: string) {
+  const parts = content.split(/(@\w+)/g);
+  return parts.map((part, i) => {
+    if (/^@\w+$/.test(part)) {
+      return (
+        <Link key={i} href={`/profile/${part.slice(1)}`} className="text-primary font-semibold hover:underline">
+          {part}
+        </Link>
+      );
+    }
+    return <span key={i}>{part}</span>;
+  });
+}
+
 export default function CommentsSheet({ postId, commentsCount, isOpen, onClose }: CommentsSheetProps) {
   const { data: commentsData, isLoading, refetch } = useGetPostComments(postId, {
     query: { enabled: isOpen && postId > 0 },
@@ -23,6 +38,8 @@ export default function CommentsSheet({ postId, commentsCount, isOpen, onClose }
   const [text, setText] = useState("");
   const [replyTo, setReplyTo] = useState<{ username: string; commentId: number } | null>(null);
   const [likeStates, setLikeStates] = useState<Record<number, LikeState>>({});
+  const [mentionQuery, setMentionQuery] = useState<string | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const getLikeState = (comment: any): LikeState => {
     if (likeStates[comment.id] !== undefined) return likeStates[comment.id];
@@ -51,6 +68,19 @@ export default function CommentsSheet({ postId, commentsCount, isOpen, onClose }
     }
   }, []);
 
+  const handleTextChange = (val: string) => {
+    setText(val);
+    const match = val.match(/@(\w*)$/);
+    setMentionQuery(match ? match[1] : null);
+  };
+
+  const insertMention = (username: string) => {
+    const newText = text.replace(/@\w*$/, `@${username} `);
+    setText(newText);
+    setMentionQuery(null);
+    inputRef.current?.focus();
+  };
+
   const handleSubmit = () => {
     if (!text.trim() || postId <= 0) return;
     const content = replyTo ? `@${replyTo.username} ${text.trim()}` : text.trim();
@@ -60,6 +90,7 @@ export default function CommentsSheet({ postId, commentsCount, isOpen, onClose }
         onSuccess: () => {
           setText("");
           setReplyTo(null);
+          setMentionQuery(null);
           refetch();
         },
       }
@@ -71,6 +102,13 @@ export default function CommentsSheet({ postId, commentsCount, isOpen, onClose }
     try { return formatDistanceToNow(new Date(d), { addSuffix: true }); } catch { return ""; }
   };
 
+  // Build commenter usernames for @mention suggestions
+  const allUsernames = [...new Set(comments.map((c: any) => c.author?.username).filter(Boolean))];
+  const mentionSuggestions = mentionQuery !== null
+    ? allUsernames.filter(u => u.toLowerCase().startsWith(mentionQuery.toLowerCase())).slice(0, 5)
+    : [];
+
+  // Separate top-level comments from replies, deduplicating replies
   const commenterUsernames = new Set(comments.map((c: any) => c.author?.username));
   const isReply = (content: string) => {
     if (!content.startsWith("@")) return false;
@@ -79,10 +117,17 @@ export default function CommentsSheet({ postId, commentsCount, isOpen, onClose }
   };
 
   const topLevel = comments.filter((c: any) => !isReply(c.content));
-  const replies = comments.filter((c: any) => isReply(c.content));
+  const replyItems = comments.filter((c: any) => isReply(c.content));
 
-  const getRepliesFor = (username: string) =>
-    replies.filter((r: any) => r.content.startsWith(`@${username} `));
+  // Dedup: each reply assigned to only the first matching top-level comment author
+  const usedReplyIds = new Set<number>();
+  const getRepliesFor = (username: string) => {
+    const matches = replyItems.filter(
+      (r: any) => r.content.startsWith(`@${username} `) && !usedReplyIds.has(r.id)
+    );
+    matches.forEach(r => usedReplyIds.add(r.id));
+    return matches;
+  };
 
   return (
     <AnimatePresence>
@@ -104,7 +149,6 @@ export default function CommentsSheet({ postId, commentsCount, isOpen, onClose }
             style={{ maxHeight: "80vh" }}
             onClick={(e) => e.stopPropagation()}
           >
-
             {/* Header */}
             <div className="flex items-center justify-between px-5 py-3 border-b border-border shrink-0">
               <div className="flex items-center gap-2">
@@ -135,6 +179,7 @@ export default function CommentsSheet({ postId, commentsCount, isOpen, onClose }
               ) : (
                 topLevel.map((c: any) => {
                   const likeState = getLikeState(c);
+                  const nestedReplies = getRepliesFor(c.author?.username);
                   return (
                     <div key={c.id}>
                       {/* Top-level comment */}
@@ -147,14 +192,21 @@ export default function CommentsSheet({ postId, commentsCount, isOpen, onClose }
                         </Avatar>
                         <div className="flex-1 min-w-0">
                           <div className="bg-muted rounded-2xl rounded-tl-sm px-3 py-2.5">
-                            <span className="font-semibold text-foreground text-sm">{c.author?.username}</span>
-                            <p className="text-foreground text-sm mt-0.5 break-words leading-relaxed">{c.content}</p>
+                            <Link href={`/profile/${c.author?.username}`} className="font-semibold text-foreground text-sm hover:underline">
+                              {c.author?.username}
+                            </Link>
+                            <p className="text-foreground text-sm mt-0.5 break-words leading-relaxed">
+                              {renderCommentText(c.content)}
+                            </p>
                           </div>
                           <div className="flex items-center gap-4 mt-1.5 pl-2">
                             <span className="text-xs text-muted-foreground">{timeAgo(c.createdAt)}</span>
                             <button
                               className="text-xs text-muted-foreground hover:text-foreground font-semibold transition-colors"
-                              onClick={() => setReplyTo({ username: c.author?.username, commentId: c.id })}
+                              onClick={() => {
+                                setReplyTo({ username: c.author?.username, commentId: c.id });
+                                setTimeout(() => inputRef.current?.focus(), 100);
+                              }}
                             >
                               Reply
                             </button>
@@ -180,7 +232,7 @@ export default function CommentsSheet({ postId, commentsCount, isOpen, onClose }
                       </div>
 
                       {/* Nested replies */}
-                      {getRepliesFor(c.author?.username).map((reply: any) => {
+                      {nestedReplies.map((reply: any) => {
                         const replyLikeState = getLikeState(reply);
                         return (
                           <div key={reply.id} className="flex gap-2 items-start mt-2 ml-10">
@@ -193,19 +245,22 @@ export default function CommentsSheet({ postId, commentsCount, isOpen, onClose }
                             </Avatar>
                             <div className="flex-1 min-w-0">
                               <div className="bg-muted/60 rounded-xl rounded-tl-sm px-2.5 py-2">
-                                <span className="font-semibold text-foreground text-xs">{reply.author?.username}</span>
+                                <Link href={`/profile/${reply.author?.username}`} className="font-semibold text-foreground text-xs hover:underline">
+                                  {reply.author?.username}
+                                </Link>
                                 {" "}
-                                <span className="text-primary text-xs font-medium">{reply.content.split(" ")[0]}</span>
-                                {" "}
-                                <span className="text-foreground text-xs break-words leading-relaxed">
-                                  {reply.content.split(" ").slice(1).join(" ")}
+                                <span className="text-xs break-words leading-relaxed">
+                                  {renderCommentText(reply.content)}
                                 </span>
                               </div>
                               <div className="flex items-center gap-3 mt-1 pl-1">
                                 <span className="text-[10px] text-muted-foreground">{timeAgo(reply.createdAt)}</span>
                                 <button
                                   className="text-[10px] text-muted-foreground hover:text-foreground font-semibold transition-colors"
-                                  onClick={() => setReplyTo({ username: reply.author?.username, commentId: reply.id })}
+                                  onClick={() => {
+                                    setReplyTo({ username: reply.author?.username, commentId: reply.id });
+                                    setTimeout(() => inputRef.current?.focus(), 100);
+                                  }}
                                 >
                                   Reply
                                 </button>
@@ -238,7 +293,29 @@ export default function CommentsSheet({ postId, commentsCount, isOpen, onClose }
             </div>
 
             {/* Input bar */}
-            <div className="px-4 py-3 border-t border-border flex flex-col gap-2 shrink-0 bg-card">
+            <div className="px-4 py-3 border-t border-border flex flex-col gap-2 shrink-0 bg-card relative">
+              {/* @mention suggestions */}
+              <AnimatePresence>
+                {mentionSuggestions.length > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 4 }}
+                    className="absolute bottom-full left-4 right-4 mb-1 bg-card border border-border rounded-xl shadow-lg overflow-hidden z-10"
+                  >
+                    {mentionSuggestions.map(username => (
+                      <button
+                        key={username}
+                        onMouseDown={(e) => { e.preventDefault(); insertMention(username); }}
+                        className="w-full flex items-center gap-2 px-3 py-2 hover:bg-muted text-sm text-left transition-colors"
+                      >
+                        <span className="text-primary font-semibold">@{username}</span>
+                      </button>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
               {replyTo && (
                 <div className="flex items-center gap-1 text-xs text-primary bg-primary/10 rounded-full px-3 py-1.5 w-fit">
                   <CornerDownRight className="w-3 h-3" />
@@ -250,8 +327,9 @@ export default function CommentsSheet({ postId, commentsCount, isOpen, onClose }
               )}
               <div className="flex items-center gap-3">
                 <input
+                  ref={inputRef}
                   value={text}
-                  onChange={(e) => setText(e.target.value)}
+                  onChange={(e) => handleTextChange(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
                   placeholder={replyTo ? `Reply to @${replyTo.username}…` : "Add a comment…"}
                   className="flex-1 bg-muted border border-border rounded-full px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/20 transition-all"

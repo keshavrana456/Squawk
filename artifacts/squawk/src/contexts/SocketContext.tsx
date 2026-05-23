@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useRef, useState } from "react";
+import React, { createContext, useContext, useEffect, useRef, useState, useCallback } from "react";
 import { io, Socket } from "socket.io-client";
 import { useUser } from "@clerk/react";
 
@@ -8,14 +8,22 @@ const API_BASE = BASE || "";
 interface SocketContextValue {
   socket: Socket | null;
   connected: boolean;
+  onlineUserIds: Set<number>;
+  isUserOnline: (userId: number) => boolean;
 }
 
-const SocketContext = createContext<SocketContextValue>({ socket: null, connected: false });
+const SocketContext = createContext<SocketContextValue>({
+  socket: null,
+  connected: false,
+  onlineUserIds: new Set(),
+  isUserOnline: () => false,
+});
 
 export function SocketProvider({ children }: { children: React.ReactNode }) {
   const { user, isLoaded } = useUser();
   const socketRef = useRef<Socket | null>(null);
   const [connected, setConnected] = useState(false);
+  const [onlineUserIds, setOnlineUserIds] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     if (!isLoaded || !user) return;
@@ -31,6 +39,15 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
     socket.on("connect", () => setConnected(true));
     socket.on("disconnect", () => setConnected(false));
 
+    socket.on("user_presence", ({ userId, isOnline }: { userId: number; isOnline: boolean }) => {
+      setOnlineUserIds((prev) => {
+        const next = new Set(prev);
+        if (isOnline) next.add(userId);
+        else next.delete(userId);
+        return next;
+      });
+    });
+
     return () => {
       socket.disconnect();
       socketRef.current = null;
@@ -38,8 +55,15 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
     };
   }, [isLoaded, user?.id]);
 
+  const isUserOnline = useCallback(
+    (userId: number) => onlineUserIds.has(userId),
+    [onlineUserIds]
+  );
+
   return (
-    <SocketContext.Provider value={{ socket: socketRef.current, connected }}>
+    <SocketContext.Provider
+      value={{ socket: socketRef.current, connected, onlineUserIds, isUserOnline }}
+    >
       {children}
     </SocketContext.Provider>
   );

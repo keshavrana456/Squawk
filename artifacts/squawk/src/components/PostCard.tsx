@@ -158,12 +158,26 @@ export default function PostCard({ post, onLike, onSave, onComment }: PostCardPr
     navigator.clipboard.writeText(`${window.location.origin}/post/${post.id}`).catch(() => {});
   };
 
+  const renderTextWithMentions = (text: string) => {
+    const parts = text.split(/(@\w+)/g);
+    return parts.map((part, i) => {
+      if (/^@\w+$/.test(part)) {
+        return (
+          <Link key={i} href={`/profile/${part.slice(1)}`} className="text-primary font-semibold hover:underline">
+            {part}
+          </Link>
+        );
+      }
+      return <span key={i}>{part}</span>;
+    });
+  };
+
   const renderCaption = (text: string | null, hashtags: string[]) => {
     if (!text) return null;
     return (
       <div className="text-sm mt-2">
         <span className="font-semibold mr-2">{post.author.username}</span>
-        {text}
+        {renderTextWithMentions(text)}
         {hashtags.length > 0 && (
           <div className="mt-1 flex flex-wrap gap-1">
             {hashtags.map((tag) => (
