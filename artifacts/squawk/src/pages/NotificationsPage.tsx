@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { useGetNotifications, useMarkAllNotificationsRead, type Notification } from "@workspace/api-client-react";
+import { useGetNotifications, useMarkAllNotificationsRead, getGetUnreadNotificationCountQueryKey, type Notification } from "@workspace/api-client-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -23,10 +24,18 @@ function BellIcon({ className }: { className?: string }) {
 
 export default function NotificationsPage() {
   const [activeTab, setActiveTab] = useState<Tab>("All");
+  const queryClient = useQueryClient();
 
   const { data: notifData, isLoading } = useGetNotifications();
   const notifications = Array.isArray(notifData) ? notifData : [];
-  const markReadMutation = useMarkAllNotificationsRead();
+  const markReadMutation = useMarkAllNotificationsRead({
+    mutation: {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: getGetUnreadNotificationCountQueryKey() });
+        queryClient.invalidateQueries({ queryKey: ["conversations-unread-count"] });
+      },
+    },
+  });
 
   const filteredNotifs = notifications.filter((n: Notification) => {
     if (activeTab === "All") return true;

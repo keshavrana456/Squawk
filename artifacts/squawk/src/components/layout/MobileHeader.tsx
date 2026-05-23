@@ -2,6 +2,7 @@ import { Link, useLocation } from "wouter";
 import { Bell, MessageCircle, PlusSquare } from "lucide-react";
 import { useGetUnreadNotificationCount, useGetMe } from "@workspace/api-client-react";
 import { useUser } from "@clerk/react";
+import { useQuery } from "@tanstack/react-query";
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -11,6 +12,14 @@ export default function MobileHeader() {
   const { data: me } = useGetMe({ query: { enabled: !!user } });
   const { data: unreadData } = useGetUnreadNotificationCount({ query: { enabled: !!user } });
   const unreadCount = unreadData?.count || 0;
+
+  const { data: unreadMsgData } = useQuery({
+    queryKey: ["conversations-unread-count"],
+    queryFn: () => fetch("/api/conversations/unread-count", { credentials: "include" }).then(r => r.json()),
+    refetchInterval: 12_000,
+    enabled: !!user,
+  });
+  const unreadMsgCount = location === "/messages" ? 0 : (unreadMsgData?.count || 0);
 
   const hiddenPaths = ["/reels", "/messages"];
   if (hiddenPaths.some((p) => location.startsWith(p))) return null;
@@ -40,8 +49,13 @@ export default function MobileHeader() {
           </div>
         </Link>
         <Link href="/messages">
-          <div className="p-2.5 rounded-full hover:bg-muted transition-colors">
+          <div className="relative p-2.5 rounded-full hover:bg-muted transition-colors">
             <MessageCircle className="w-6 h-6 text-foreground" />
+            {unreadMsgCount > 0 && (
+              <span className="absolute top-1.5 right-1.5 min-w-[16px] h-4 bg-primary text-primary-foreground text-[9px] font-black rounded-full flex items-center justify-center px-0.5 border border-background">
+                {unreadMsgCount > 9 ? "9+" : unreadMsgCount}
+              </span>
+            )}
           </div>
         </Link>
       </div>

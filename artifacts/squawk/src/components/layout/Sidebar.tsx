@@ -1,8 +1,9 @@
 import { Link, useLocation } from "wouter";
 import { useUser, useClerk } from "@clerk/react";
-import { Home, Compass, PlaySquare, PlusSquare, MessageCircle, Bell, User, Settings, LogOut, Sun, Moon, Feather } from "lucide-react";
+import { Home, Compass, PlaySquare, PlusSquare, MessageCircle, Bell, User, Settings, LogOut, Sun, Moon, Bird } from "lucide-react";
 import { useGetUnreadNotificationCount, useGetMe } from "@workspace/api-client-react";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useQuery } from "@tanstack/react-query";
 
 export default function Sidebar() {
   const [location] = useLocation();
@@ -14,14 +15,22 @@ export default function Sidebar() {
   const { data: unreadData } = useGetUnreadNotificationCount({ query: { enabled: !!user } });
   const unreadCount = unreadData?.count || 0;
 
+  const { data: unreadMsgData } = useQuery({
+    queryKey: ["conversations-unread-count"],
+    queryFn: () => fetch("/api/conversations/unread-count", { credentials: "include" }).then(r => r.json()),
+    refetchInterval: 12_000,
+    enabled: !!user,
+  });
+  const unreadMsgCount = location === "/messages" ? 0 : (unreadMsgData?.count || 0);
+
   const profileHref = me?.username ? `/profile/${me.username}` : "/profile";
 
   const navItems = [
     { href: "/home", label: "Home", icon: Home },
     { href: "/explore", label: "Explore", icon: Compass },
     { href: "/reels", label: "Flow", icon: PlaySquare },
-    { href: "/chirps", label: "Chirps", icon: Feather },
-    { href: "/messages", label: "Messages", icon: MessageCircle },
+    { href: "/chirps", label: "Chirps", icon: Bird },
+    { href: "/messages", label: "Messages", icon: MessageCircle, badge: unreadMsgCount },
     { href: "/notifications", label: "Notifications", icon: Bell, badge: unreadCount },
     { href: "/upload", label: "Create", icon: PlusSquare },
     { href: profileHref, label: "Profile", icon: User },

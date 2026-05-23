@@ -560,7 +560,8 @@ export default function ProfilePage() {
           ) : (
             <div className="space-y-0 border border-border rounded-2xl overflow-hidden">
               {userChirps.map((chirp: any) => (
-                <div key={chirp.id} className="p-4 border-b border-border last:border-b-0 hover:bg-muted/30 transition-colors">
+                <Link key={chirp.id} href={`/chirps?id=${chirp.id}`} className="block">
+                <div className="p-4 border-b border-border last:border-b-0 hover:bg-muted/30 transition-colors cursor-pointer">
                   {chirp.rechirpOfId && chirp.originalChirp && (
                     <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-2">
                       <Repeat2 className="w-3.5 h-3.5" />
@@ -626,6 +627,7 @@ export default function ProfilePage() {
                     <span>{chirp.commentsCount ?? 0} replies</span>
                   </div>
                 </div>
+                </Link>
               ))}
             </div>
           )

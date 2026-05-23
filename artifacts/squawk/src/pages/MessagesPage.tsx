@@ -2,8 +2,8 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { Link, useSearch as useRouteSearch } from "wouter";
 import {
   Send, Plus, ArrowLeft, MessageCircle, Search, X, Users, UserPlus,
-  Image as ImageIcon, Smile, CornerDownRight, Check, CheckCheck, Circle,
-  Phone, Video,
+  Image as ImageIcon, CornerDownRight, Check, CheckCheck, Circle,
+  Phone, Video, ExternalLink,
 } from "lucide-react";
 import {
   useGetConversations, useGetMessages, useSendMessage, useCreateConversation,
@@ -20,6 +20,75 @@ import { useSocket } from "@/contexts/SocketContext";
 import { useCall } from "@/contexts/CallContext";
 
 const GIPHY_KEY = (import.meta as any).env?.VITE_GIPHY_API_KEY || "dc6zaTOxFJmzC";
+
+// ─── Shared Post Card ─────────────────────────────────────────────────────────
+function SharedPostCard({ postId, postUrl }: { postId?: number | null; postUrl: string }) {
+  const [post, setPost] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!postId) { setLoading(false); return; }
+    fetch(`/api/posts/${postId}`, { credentials: "include" })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => setPost(d))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [postId]);
+
+  const handleClick = () => {
+    if (!post) { window.open(postUrl, "_self"); return; }
+    const isVideo = post.mediaType === "video";
+    window.location.href = isVideo ? `/reels` : `/home`;
+  };
+
+  if (loading) {
+    return (
+      <div className="w-56 animate-pulse">
+        <div className="h-32 bg-muted" />
+        <div className="p-3 space-y-1.5">
+          <div className="h-3 bg-muted rounded w-3/4" />
+          <div className="h-3 bg-muted rounded w-1/2" />
+        </div>
+      </div>
+    );
+  }
+
+  if (!post) {
+    return (
+      <a href={postUrl} target="_blank" rel="noopener noreferrer"
+        className="flex items-center gap-2 px-4 py-3 text-sm text-primary hover:underline">
+        <ExternalLink className="w-4 h-4" />
+        View post
+      </a>
+    );
+  }
+
+  return (
+    <button onClick={handleClick} className="w-56 text-left hover:bg-muted/40 transition-colors">
+      {post.mediaUrl && (
+        post.mediaType === "video" ? (
+          <video src={post.mediaUrl} className="w-full h-32 object-cover bg-black" muted playsInline preload="metadata" />
+        ) : (
+          <img src={post.mediaUrl} alt="" className="w-full h-32 object-cover" />
+        )
+      )}
+      <div className="p-3">
+        <div className="flex items-center gap-1.5 mb-1">
+          {post.user?.avatarUrl && <img src={post.user.avatarUrl} className="w-4 h-4 rounded-full" />}
+          <span className="text-[11px] font-semibold text-muted-foreground">@{post.user?.username}</span>
+          {post.mediaType === "video" && (
+            <span className="ml-auto text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded-full font-medium">Flow</span>
+          )}
+        </div>
+        {post.caption && <p className="text-[13px] text-foreground line-clamp-2 leading-snug">{post.caption}</p>}
+        <p className="text-[10px] text-muted-foreground mt-1.5 flex items-center gap-1">
+          <ExternalLink className="w-3 h-3" />
+          {post.mediaType === "video" ? "Watch in Flow" : "View in feed"}
+        </p>
+      </div>
+    </button>
+  );
+}
 
 // ─── GIF Picker ───────────────────────────────────────────────────────────────
 function GifPicker({ onSelect, onClose }: { onSelect: (url: string) => void; onClose: () => void }) {
@@ -820,10 +889,13 @@ function ChatView({ conversationId, onBack, me, conversation }: any) {
 
                     {/* Message bubble */}
                     <div
-                      className={`relative group px-4 py-2.5 rounded-2xl text-[15px] shadow-sm cursor-pointer ${
-                        isMine
-                          ? "bg-gradient-to-br from-primary to-[#c084fc] text-white rounded-br-sm"
-                          : "bg-muted text-foreground border border-border/50 rounded-bl-sm"
+                      className={`relative group rounded-2xl text-[15px] shadow-sm cursor-pointer ${
+                        msg.messageType === "shared_post"
+                          ? "overflow-hidden border border-border/60 bg-card"
+                          : `px-4 py-2.5 ${isMine
+                            ? "bg-gradient-to-br from-primary to-[#c084fc] text-white rounded-br-sm"
+                            : "bg-muted text-foreground border border-border/50 rounded-bl-sm"
+                          }`
                       }`}
                       onDoubleClick={() => setReplyingTo(msg)}
                     >
@@ -834,6 +906,8 @@ function ChatView({ conversationId, onBack, me, conversation }: any) {
                           className="max-w-[220px] max-h-[180px] rounded-lg object-cover"
                           loading="lazy"
                         />
+                      ) : msg.messageType === "shared_post" ? (
+                        <SharedPostCard postId={msg.sharedPostId} postUrl={msg.content} />
                       ) : msg.mediaUrl ? (
                         <img
                           src={msg.mediaUrl}
@@ -925,17 +999,6 @@ function ChatView({ conversationId, onBack, me, conversation }: any) {
         )}
 
         <div className="flex items-end gap-2 bg-muted border border-border rounded-3xl p-1.5 focus-within:ring-1 focus-within:ring-primary">
-          {/* GIF button */}
-          <button
-            onClick={() => setShowGifPicker((v) => !v)}
-            className={`p-2 rounded-full transition-colors shrink-0 ${
-              showGifPicker ? "text-primary bg-primary/10" : "text-muted-foreground hover:text-primary hover:bg-primary/10"
-            }`}
-            title="Send GIF"
-          >
-            <Smile className="w-5 h-5" />
-          </button>
-
           <Input
             value={content}
             onChange={(e) => {
@@ -945,7 +1008,19 @@ function ChatView({ conversationId, onBack, me, conversation }: any) {
             onKeyDown={(e) =>
               e.key === "Enter" && !e.shiftKey && (e.preventDefault(), handleSend())
             }
-            placeholder="Message..."
+            onPaste={(e) => {
+              const item = Array.from(e.clipboardData.items).find(
+                (i) => i.type.startsWith("image/") || i.type === "image/gif"
+              );
+              if (item) {
+                e.preventDefault();
+                const file = item.getAsFile();
+                if (!file) return;
+                const url = URL.createObjectURL(file);
+                handleSend({ gifUrl: url });
+              }
+            }}
+            placeholder="Message... (paste GIF from keyboard)"
             className="flex-1 border-0 bg-transparent focus-visible:ring-0 shadow-none px-2 h-10"
           />
 

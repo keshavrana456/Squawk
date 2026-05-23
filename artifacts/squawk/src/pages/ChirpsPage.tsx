@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Link } from "wouter";
+import { Link, useSearch } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -756,9 +756,26 @@ export default function ChirpsPage() {
   const { data: feedData, isLoading, refetch } = useChirpsFeed();
   const { data: trendingData } = useTrending();
   const [openChirp, setOpenChirp] = useState<ChirpData | null>(null);
+  const routeSearch = useSearch();
 
   const items = feedData?.items ?? [];
   const trending = trendingData?.trending ?? [];
+
+  // Handle ?id=X from profile page — open that chirp's detail sheet
+  useEffect(() => {
+    const params = new URLSearchParams(routeSearch);
+    const idStr = params.get("id");
+    if (!idStr) return;
+    const id = parseInt(idStr, 10);
+    if (isNaN(id)) return;
+    // Try to find in feed first, otherwise fetch
+    const found = items.find(c => c.id === id);
+    if (found) { setOpenChirp(found); return; }
+    if (items.length === 0) return; // wait for feed to load
+    apiFetch(`/api/chirps/${id}`)
+      .then((data: any) => { if (data?.id) setOpenChirp(data); })
+      .catch(() => {});
+  }, [routeSearch, items.length]);
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-6xl mx-auto flex gap-0 min-h-screen">

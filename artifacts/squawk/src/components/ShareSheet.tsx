@@ -98,7 +98,11 @@ export function ShareSheet({ open, onOpenChange, postId, caption }: ShareSheetPr
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: postUrl }),
+        body: JSON.stringify({
+          content: postUrl,
+          messageType: "shared_post",
+          sharedPostId: postId,
+        }),
       });
       setSentTo(prev => new Set([...prev, conversationId]));
     } catch {}
