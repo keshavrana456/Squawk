@@ -378,18 +378,36 @@ function SceneNFT() {
             </div>
             <motion.div style={{
               width: "100%", height: "clamp(80px,15vh,160px)",
-              background: `linear-gradient(135deg, ${PINK}33, ${PURPLE}33)`,
               borderRadius: "10px", marginBottom: "1.5vh",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              border: "1px solid rgba(255,255,255,0.08)",
-            }} animate={{ background: [`linear-gradient(135deg, ${PINK}33, ${PURPLE}33)`, `linear-gradient(225deg, ${PURPLE}33, ${PINK}33)`, `linear-gradient(135deg, ${PINK}33, ${PURPLE}33)`] }}
-              transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}>
-              <span style={{ fontSize: "clamp(24px,3.5vw,56px)" }}>🐦</span>
+              overflow: "hidden",
+              border: "1px solid rgba(236,72,153,0.35)",
+              position: "relative",
+            }}>
+              {/* Real 10K Squad NFT art — cropped to feature the DJ character */}
+              <img
+                src="/nft-banner.png"
+                alt="10K Squad NFT"
+                style={{
+                  width: "260%",
+                  height: "260%",
+                  objectFit: "cover",
+                  position: "absolute",
+                  top: "-62%",
+                  left: "-68%",
+                  imageRendering: "crisp-edges",
+                }}
+              />
+              {/* Subtle pink glow overlay */}
+              <div style={{
+                position: "absolute", inset: 0,
+                background: `linear-gradient(135deg, ${PINK}18 0%, transparent 60%, ${PURPLE}18 100%)`,
+                pointerEvents: "none",
+              }} />
             </motion.div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div>
-                <div style={{ fontFamily: "'Inter', sans-serif", fontSize: "clamp(10px,1vw,15px)", color: WHITE, fontWeight: 700 }}>Squawk #4209</div>
-                <div style={{ fontFamily: "'Inter', sans-serif", fontSize: "clamp(8px,0.72vw,11px)", color: DIM }}>by yuki.eth</div>
+                <div style={{ fontFamily: "'Inter', sans-serif", fontSize: "clamp(10px,1vw,15px)", color: WHITE, fontWeight: 700 }}>10K Squad #1337</div>
+                <div style={{ fontFamily: "'Inter', sans-serif", fontSize: "clamp(8px,0.72vw,11px)", color: DIM }}>by yuki.eth · Monad</div>
               </div>
               <motion.div style={{
                 background: `linear-gradient(135deg, ${PINK}, ${PURPLE})`, borderRadius: "999px",
