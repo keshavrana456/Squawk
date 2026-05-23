@@ -169,6 +169,106 @@ async function tryOpenSea(): Promise<NftStats | null> {
   return null;
 }
 
+// ── Recent Sales ──────────────────────────────────────────────────────────────
+interface NftSale {
+  id: string;
+  tokenId: string;
+  name: string;
+  imageUrl: string | null;
+  priceRaw: string;
+  priceFormatted: string;
+  symbol: string;
+  seller: string;
+  buyer: string;
+  txHash: string | null;
+  openseaUrl: string | null;
+  timestamp: number;
+}
+
+let salesCache: { data: NftSale[]; timestamp: number } | null = null;
+const SALES_CACHE_TTL = 30_000;
+
+function shortAddr(addr: string): string {
+  if (!addr) return "Unknown";
+  return addr.slice(0, 6) + "…" + addr.slice(-4);
+}
+
+async function fetchRecentSales(): Promise<NftSale[]> {
+  const apiKey = process.env.OPENSEA_API_KEY;
+  const headers: Record<string, string> = { Accept: "application/json" };
+  if (apiKey) headers["X-API-KEY"] = apiKey;
+
+  for (const slug of OPENSEA_SLUGS) {
+    try {
+      const url = `https://api.opensea.io/api/v2/events/collection/${slug}?event_type=sale&limit=20`;
+      const res = await fetch(url, { headers, signal: AbortSignal.timeout(6000) });
+      if (!res.ok) continue;
+      const json: any = await res.json();
+      const events: any[] = json.asset_events ?? [];
+      if (!events.length) continue;
+
+      const monPerEth = await getMonPerEth();
+
+      const sales: NftSale[] = events.map((ev: any) => {
+        const nft = ev.nft ?? {};
+        const payment = ev.payment ?? {};
+        const rawQty = BigInt(payment.quantity ?? "0");
+        const decimals = payment.decimals ?? 18;
+        const priceFloat = Number(rawQty) / Math.pow(10, decimals);
+        const sym: string = payment.symbol ?? "ETH";
+
+        // Convert to MON if the price is in ETH
+        let displayPrice = priceFloat;
+        let displaySym = sym;
+        if (sym === "ETH" && priceFloat > 0) {
+          displayPrice = Math.round(priceFloat * monPerEth);
+          displaySym = "MON";
+        }
+
+        const priceFormatted = displayPrice > 0
+          ? displayPrice.toLocaleString("en-US", { maximumFractionDigits: 2 }) + " " + displaySym
+          : "—";
+
+        const tokenId = nft.identifier ?? ev.id ?? "?";
+        const name = nft.name ?? `Squad #${tokenId}`;
+        const imageUrl = nft.display_image_url ?? nft.image_url ?? null;
+        const openseaUrl = nft.opensea_url ?? `https://opensea.io/assets/monad/${CONTRACT}/${tokenId}`;
+
+        return {
+          id: `${slug}-${ev.transaction ?? ev.event_timestamp}-${tokenId}`,
+          tokenId: String(tokenId),
+          name,
+          imageUrl,
+          priceRaw: String(rawQty),
+          priceFormatted,
+          symbol: displaySym,
+          seller: shortAddr(ev.seller ?? ""),
+          buyer: shortAddr(ev.buyer ?? ""),
+          txHash: ev.transaction ?? null,
+          openseaUrl,
+          timestamp: (ev.event_timestamp ?? 0) * 1000,
+        };
+      });
+
+      return sales.filter(s => s.timestamp > 0).sort((a, b) => b.timestamp - a.timestamp);
+    } catch {
+      // try next slug
+    }
+  }
+  return [];
+}
+
+// GET /nft/sales
+router.get("/nft/sales", async (_req, res): Promise<void> => {
+  if (salesCache && Date.now() - salesCache.timestamp < SALES_CACHE_TTL) {
+    res.json(salesCache.data);
+    return;
+  }
+  const data = await fetchRecentSales();
+  salesCache = { data, timestamp: Date.now() };
+  res.json(data);
+});
+
 // ── Route ─────────────────────────────────────────────────────────────────────
 router.get("/nft/stats", async (_req, res): Promise<void> => {
   if (cache && Date.now() - cache.timestamp < CACHE_TTL) {

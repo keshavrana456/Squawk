@@ -1,8 +1,200 @@
 import { Link } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
-import { useEffect, useState, useCallback } from "react";
-import { Palette, Link2, Gamepad2, Camera, Zap, Heart, Trophy, Globe, Gift, Users, TrendingUp, Star } from "lucide-react";
+import { useEffect, useState, useCallback, useRef } from "react";
+import { Palette, Link2, Gamepad2, Camera, Zap, Heart, Trophy, Globe, Gift, Users, TrendingUp, Star, ArrowRight, ExternalLink } from "lucide-react";
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
+
+interface NftSale {
+  id: string;
+  tokenId: string;
+  name: string;
+  imageUrl: string | null;
+  priceFormatted: string;
+  symbol: string;
+  seller: string;
+  buyer: string;
+  txHash: string | null;
+  openseaUrl: string | null;
+  timestamp: number;
+}
+
+function timeAgo(ts: number): string {
+  const diff = Date.now() - ts;
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  return `${Math.floor(hrs / 24)}d ago`;
+}
+
+function SaleCard({ sale, index }: { sale: NftSale; index: number }) {
+  return (
+    <motion.a
+      href={sale.openseaUrl ?? "#"}
+      target="_blank"
+      rel="noopener noreferrer"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, delay: index * 0.06 }}
+      className="group relative flex flex-col overflow-hidden rounded-2xl border border-white/10 hover:border-pink-500/40 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_30px_rgba(236,72,153,0.2)] cursor-pointer flex-shrink-0 w-48"
+      style={{ background: "linear-gradient(160deg, rgba(88,28,135,0.25) 0%, rgba(14,7,25,0.6) 100%)" }}
+    >
+      {/* NFT Image */}
+      <div className="relative w-full aspect-square bg-white/5 overflow-hidden">
+        {sale.imageUrl ? (
+          <img
+            src={sale.imageUrl}
+            alt={sale.name}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            loading="lazy"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-4xl">🦜</div>
+        )}
+        {/* Price badge */}
+        <div className="absolute bottom-2 left-2 px-2 py-0.5 rounded-full text-[11px] font-bold text-white backdrop-blur-md"
+          style={{ background: "linear-gradient(135deg, rgba(236,72,153,0.85), rgba(147,51,234,0.85))" }}>
+          {sale.priceFormatted}
+        </div>
+        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+          <ExternalLink className="w-3.5 h-3.5 text-white/70" />
+        </div>
+      </div>
+
+      {/* Details */}
+      <div className="p-3 flex flex-col gap-1.5">
+        <div className="text-[13px] font-bold text-white truncate">{sale.name}</div>
+        <div className="flex items-center gap-1 text-[10px] text-white/40">
+          <span className="truncate">{sale.seller}</span>
+          <ArrowRight className="w-2.5 h-2.5 shrink-0" />
+          <span className="truncate">{sale.buyer}</span>
+        </div>
+        <div className="text-[10px] text-white/30">{timeAgo(sale.timestamp)}</div>
+      </div>
+
+      {/* Glow on hover */}
+      <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none rounded-2xl"
+        style={{ boxShadow: "inset 0 0 30px rgba(236,72,153,0.08)" }} />
+    </motion.a>
+  );
+}
+
+function LiveSalesFeed() {
+  const [sales, setSales] = useState<NftSale[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [newSaleIds, setNewSaleIds] = useState<Set<string>>(new Set());
+  const prevIds = useRef<Set<string>>(new Set());
+
+  const fetchSales = useCallback(async (isRefresh = false) => {
+    try {
+      const res = await fetch(`${BASE}/api/nft/sales`);
+      if (!res.ok) return;
+      const data: NftSale[] = await res.json();
+      if (isRefresh) {
+        const incoming = new Set(data.map(s => s.id));
+        const newOnes = new Set([...incoming].filter(id => !prevIds.current.has(id)));
+        if (newOnes.size > 0) setNewSaleIds(newOnes);
+        setTimeout(() => setNewSaleIds(new Set()), 3000);
+      }
+      prevIds.current = new Set(data.map(s => s.id));
+      setSales(data);
+    } catch {
+      // ignore
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchSales(false);
+    const interval = setInterval(() => fetchSales(true), 30_000);
+    return () => clearInterval(interval);
+  }, [fetchSales]);
+
+  if (!loading && sales.length === 0) return null;
+
+  return (
+    <motion.section
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      transition={{ duration: 0.6 }}
+      className="px-4 md:px-12 py-16 z-10"
+    >
+      <div className="max-w-6xl mx-auto">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+              <span className="text-xs font-semibold text-green-400 uppercase tracking-widest">Live</span>
+            </div>
+            <h2 className="text-3xl md:text-4xl font-black text-white">Recent Sales</h2>
+            <p className="text-muted-foreground text-sm mt-1">Latest 10K Squad trades on OpenSea · refreshes every 30s</p>
+          </div>
+          <a
+            href="https://opensea.io/collection/the-10k-squad-350905768"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hidden md:flex items-center gap-2 px-5 py-2 rounded-full border border-white/15 text-white/60 hover:text-white hover:border-white/30 transition-all text-sm font-medium"
+          >
+            View all on OpenSea <ExternalLink className="w-3.5 h-3.5" />
+          </a>
+        </div>
+
+        {/* Scrollable card strip */}
+        {loading ? (
+          <div className="flex gap-4 overflow-hidden">
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="flex-shrink-0 w-48 rounded-2xl border border-white/10 overflow-hidden animate-pulse" style={{ background: "rgba(88,28,135,0.15)" }}>
+                <div className="aspect-square bg-white/5" />
+                <div className="p-3 space-y-2">
+                  <div className="h-3 bg-white/10 rounded w-3/4" />
+                  <div className="h-2 bg-white/5 rounded w-full" />
+                  <div className="h-2 bg-white/5 rounded w-1/2" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="overflow-x-auto no-scrollbar pb-2">
+            <div className="flex gap-4" style={{ width: "max-content" }}>
+              {sales.map((sale, i) => (
+                <div key={sale.id} className="relative">
+                  {newSaleIds.has(sale.id) && (
+                    <motion.div
+                      initial={{ opacity: 1 }}
+                      animate={{ opacity: 0 }}
+                      transition={{ duration: 3 }}
+                      className="absolute -top-2 -right-2 z-10 px-1.5 py-0.5 rounded-full text-[9px] font-bold text-white"
+                      style={{ background: "linear-gradient(135deg, #ec4899, #9333ea)" }}
+                    >
+                      NEW
+                    </motion.div>
+                  )}
+                  <SaleCard sale={sale} index={i} />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Mobile view-all link */}
+        <div className="mt-4 flex md:hidden justify-center">
+          <a
+            href="https://opensea.io/collection/the-10k-squad-350905768"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 text-sm text-purple-400 hover:text-pink-400 transition-colors font-medium"
+          >
+            View all on OpenSea <ExternalLink className="w-3.5 h-3.5" />
+          </a>
+        </div>
+      </div>
+    </motion.section>
+  );
+}
 
 interface NftStats {
   floorPrice: number | null;
@@ -237,6 +429,9 @@ export default function LandingPage() {
           )}
         </motion.div>
       </section>
+
+      {/* ── Live NFT Sales Feed ──────────────────────────────────────── */}
+      <LiveSalesFeed />
 
       {/* ── About the 10K Squad ──────────────────────────────────────── */}
       <motion.section
