@@ -24,6 +24,10 @@ args = "API Server"
 task = "workflow.run"
 args = "web"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Squawk Commercial"
+
 [[workflows.workflow]]
 name = "API Server"
 author = "agent"
@@ -49,6 +53,19 @@ waitForPort = 5000
 outputType = "webview"
 isCanvasWorkflow = true
 
+[[workflows.workflow]]
+name = "Squawk Commercial"
+author = "agent"
+
+[workflows.workflow.metadata]
+outputType = "console"
+isCanvasWorkflow = true
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "BASE_PATH=/squawk-commercial PORT=3000 pnpm --filter @workspace/mockup-sandbox dev"
+waitForPort = 3000
+
 [agent]
 stack = "BEST_EFFORT_FALLBACK"
 expertMode = true
@@ -59,8 +76,8 @@ path = "scripts/post-merge.sh"
 timeoutMs = 20000
 
 [[ports]]
-localPort = 5000
-externalPort = 5000
+localPort = 3000
+externalPort = 3000
 
 [[ports]]
 localPort = 8080
