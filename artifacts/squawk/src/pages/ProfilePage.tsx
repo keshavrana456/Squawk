@@ -150,6 +150,8 @@ export default function ProfilePage() {
   const profileStoryGroupIndex = storyGroups?.findIndex(g => g.user.username === username) ?? -1;
   const hasActiveStory = !!profileStoryGroup;
 
+  const [statsTab, setStatsTab] = useState<"stats" | "sales">("stats");
+
   const { data: nftStats, isLoading: nftLoading } = useQuery<any>({
     queryKey: ["nftStats"],
     queryFn: async () => {
@@ -159,6 +161,18 @@ export default function ProfilePage() {
     },
     enabled: show10kStats,
     staleTime: 60_000,
+  });
+
+  const { data: nftSales, isLoading: salesLoading } = useQuery<any[]>({
+    queryKey: ["nftSales"],
+    queryFn: async () => {
+      const res = await fetch("/api/nft/sales");
+      if (!res.ok) throw new Error("Failed to fetch NFT sales");
+      return res.json();
+    },
+    enabled: show10kStats && statsTab === "sales",
+    staleTime: 30_000,
+    refetchInterval: show10kStats && statsTab === "sales" ? 30_000 : false,
   });
   const [founderToggling, setFounderToggling] = useState(false);
   const isAppOwner = (me as any)?.id === 1;
@@ -729,8 +743,26 @@ export default function ProfilePage() {
                 </button>
               </div>
 
+              {/* Tab switcher */}
+              <div className="flex gap-1 px-5 pt-4 pb-0">
+                <button
+                  onClick={() => setStatsTab("stats")}
+                  className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-all ${statsTab === "stats" ? "bg-primary/15 text-primary" : "text-muted-foreground hover:text-foreground"}`}
+                >
+                  Overview
+                </button>
+                <button
+                  onClick={() => setStatsTab("sales")}
+                  className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-1.5 ${statsTab === "sales" ? "bg-primary/15 text-primary" : "text-muted-foreground hover:text-foreground"}`}
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+                  Live Sales
+                </button>
+              </div>
+
               <div className="p-5">
-                {nftLoading ? (
+                {statsTab === "stats" ? (
+                  nftLoading ? (
                   <div className="flex flex-col items-center justify-center py-12 gap-3">
                     <div className="w-8 h-8 border-3 border-primary border-t-transparent rounded-full animate-spin" />
                     <p className="text-sm text-muted-foreground">Fetching on-chain data…</p>
@@ -834,6 +866,69 @@ export default function ProfilePage() {
                   </div>
                 ) : (
                   <p className="text-center text-muted-foreground py-8 text-sm">No NFT data available</p>
+                )
+                ) : (
+                  /* ── Live Sales Tab ── */
+                  salesLoading ? (
+                    <div className="flex flex-col items-center justify-center py-12 gap-3">
+                      <div className="w-8 h-8 border-3 border-primary border-t-transparent rounded-full animate-spin" />
+                      <p className="text-sm text-muted-foreground">Loading recent sales…</p>
+                    </div>
+                  ) : nftSales && nftSales.length > 0 ? (
+                    <div className="flex flex-col gap-0 max-h-[60vh] overflow-y-auto -mx-1 px-1">
+                      <div className="flex items-center gap-2 mb-3">
+                        <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+                        <span className="text-xs text-green-400 font-semibold uppercase tracking-widest">Live · refreshes every 30s</span>
+                      </div>
+                      {nftSales.map((sale: any, i: number) => {
+                        const mins = Math.floor((Date.now() - sale.timestamp) / 60000);
+                        const timeAgo = mins < 1 ? "just now" : mins < 60 ? `${mins}m ago` : mins < 1440 ? `${Math.floor(mins/60)}h ago` : `${Math.floor(mins/1440)}d ago`;
+                        return (
+                          <motion.a
+                            key={sale.id}
+                            href={sale.openseaUrl ?? "#"}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: i * 0.04 }}
+                            className="flex items-center gap-3 py-2.5 border-b border-border last:border-0 hover:bg-muted/40 rounded-xl px-2 -mx-2 transition-colors group"
+                          >
+                            {/* NFT thumbnail */}
+                            <div className="w-10 h-10 rounded-xl overflow-hidden bg-muted shrink-0">
+                              {sale.imageUrl ? (
+                                <img src={sale.imageUrl} alt={sale.name} className="w-full h-full object-cover" />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center text-lg">🦜</div>
+                              )}
+                            </div>
+                            {/* Details */}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="text-sm font-semibold text-foreground truncate">{sale.name}</span>
+                                <span className="text-sm font-bold text-primary shrink-0">{sale.priceFormatted} <span className="text-xs font-normal text-muted-foreground">{sale.symbol}</span></span>
+                              </div>
+                              <div className="flex items-center gap-1 mt-0.5">
+                                <span className="text-[11px] text-muted-foreground truncate max-w-[70px]">{sale.seller}</span>
+                                <TrendingUp className="w-2.5 h-2.5 text-muted-foreground/50 shrink-0" />
+                                <span className="text-[11px] text-muted-foreground truncate max-w-[70px]">{sale.buyer}</span>
+                                <span className="ml-auto text-[10px] text-muted-foreground shrink-0">{timeAgo}</span>
+                              </div>
+                            </div>
+                          </motion.a>
+                        );
+                      })}
+                      <a
+                        href="https://opensea.io/collection/the-10k-squad"
+                        target="_blank" rel="noreferrer"
+                        className="flex items-center justify-center gap-2 text-primary text-sm font-semibold hover:underline mt-4"
+                      >
+                        <ExternalLink className="w-4 h-4" /> View all on OpenSea
+                      </a>
+                    </div>
+                  ) : (
+                    <p className="text-center text-muted-foreground py-8 text-sm">No recent sales found</p>
+                  )
                 )}
               </div>
             </motion.div>
