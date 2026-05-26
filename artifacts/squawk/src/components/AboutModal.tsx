@@ -190,6 +190,7 @@ export function AboutModal({ onClose }: AboutModalProps) {
               {[
                 { label: "@the10kSquad", href: "https://x.com/the10ksquad" },
                 { label: "Discord", href: "https://discord.gg/the10ksquad" },
+                { label: "My Talking Squad", href: "https://my-talking-squad.vercel.app/" },
                 { label: "OpenSea", href: "https://opensea.io/collection/the-10k-squad-350905768" },
                 { label: "10K Hub", href: "https://www.the10ksquadhub.com" },
                 { label: "squawk069@gmail.com", href: "mailto:squawk069@gmail.com" },
