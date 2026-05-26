@@ -579,7 +579,8 @@ function ClerkProviderWithRoutes() {
 }
 
 function App() {
-  const [splashDone, setSplashDone] = useState(false);
+  const isPromo = typeof window !== 'undefined' && (window.location.pathname === '/promo' || window.location.pathname.endsWith('/promo'));
+  const [splashDone, setSplashDone] = useState(isPromo);
 
   return (
     <ThemeProvider>
