@@ -49,15 +49,21 @@ const ownerOfAbi = [
   },
 ];
 
-// ── On-chain holder count (Multicall3) ───────────────────────────────────────
+// ── On-chain holder count + leaderboard (Multicall3) ────────────────────────
+interface HolderEntry {
+  address: string;
+  count: number;
+}
+
 let holderCache: { count: number; ts: number } | null = null;
+let holderLeaderboardCache: { data: HolderEntry[]; ts: number } | null = null;
 const HOLDER_CACHE_TTL = 10 * 60 * 1000;
 let holderScanRunning = false;
 
 async function scanHolders(): Promise<void> {
   if (holderScanRunning) return;
   holderScanRunning = true;
-  const owners = new Set<string>();
+  const ownerCounts = new Map<string, number>();
   const BATCH = 200;
 
   try {
@@ -75,13 +81,25 @@ async function scanHolders(): Promise<void> {
       const results = await viemClient.multicall({ contracts, allowFailure: true });
       for (const r of results) {
         if (r.status === "success" && r.result) {
-          owners.add((r.result as string).toLowerCase());
+          const addr = (r.result as string).toLowerCase();
+          ownerCounts.set(addr, (ownerCounts.get(addr) ?? 0) + 1);
         }
       }
     }
-    holderCache = { count: owners.size, ts: Date.now() };
+    const sorted: HolderEntry[] = Array.from(ownerCounts.entries())
+      .map(([address, count]) => ({ address, count }))
+      .sort((a, b) => b.count - a.count);
+
+    holderCache = { count: ownerCounts.size, ts: Date.now() };
+    holderLeaderboardCache = { data: sorted, ts: Date.now() };
   } catch (e) {
-    if (owners.size > 100) holderCache = { count: owners.size, ts: Date.now() };
+    if (ownerCounts.size > 100) {
+      const sorted: HolderEntry[] = Array.from(ownerCounts.entries())
+        .map(([address, count]) => ({ address, count }))
+        .sort((a, b) => b.count - a.count);
+      holderCache = { count: ownerCounts.size, ts: Date.now() };
+      holderLeaderboardCache = { data: sorted, ts: Date.now() };
+    }
   } finally {
     holderScanRunning = false;
   }
@@ -257,6 +275,24 @@ async function fetchRecentSales(): Promise<NftSale[]> {
   }
   return [];
 }
+
+// GET /nft/holders — top holders leaderboard
+router.get("/nft/holders", async (req, res): Promise<void> => {
+  maybeRefreshHolders();
+
+  if (!holderLeaderboardCache) {
+    res.json({ status: "scanning", data: [] });
+    return;
+  }
+
+  const limit = Math.min(Number(req.query.limit ?? 50), 200);
+  res.json({
+    status: "ready",
+    scannedAt: holderLeaderboardCache.ts,
+    totalHolders: holderCache?.count ?? holderLeaderboardCache.data.length,
+    data: holderLeaderboardCache.data.slice(0, limit),
+  });
+});
 
 // GET /nft/sales
 router.get("/nft/sales", async (_req, res): Promise<void> => {

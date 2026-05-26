@@ -1,7 +1,7 @@
 import { Link } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useState, useCallback, useRef } from "react";
-import { Palette, Link2, Gamepad2, Camera, Zap, Heart, Trophy, Globe, Gift, Users, TrendingUp, Star, ArrowRight, ExternalLink } from "lucide-react";
+import { Palette, Link2, Gamepad2, Camera, Zap, Heart, Trophy, Globe, Gift, Users, TrendingUp, Star, ArrowRight, ExternalLink, Crown, RefreshCw } from "lucide-react";
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 interface NftSale {
@@ -191,6 +191,201 @@ function LiveSalesFeed() {
             View all on OpenSea <ExternalLink className="w-3.5 h-3.5" />
           </a>
         </div>
+      </div>
+    </motion.section>
+  );
+}
+
+// ── Top Holders Leaderboard ──────────────────────────────────────────────────
+interface HolderEntry {
+  address: string;
+  count: number;
+}
+
+interface HoldersResponse {
+  status: "ready" | "scanning";
+  scannedAt?: number;
+  totalHolders?: number;
+  data: HolderEntry[];
+}
+
+const MEDAL: Record<number, string> = { 1: "🥇", 2: "🥈", 3: "🥉" };
+
+function shortAddr(addr: string): string {
+  return addr.slice(0, 6) + "…" + addr.slice(-4);
+}
+
+function RankBadge({ rank }: { rank: number }) {
+  if (rank <= 3) {
+    return <span className="text-lg leading-none">{MEDAL[rank]}</span>;
+  }
+  return (
+    <span className="w-7 h-7 flex items-center justify-center rounded-full text-xs font-bold text-white/50 bg-white/8 border border-white/10">
+      {rank}
+    </span>
+  );
+}
+
+function TopHolders() {
+  const [holders, setHolders] = useState<HolderEntry[]>([]);
+  const [status, setStatus] = useState<"loading" | "scanning" | "ready">("loading");
+  const [scannedAt, setScannedAt] = useState<number | null>(null);
+  const [totalHolders, setTotalHolders] = useState<number | null>(null);
+  const [showAll, setShowAll] = useState(false);
+
+  const fetch25 = useCallback(async () => {
+    try {
+      const res = await fetch(`${BASE}/api/nft/holders?limit=25`);
+      if (!res.ok) return;
+      const json: HoldersResponse = await res.json();
+      setStatus(json.status === "ready" ? "ready" : "scanning");
+      setHolders(json.data ?? []);
+      if (json.scannedAt) setScannedAt(json.scannedAt);
+      if (json.totalHolders) setTotalHolders(json.totalHolders);
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  useEffect(() => {
+    fetch25();
+    // Re-poll every 60s so we pick up fresh scan results
+    const id = setInterval(fetch25, 60_000);
+    return () => clearInterval(id);
+  }, [fetch25]);
+
+  const display = showAll ? holders : holders.slice(0, 10);
+
+  return (
+    <motion.section
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      transition={{ duration: 0.6 }}
+      className="px-4 md:px-12 py-16 z-10"
+    >
+      <div className="max-w-3xl mx-auto">
+        {/* Header */}
+        <div className="flex items-start justify-between mb-8">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <Crown className="w-4 h-4 text-yellow-400" />
+              <span className="text-xs font-semibold text-yellow-400 uppercase tracking-widest">On-Chain</span>
+            </div>
+            <h2 className="text-3xl md:text-4xl font-black text-white">Top Holders</h2>
+            <p className="text-muted-foreground text-sm mt-1">
+              Wallets ranked by 10K Squad NFTs held · live multicall data
+            </p>
+          </div>
+          {scannedAt && (
+            <div className="hidden md:flex items-center gap-1.5 text-xs text-white/30 mt-1">
+              <RefreshCw className="w-3 h-3" />
+              <span>Scanned {Math.round((Date.now() - scannedAt) / 60000)}m ago</span>
+            </div>
+          )}
+        </div>
+
+        {/* Scanning state */}
+        {status === "scanning" && holders.length === 0 && (
+          <div className="rounded-2xl border border-white/10 p-10 text-center" style={{ background: "rgba(88,28,135,0.15)" }}>
+            <div className="w-8 h-8 rounded-full border-2 border-yellow-400/30 border-t-yellow-400 animate-spin mx-auto mb-4" />
+            <p className="text-white/60 text-sm">Scanning all 3,333 tokens on-chain…</p>
+            <p className="text-white/30 text-xs mt-1">This takes a minute on first load</p>
+          </div>
+        )}
+
+        {/* Loading skeleton */}
+        {status === "loading" && (
+          <div className="space-y-2">
+            {[...Array(8)].map((_, i) => (
+              <div key={i} className="h-14 rounded-xl border border-white/8 animate-pulse" style={{ background: "rgba(88,28,135,0.12)" }} />
+            ))}
+          </div>
+        )}
+
+        {/* Leaderboard table */}
+        {holders.length > 0 && (
+          <div className="rounded-2xl border border-white/10 overflow-hidden" style={{ background: "rgba(14,7,25,0.5)" }}>
+            {display.map((h, idx) => {
+              const rank = idx + 1;
+              const pct = Math.round((h.count / (totalHolders ? Math.max(...holders.map(x => x.count)) : h.count)) * 100);
+              return (
+                <motion.div
+                  key={h.address}
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.3, delay: idx * 0.03 }}
+                  className={`flex items-center gap-4 px-5 py-3.5 border-b border-white/6 last:border-b-0 group hover:bg-white/3 transition-colors ${rank <= 3 ? "bg-yellow-400/4" : ""}`}
+                >
+                  {/* Rank */}
+                  <div className="w-8 flex items-center justify-center shrink-0">
+                    <RankBadge rank={rank} />
+                  </div>
+
+                  {/* Address + bar */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-3 mb-1.5">
+                      <a
+                        href={`https://monadexplorer.com/address/${h.address}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-mono text-sm text-white/80 hover:text-pink-400 transition-colors group-hover:text-white"
+                      >
+                        {shortAddr(h.address)}
+                      </a>
+                      <ExternalLink className="w-3 h-3 text-white/20 group-hover:text-white/40 transition-colors shrink-0" />
+                    </div>
+                    {/* Progress bar */}
+                    <div className="h-1 rounded-full bg-white/8 overflow-hidden">
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: `${pct}%` }}
+                        transition={{ duration: 0.6, delay: idx * 0.03 + 0.2 }}
+                        className="h-full rounded-full"
+                        style={{
+                          background: rank === 1
+                            ? "linear-gradient(90deg, #fbbf24, #f59e0b)"
+                            : rank === 2
+                            ? "linear-gradient(90deg, #94a3b8, #64748b)"
+                            : rank === 3
+                            ? "linear-gradient(90deg, #cd7c4c, #a05b2e)"
+                            : "linear-gradient(90deg, #ec4899, #9333ea)",
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Count */}
+                  <div className="text-right shrink-0">
+                    <span className={`text-lg font-black ${rank === 1 ? "text-yellow-400" : rank === 2 ? "text-slate-300" : rank === 3 ? "text-amber-600" : "text-white"}`}>
+                      {h.count}
+                    </span>
+                    <span className="text-xs text-white/30 ml-1">NFTs</span>
+                  </div>
+                </motion.div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Show more / less */}
+        {holders.length > 10 && (
+          <div className="mt-4 flex justify-center">
+            <button
+              onClick={() => setShowAll(v => !v)}
+              className="flex items-center gap-2 px-6 py-2.5 rounded-full border border-white/15 text-white/60 hover:text-white hover:border-white/30 hover:bg-white/5 transition-all text-sm font-medium"
+            >
+              {showAll ? "Show less" : `Show top 25 holders`}
+            </button>
+          </div>
+        )}
+
+        {/* Footer note */}
+        {status === "ready" && totalHolders && (
+          <p className="text-center text-xs text-white/25 mt-5">
+            {totalHolders.toLocaleString()} unique wallets · read via Multicall3 on Monad
+          </p>
+        )}
       </div>
     </motion.section>
   );
@@ -432,6 +627,9 @@ export default function LandingPage() {
 
       {/* ── Live NFT Sales Feed ──────────────────────────────────────── */}
       <LiveSalesFeed />
+
+      {/* ── Top Holders Leaderboard ──────────────────────────────────── */}
+      <TopHolders />
 
       {/* ── About the 10K Squad ──────────────────────────────────────── */}
       <motion.section
