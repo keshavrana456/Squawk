@@ -4,6 +4,40 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { Palette, Link2, Gamepad2, Camera, Zap, Heart, Trophy, Globe, Gift, Users, TrendingUp, Star, ArrowRight, ExternalLink, Crown, RefreshCw } from "lucide-react";
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
+const CONTEST_END = new Date("2026-05-31T12:00:00Z");
+
+function useContestCountdown() {
+  const [timeLeft, setTimeLeft] = useState(() => {
+    const diff = CONTEST_END.getTime() - Date.now();
+    if (diff <= 0) return null;
+    const totalSecs = Math.floor(diff / 1000);
+    return {
+      days: Math.floor(totalSecs / 86400),
+      hours: Math.floor((totalSecs % 86400) / 3600),
+      minutes: Math.floor((totalSecs % 3600) / 60),
+      seconds: totalSecs % 60,
+    };
+  });
+
+  useEffect(() => {
+    const tick = () => {
+      const diff = CONTEST_END.getTime() - Date.now();
+      if (diff <= 0) { setTimeLeft(null); return; }
+      const totalSecs = Math.floor(diff / 1000);
+      setTimeLeft({
+        days: Math.floor(totalSecs / 86400),
+        hours: Math.floor((totalSecs % 86400) / 3600),
+        minutes: Math.floor((totalSecs % 3600) / 60),
+        seconds: totalSecs % 60,
+      });
+    };
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  return timeLeft;
+}
+
 interface NftSale {
   id: string;
   tokenId: string;
@@ -392,6 +426,7 @@ function TopHolders() {
 }
 
 function OngoingContest() {
+  const contestCountdown = useContestCountdown();
   return (
     <motion.section
       initial={{ opacity: 0, y: 24 }}
@@ -454,7 +489,7 @@ function OngoingContest() {
               <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/60" />
               <div className="absolute top-3 left-3 flex items-center gap-2 px-2.5 py-1 rounded-full text-[11px] font-bold text-red-400 border border-red-500/50" style={{ background: "rgba(0,0,0,0.6)" }}>
                 <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-                ENDS MAY 31, 2026
+                {contestCountdown ? "LIVE — ENDS MAY 31" : "ENDED"}
               </div>
             </div>
 
@@ -467,6 +502,32 @@ function OngoingContest() {
                   <div className="text-xs text-white/45 mt-0.5">May 25 – 31, 2026 · 12:00 UTC</div>
                 </div>
               </div>
+
+              {/* Countdown Timer */}
+              {contestCountdown ? (
+                <div className="rounded-2xl border border-pink-500/20 p-3 mb-4" style={{ background: "rgba(236,72,153,0.06)" }}>
+                  <div className="text-[10px] font-bold text-pink-400/70 uppercase tracking-widest mb-2 text-center">Time Remaining</div>
+                  <div className="grid grid-cols-4 gap-2">
+                    {[
+                      { value: contestCountdown.days, label: "Days" },
+                      { value: contestCountdown.hours, label: "Hrs" },
+                      { value: contestCountdown.minutes, label: "Min" },
+                      { value: contestCountdown.seconds, label: "Sec" },
+                    ].map(({ value, label }) => (
+                      <div key={label} className="flex flex-col items-center rounded-xl py-2" style={{ background: "rgba(0,0,0,0.3)" }}>
+                        <span className="text-xl font-black text-white tabular-nums leading-none">
+                          {String(value).padStart(2, "0")}
+                        </span>
+                        <span className="text-[9px] text-white/40 font-semibold uppercase tracking-wider mt-0.5">{label}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="rounded-2xl border border-white/10 p-3 mb-4 text-center text-sm text-white/40 font-semibold">
+                  Contest has ended
+                </div>
+              )}
 
               <p className="text-sm text-white/55 leading-relaxed mb-4">
                 Celebrating over <span className="text-white font-semibold">1 million volume on OpenSea</span>. Trade, profit, accumulate — open to current holders and new members alike.
@@ -508,7 +569,7 @@ function OngoingContest() {
                   Enter Now ↗
                 </a>
                 <a
-                  href="https://x.com/the10kSquad/status/2058882728905322586"
+                  href="https://x.com/the10kSquad/status/2055284732938666165"
                   target="_blank" rel="noopener noreferrer"
                   className="flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-semibold border border-white/15 text-white/60 hover:text-white hover:border-white/30 transition-all"
                   style={{ background: "rgba(255,255,255,0.04)" }}
