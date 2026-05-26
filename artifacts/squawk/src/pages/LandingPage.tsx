@@ -1325,9 +1325,9 @@ export default function LandingPage() {
             {/* Image */}
             <div className="relative md:w-64 lg:w-80 shrink-0 overflow-hidden" style={{ minHeight: "220px" }}>
               <img
-                src="/promo-bestie.png"
-                alt="My Talking Squad"
-                className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-500"
+                src="/nft-banner.png"
+                alt="10K Squad NFT"
+                className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
                 style={{ minHeight: "220px" }}
               />
               <div className="absolute inset-0 md:hidden" style={{ background: "linear-gradient(to top, rgba(15,10,26,0.95) 0%, transparent 60%)" }} />

@@ -180,7 +180,7 @@ export function AboutModal({ onClose }: AboutModalProps) {
                 <div className="flex justify-between"><span className="text-white/40">App</span><span className="text-white/80 font-semibold">Squawk</span></div>
                 <div className="flex justify-between"><span className="text-white/40">Version</span><span className="text-white/80 font-semibold">1.0.0</span></div>
                 <div className="flex justify-between"><span className="text-white/40">Network</span><span className="text-white/80 font-semibold">Monad</span></div>
-                <div className="flex justify-between"><span className="text-white/40">NFT Supply</span><span className="text-white/80 font-semibold">10,000</span></div>
+                <div className="flex justify-between"><span className="text-white/40">NFT Supply</span><span className="text-white/80 font-semibold">3,333</span></div>
                 <div className="flex justify-between col-span-2"><span className="text-white/40">Contact</span><a href="mailto:squawk069@gmail.com" className="text-purple-400 hover:underline">squawk069@gmail.com</a></div>
               </div>
             </section>
