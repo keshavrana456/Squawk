@@ -425,8 +425,45 @@ function TopHolders() {
   );
 }
 
+interface ContestTweet {
+  id: number;
+  tweetId: string;
+  text: string;
+  authorHandle: string;
+  authorName: string;
+  mediaUrl: string | null;
+  tweetUrl: string;
+  postedAt: string;
+}
+
+function useContestFeed() {
+  const [tweets, setTweets] = useState<ContestTweet[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const res = await fetch(`${BASE}/api/contests`);
+        if (!res.ok) return;
+        const data = await res.json();
+        setTweets(data.tweets ?? []);
+      } catch {
+        // silently fail
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+    const id = setInterval(load, 5 * 60 * 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  return { tweets, loading };
+}
+
 function OngoingContest() {
   const contestCountdown = useContestCountdown();
+  const { tweets, loading } = useContestFeed();
   return (
     <motion.section
       initial={{ opacity: 0, y: 24 }}
@@ -697,6 +734,74 @@ function OngoingContest() {
             </div>
           </motion.div>
         </div>
+
+        {/* ── Live from X feed ── */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5 }}
+          className="mt-8 rounded-3xl border border-white/10 overflow-hidden"
+          style={{ background: "rgba(255,255,255,0.02)" }}
+        >
+          <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-white/8">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+              <span className="text-sm font-bold text-white/80">Live from @the10kSquad</span>
+              <span className="text-xs text-white/35">· auto-updates every 5 min</span>
+            </div>
+            <a href="https://x.com/the10ksquad" target="_blank" rel="noopener noreferrer"
+              className="text-xs text-white/40 hover:text-white/70 transition-colors">
+              Follow ↗
+            </a>
+          </div>
+
+          {loading ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="w-5 h-5 rounded-full border-2 border-purple-400/30 border-t-purple-400 animate-spin" />
+            </div>
+          ) : tweets.length === 0 ? (
+            <div className="text-center py-8 text-sm text-white/30">
+              No contest updates fetched yet — check back shortly.
+            </div>
+          ) : (
+            <div className="divide-y divide-white/5">
+              {tweets.map((tweet) => (
+                <a
+                  key={tweet.tweetId}
+                  href={tweet.tweetUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex gap-3 p-4 hover:bg-white/[0.03] transition-colors group"
+                >
+                  <img
+                    src="https://pbs.twimg.com/profile_images/1954851397649711104/evoBVFM0_200x200.jpg"
+                    alt="10k Squad"
+                    className="w-8 h-8 rounded-full shrink-0 mt-0.5 ring-1 ring-purple-500/30"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-xs font-bold text-white/80">{tweet.authorName}</span>
+                      <span className="text-[10px] text-white/35">@{tweet.authorHandle}</span>
+                      <span className="text-[10px] text-white/25 ml-auto shrink-0">{timeAgo(new Date(tweet.postedAt).getTime())}</span>
+                    </div>
+                    <p className="text-xs text-white/60 leading-relaxed line-clamp-3 whitespace-pre-wrap">
+                      {tweet.text}
+                    </p>
+                    {tweet.mediaUrl && (
+                      <img
+                        src={tweet.mediaUrl}
+                        alt="contest media"
+                        className="mt-2 rounded-xl w-full max-h-40 object-cover opacity-70"
+                      />
+                    )}
+                  </div>
+                  <ExternalLink className="w-3 h-3 text-white/20 group-hover:text-white/50 transition-colors shrink-0 mt-1" />
+                </a>
+              ))}
+            </div>
+          )}
+        </motion.div>
 
         {/* Footer */}
         <div className="mt-8 flex flex-col sm:flex-row items-center justify-between gap-4 rounded-2xl border border-white/10 p-5" style={{ background: "rgba(255,255,255,0.03)" }}>
