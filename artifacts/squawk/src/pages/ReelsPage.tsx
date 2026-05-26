@@ -159,7 +159,7 @@ function Reel({ post, muted, setMuted }: { post: any; muted: boolean; setMuted: 
     setLikesCount(newCount);
     patchCache(newLiked, newCount);
     likeMutation.mutate({ id: post.id }, {
-      onSuccess: (data) => {
+      onSuccess: (data: any) => {
         setIsLiked(data.isLiked);
         setLikesCount(data.likesCount);
         patchCache(data.isLiked, data.likesCount);

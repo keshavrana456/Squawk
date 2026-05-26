@@ -90,7 +90,7 @@ function UserListModal({
                   <div className="flex-1 min-w-0">
                     <div className="font-semibold text-foreground text-sm flex items-center gap-1">
                       {u.displayName}
-                      {(u as any).isFounder && <BadgeCheck className="w-4 h-4 text-pink-500" title="Founder" />}
+                      {(u as any).isFounder && <BadgeCheck className="w-4 h-4 text-pink-500" />}
                       {u.isVerified && !((u as any).isFounder) && <BadgeCheck className="w-4 h-4 text-primary" />}
                     </div>
                     <div className="text-muted-foreground text-xs">@{u.username}</div>
@@ -146,8 +146,8 @@ export default function ProfilePage() {
   const [storyViewerOpen, setStoryViewerOpen] = useState(false);
 
   // Find this user's story group
-  const profileStoryGroup = storyGroups?.find(g => g.user.username === username);
-  const profileStoryGroupIndex = storyGroups?.findIndex(g => g.user.username === username) ?? -1;
+  const profileStoryGroup = storyGroups?.find((g: any) => g.user.username === username);
+  const profileStoryGroupIndex = storyGroups?.findIndex((g: any) => g.user.username === username) ?? -1;
   const hasActiveStory = !!profileStoryGroup;
 
   const [statsTab, setStatsTab] = useState<"stats" | "sales">("stats");
@@ -475,13 +475,13 @@ export default function ProfilePage() {
         <div className="mb-8">
           <div className="flex items-center gap-2 mb-1">
             <h1 className="text-2xl font-bold text-foreground">{profile.displayName}</h1>
-            {(profile as any).isFounder && <BadgeCheck className="w-6 h-6 text-pink-500" title="Founder" />}
+            {(profile as any).isFounder && <BadgeCheck className="w-6 h-6 text-pink-500" />}
             {profile.isVerified && !((profile as any).isFounder) && <BadgeCheck className="w-6 h-6 text-primary" />}
           </div>
           <p className="text-muted-foreground font-medium text-[15px]">@{profile.username}</p>
           {profile.bio && (
             <p className="mt-4 text-[15px] whitespace-pre-wrap max-w-2xl">
-              {profile.bio.split(/(https?:\/\/[^\s]+)/g).map((part, i) =>
+              {profile.bio.split(/(https?:\/\/[^\s]+)/g).map((part: string, i: number) =>
                 /^https?:\/\//.test(part)
                   ? <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline break-all">{part}</a>
                   : <span key={i}>{part}</span>

@@ -136,6 +136,7 @@ export default function HomePage() {
         return () => clearTimeout(t);
       }
     } catch {}
+    return undefined;
   }, []);
 
   const { data: feedData, isLoading, refetch } = useGetFeed(undefined, {

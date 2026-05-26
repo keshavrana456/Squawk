@@ -390,7 +390,7 @@ function SignInPage() {
   return (
     <AuthPageShell>
       <SignIn
-        routing="virtual"
+        routing={"virtual" as any}
         appearance={clerkAppearance}
         signUpUrl={`${basePath}/sign-up`}
         fallbackRedirectUrl={`${basePath}/home`}
@@ -403,7 +403,7 @@ function SignUpPage() {
   return (
     <AuthPageShell>
       <SignUp
-        routing="virtual"
+        routing={"virtual" as any}
         appearance={clerkAppearance}
         signInUrl={`${basePath}/sign-in`}
         fallbackRedirectUrl={`${basePath}/home`}

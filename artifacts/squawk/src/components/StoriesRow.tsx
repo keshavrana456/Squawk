@@ -170,10 +170,10 @@ export function StoryViewer({ groups: initialGroups, startIndex, onClose, onStor
     try {
       const res = await fetch(`/api/stories/${currentStory.id}`, { method: "DELETE" });
       if (!res.ok) throw new Error("Delete failed");
-      const newGroups = groups.map((g, gi) => {
+      const newGroups = groups.map((g: any, gi: number) => {
         if (gi !== groupIndex) return g;
-        return { ...g, stories: g.stories.filter((_, si) => si !== storyIndex) };
-      }).filter(g => g.stories.length > 0);
+        return { ...g, stories: g.stories.filter((_: any, si: number) => si !== storyIndex) };
+      }).filter((g: any) => g.stories.length > 0);
       setGroups(newGroups);
       setShowDeleteConfirm(false);
       setShowMenu(false);
@@ -219,7 +219,7 @@ export function StoryViewer({ groups: initialGroups, startIndex, onClose, onStor
 
         {/* Progress bars */}
         <div className="absolute top-0 left-0 right-0 z-20 flex gap-1 p-2">
-          {currentGroup.stories.map((s, i) => (
+          {currentGroup.stories.map((s: any, i: number) => (
             <div key={s.id} className="flex-1 h-[3px] bg-white/30 rounded-full overflow-hidden">
               <div
                 className="h-full bg-white rounded-full"
@@ -555,7 +555,7 @@ export default function StoriesRow() {
   }
 
   const getInitials = (name: string) => name ? name.charAt(0).toUpperCase() : '?';
-  const myStoryGroup = storyGroups?.find(g => g.user.username === me?.username);
+  const myStoryGroup = storyGroups?.find((g: any) => g.user.username === me?.username);
   const iHaveStory = !!myStoryGroup;
 
   return (
@@ -588,7 +588,7 @@ export default function StoriesRow() {
           <div
             className="flex flex-col items-center gap-1 shrink-0 cursor-pointer group"
             data-testid="story-mine"
-            onClick={() => setViewerGroupIndex(storyGroups!.findIndex(g => g.user.username === me?.username))}
+            onClick={() => setViewerGroupIndex(storyGroups!.findIndex((g: any) => g.user.username === me?.username))}
           >
             <div
               className="relative w-16 h-16 rounded-full p-[2px] transition-transform group-hover:scale-105 bg-gradient-to-tr from-primary to-[#c084fc]"
@@ -608,9 +608,9 @@ export default function StoriesRow() {
         )}
 
         {/* Other users' stories */}
-        {storyGroups?.filter(g => g.user.username !== me?.username).map((group, idx) => {
-          const realIdx = storyGroups!.findIndex(g => g.user.username === group.user.username);
-          const hasUnviewed = group.stories.some(s => !(s as any).isViewed);
+        {storyGroups?.filter((g: any) => g.user.username !== me?.username).map((group: any, idx: number) => {
+          const realIdx = storyGroups!.findIndex((g: any) => g.user.username === group.user.username);
+          const hasUnviewed = group.stories.some((s: any) => !(s as any).isViewed);
           return (
             <div
               key={group.user.id}

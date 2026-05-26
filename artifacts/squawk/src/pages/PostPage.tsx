@@ -144,7 +144,7 @@ export default function PostPage() {
     setLocalLikes(newCount);
     patchLikeCache(newLiked, newCount);
     likeMutation.mutate({ id: postId }, {
-      onSuccess: (data) => {
+      onSuccess: (data: any) => {
         setLocalLiked(data.isLiked);
         setLocalLikes(data.likesCount);
         patchLikeCache(data.isLiked, data.likesCount);
@@ -284,7 +284,7 @@ export default function PostPage() {
               </Avatar>
               <div className="flex items-center gap-1 font-semibold group-hover:text-primary transition-colors">
                 {post.author.username}
-                {(post.author as any).isFounder && <BadgeCheck className="w-4 h-4 text-pink-500" title="Founder" />}
+                {(post.author as any).isFounder && <BadgeCheck className="w-4 h-4 text-pink-500" />}
                 {post.author.isVerified && !((post.author as any).isFounder) && <BadgeCheck className="w-4 h-4 text-primary" />}
               </div>
             </Link>
@@ -361,7 +361,7 @@ export default function PostPage() {
                   <div className="flex-1 min-w-0">
                     <span className="font-semibold text-sm mr-2">{post.author.username}</span>
                     <span className="text-sm text-foreground break-words">
-                      {post.caption.split(/(#\w+)/g).map((part, i) =>
+                      {post.caption.split(/(#\w+)/g).map((part: string, i: number) =>
                         /^#\w+/.test(part)
                           ? <Link key={i} href={`/explore/hashtags/${part.slice(1)}`} className="text-primary hover:underline font-medium">{part}</Link>
                           : part

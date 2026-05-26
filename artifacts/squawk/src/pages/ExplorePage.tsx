@@ -90,7 +90,7 @@ export default function ExplorePage() {
           <div>
             <h2 className="text-lg font-bold mb-4 text-foreground">Suggested Creators</h2>
             <div className="flex gap-4 overflow-x-auto pb-4 no-scrollbar">
-              {suggestedUsers?.map(user => (
+              {suggestedUsers?.map((user: any) => (
                 <div key={user.id} className="min-w-[280px]">
                   <UserCard user={user} />
                 </div>

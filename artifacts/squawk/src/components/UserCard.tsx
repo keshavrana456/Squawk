@@ -70,7 +70,7 @@ export default function UserCard({ user }: UserCardProps) {
         <div className="flex flex-col overflow-hidden">
           <div className="flex items-center gap-1">
             <span className="font-semibold text-foreground truncate">{user.username}</span>
-            {(user as any).isFounder && <BadgeCheck className="w-4 h-4 text-pink-500 shrink-0" title="Founder" />}
+            {(user as any).isFounder && <BadgeCheck className="w-4 h-4 text-pink-500 shrink-0" />}
             {user.isVerified && !((user as any).isFounder) && <BadgeCheck className="w-4 h-4 text-primary shrink-0" />}
           </div>
           <span className="text-sm text-muted-foreground truncate">{user.displayName}</span>

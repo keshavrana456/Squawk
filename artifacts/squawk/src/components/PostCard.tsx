@@ -137,7 +137,7 @@ export default function PostCard({ post, onLike, onSave, onComment }: PostCardPr
     patchCache(newLiked, newCount);
 
     likeMutation.mutate({ id: post.id }, {
-      onSuccess: (data) => {
+      onSuccess: (data: any) => {
         setIsLiked(data.isLiked);
         setLikesCount(data.likesCount);
         patchCache(data.isLiked, data.likesCount);

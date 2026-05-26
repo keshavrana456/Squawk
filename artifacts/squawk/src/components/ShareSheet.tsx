@@ -117,7 +117,7 @@ export function ShareSheet({ open, onOpenChange, postId, caption }: ShareSheetPr
       const other = (c.participants || []).find((p: any) => p.id !== (me as any)?.id) || c.participants?.[0];
       return { conv: c, other };
     })
-    .filter(({ other }) => !!other);
+    .filter(({ other }: { other: any }) => !!other);
 
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
@@ -132,7 +132,7 @@ export function ShareSheet({ open, onOpenChange, postId, caption }: ShareSheetPr
             <div>
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3 px-1">Send to friend</p>
               <div className="flex gap-4 overflow-x-auto pb-1 no-scrollbar">
-                {dmList.map(({ conv, other }) => {
+                {dmList.map(({ conv, other }: { conv: any; other: any }) => {
                   const alreadySent = sentTo.has(conv.id);
                   const isSending = sending === conv.id;
                   return (
@@ -198,7 +198,7 @@ export function ShareSheet({ open, onOpenChange, postId, caption }: ShareSheetPr
               </button>
             ))}
 
-            {typeof navigator !== "undefined" && navigator.share && (
+            {typeof navigator !== "undefined" && typeof navigator.share === "function" && (
               <button
                 onClick={() => { handleNativeShare(); onOpenChange(false); }}
                 className="flex flex-col items-center gap-2 group"
