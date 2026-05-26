@@ -580,7 +580,7 @@ function OngoingContest() {
             </div>
           </motion.div>
 
-          {/* ── CODING CONTEST — ENDED ── */}
+          {/* ── CODING CONTEST — EXTENDED / ACTIVE ── */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -588,22 +588,24 @@ function OngoingContest() {
             transition={{ duration: 0.5, delay: 0.12 }}
             className="relative rounded-3xl overflow-hidden border flex flex-col"
             style={{
-              background: "linear-gradient(135deg, rgba(99,102,241,0.10) 0%, rgba(147,51,234,0.10) 60%, rgba(14,7,25,0.7) 100%)",
-              borderColor: "rgba(99,102,241,0.25)",
+              background: "linear-gradient(135deg, rgba(99,102,241,0.12) 0%, rgba(147,51,234,0.16) 60%, rgba(14,7,25,0.7) 100%)",
+              borderColor: "rgba(99,102,241,0.45)",
+              boxShadow: "0 0 50px rgba(99,102,241,0.08) inset",
             }}
           >
-            <div className="absolute -top-16 -left-16 w-48 h-48 rounded-full blur-3xl pointer-events-none" style={{ background: "rgba(99,102,241,0.10)" }} />
+            <div className="absolute -top-16 -left-16 w-48 h-48 rounded-full blur-3xl pointer-events-none" style={{ background: "rgba(99,102,241,0.18)" }} />
 
             {/* Banner image */}
             <div className="relative w-full h-40 overflow-hidden">
               <img
                 src="https://pbs.twimg.com/media/HGrY5DiXYAA8IES.jpg"
                 alt="Squad Coding Contest"
-                className="w-full h-full object-cover object-top opacity-55 grayscale-[30%]"
+                className="w-full h-full object-cover object-top opacity-70"
               />
               <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/60" />
-              <div className="absolute top-3 left-3 flex items-center gap-2 px-2.5 py-1 rounded-full text-[11px] font-bold text-white/50 border border-white/20" style={{ background: "rgba(0,0,0,0.6)" }}>
-                ✓ CONTEST ENDED — Results May 16
+              <div className="absolute top-3 left-3 flex items-center gap-2 px-2.5 py-1 rounded-full text-[11px] font-bold text-indigo-300 border border-indigo-500/50" style={{ background: "rgba(0,0,0,0.6)" }}>
+                <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" />
+                EXTENDED — SUBMIT BY MAY 29
               </div>
             </div>
 
@@ -613,13 +615,32 @@ function OngoingContest() {
                 <div>
                   <div className="text-xs font-bold text-indigo-400 tracking-widest uppercase mb-0.5">Coding Contest</div>
                   <div className="text-xl font-black text-white leading-tight">Squad Coding Contest</div>
-                  <div className="text-xs text-white/45 mt-0.5">April 24 – May 15, 2026</div>
+                  <div className="text-xs text-white/45 mt-0.5">Apr 24 – May 29, 2026 · Extended!</div>
                 </div>
               </div>
 
               <p className="text-sm text-white/55 leading-relaxed mb-4">
-                Build anything using the 10K Squad parrots — a game, app, page, or anything fun. Inspired by the Monad vibecoding community.
+                Build anything using the 10K Squad parrots — a game, app, page, or anything fun. Extended due to <span className="text-white font-semibold">so many amazing submissions</span>. Holders only.
               </p>
+
+              {/* Schedule */}
+              <div className="rounded-2xl border border-indigo-400/20 p-3 mb-4 space-y-2" style={{ background: "rgba(99,102,241,0.07)" }}>
+                <div className="text-[10px] font-bold text-indigo-400/70 uppercase tracking-widest mb-1">Live Judging Schedule</div>
+                <div className="flex items-start gap-2 text-xs">
+                  <span className="shrink-0 px-1.5 py-0.5 rounded-md bg-indigo-500/20 text-indigo-300 font-bold text-[10px]">R1</span>
+                  <div>
+                    <div className="text-white/80 font-semibold">Round 1 — May 30 · 13:00 UTC</div>
+                    <div className="text-white/40">10 finalists selected · Discord stage</div>
+                  </div>
+                </div>
+                <div className="flex items-start gap-2 text-xs">
+                  <span className="shrink-0 px-1.5 py-0.5 rounded-md bg-purple-500/20 text-purple-300 font-bold text-[10px]">🏆</span>
+                  <div>
+                    <div className="text-white/80 font-semibold">Final Round — May 31 · 13:00 UTC</div>
+                    <div className="text-white/40">Winner chosen from top 10 · Discord stage</div>
+                  </div>
+                </div>
+              </div>
 
               {/* Prize breakdown */}
               <div className="rounded-2xl border border-indigo-400/15 p-4 mb-4 space-y-1.5" style={{ background: "rgba(99,102,241,0.06)" }}>
@@ -640,11 +661,12 @@ function OngoingContest() {
 
               {/* Rules */}
               <div className="rounded-2xl border border-white/8 p-4 mb-5 space-y-1.5" style={{ background: "rgba(255,255,255,0.03)" }}>
-                <div className="text-xs font-bold text-white/60 uppercase tracking-wide mb-2">Rules</div>
+                <div className="text-xs font-bold text-white/60 uppercase tracking-wide mb-2">How to enter</div>
                 {[
                   "Build anything with 10K Squad parrots",
-                  "Test it and make sure it works",
+                  "Test it with friends and make sure it works",
                   "Post on X and tag @the10kSquad",
+                  "Post your X link in the 10K Discord",
                   "Must be a holder to enter",
                 ].map((rule, i) => (
                   <div key={i} className="flex items-start gap-2 text-xs text-white/55">
@@ -654,14 +676,24 @@ function OngoingContest() {
                 ))}
               </div>
 
-              <a
-                href="https://x.com/the10kSquad/status/2047687465587069000"
-                target="_blank" rel="noopener noreferrer"
-                className="mt-auto flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold border border-indigo-400/30 text-indigo-300 hover:text-white hover:border-indigo-400/60 transition-all"
-                style={{ background: "rgba(99,102,241,0.08)" }}
-              >
-                <ExternalLink className="w-3.5 h-3.5" /> View Original Post
-              </a>
+              <div className="flex gap-2 mt-auto">
+                <a
+                  href="https://x.com/the10kSquad/status/2055284732938666165"
+                  target="_blank" rel="noopener noreferrer"
+                  className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold text-white transition-all hover:scale-[1.02] hover:shadow-[0_0_20px_rgba(99,102,241,0.3)]"
+                  style={{ background: "linear-gradient(135deg, #6366f1, #9333ea)" }}
+                >
+                  View Extension Post ↗
+                </a>
+                <a
+                  href="https://x.com/the10kSquad/status/2047687465587069000"
+                  target="_blank" rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-semibold border border-white/15 text-white/60 hover:text-white hover:border-white/30 transition-all"
+                  style={{ background: "rgba(255,255,255,0.04)" }}
+                >
+                  <ExternalLink className="w-3.5 h-3.5" /> Original
+                </a>
+              </div>
             </div>
           </motion.div>
         </div>
