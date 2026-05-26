@@ -1369,7 +1369,7 @@ export default function LandingPage() {
             >
               <div className="relative md:w-64 lg:w-80 shrink-0 overflow-hidden" style={{ minHeight: "220px" }}>
                 <img
-                  src="/nft-banner.png"
+                  src="/contra-game.png"
                   alt="10K Squad Contra"
                   className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
                   style={{ minHeight: "220px" }}

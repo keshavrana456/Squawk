@@ -96,7 +96,7 @@ export default function SettingsPage() {
             >
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-2xl overflow-hidden shrink-0 border border-border">
-                  <img src="/nft-banner.png" alt="10K Squad Contra" className="w-full h-full object-cover object-center" />
+                  <img src="/contra-game.png" alt="10K Squad Contra" className="w-full h-full object-cover object-center" />
                 </div>
                 <div className="text-left">
                   <p className="font-medium text-foreground">10K Squad Contra</p>
