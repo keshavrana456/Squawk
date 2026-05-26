@@ -568,16 +568,16 @@ export default function StoriesRow() {
           onClick={() => setUploadOpen(true)}
         >
           <div className="relative w-16 h-16 rounded-full p-[2px] transition-transform group-hover:scale-105 bg-muted border border-border">
-            <div className="w-full h-full rounded-full border-2 border-background overflow-hidden bg-muted flex items-center justify-center relative">
+            <div className="w-full h-full rounded-full border-2 border-background overflow-hidden bg-muted flex items-center justify-center">
               <Avatar className="w-full h-full rounded-none">
                 <AvatarImage src={me?.avatarUrl || ''} className="object-cover" />
                 <AvatarFallback className="bg-muted text-muted-foreground font-semibold">
                   {me?.displayName?.charAt(0)?.toUpperCase() ?? 'Me'}
                 </AvatarFallback>
               </Avatar>
-              <div className="absolute bottom-0 right-0 w-5 h-5 bg-primary rounded-full border-2 border-background flex items-center justify-center text-primary-foreground">
-                <Plus className="w-3 h-3" />
-              </div>
+            </div>
+            <div className="absolute bottom-0 right-0 w-5 h-5 bg-primary rounded-full border-2 border-background flex items-center justify-center text-primary-foreground">
+              <Plus className="w-3 h-3" />
             </div>
           </div>
           <span className="text-xs text-muted-foreground truncate w-16 text-center">Add Story</span>
