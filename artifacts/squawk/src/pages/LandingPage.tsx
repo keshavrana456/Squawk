@@ -392,15 +392,6 @@ function TopHolders() {
 }
 
 function OngoingContest() {
-  const rewards = [
-    { emoji: "🎟️", label: "Fluffle Raffle", value: "15 Free Tickets", sub: "per holder — auto-applied" },
-    { emoji: "🏅", label: "GTD Whitelist", value: "8+ Projects", sub: "Monad mainnet launches" },
-    { emoji: "⚡", label: "Magma Boost", value: "+15% Points", sub: "DeFi protocol rewards" },
-    { emoji: "🌊", label: "Neverland Boost", value: "+20% Pearls", sub: "auto-applied to holders" },
-    { emoji: "🐧", label: "Pingu Boost", value: "+30% Points", sub: "2nd-tier referral access" },
-    { emoji: "💎", label: "Cultverse", value: "+20% Gems", sub: "priority access & raffles" },
-  ];
-
   return (
     <motion.section
       initial={{ opacity: 0, y: 24 }}
@@ -416,13 +407,13 @@ function OngoingContest() {
             <div className="flex items-center gap-3 mb-2">
               <span className="flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold text-red-400 border border-red-500/40" style={{ background: "rgba(239,68,68,0.1)" }}>
                 <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                ACTIVE NOW
+                LIVE NOW
               </span>
-              <span className="text-xs text-white/30">Updated via @the10kSquad</span>
+              <span className="text-xs text-white/30">via @the10kSquad</span>
             </div>
-            <h2 className="text-3xl md:text-4xl font-black text-white">Squad Rewards Season</h2>
+            <h2 className="text-3xl md:text-4xl font-black text-white">Squad Contests</h2>
             <p className="text-muted-foreground mt-1 text-sm max-w-lg">
-              Hold a 10K Squad NFT and every reward below is automatically applied to your wallet. No manual entries — just hold and earn.
+              10K Squad runs real contests with real prizes — $MON, NFTs, and more. Holders only.
             </p>
           </div>
           <a
@@ -433,96 +424,193 @@ function OngoingContest() {
             style={{ background: "linear-gradient(135deg, #ec4899, #9333ea)" }}
           >
             <ExternalLink className="w-4 h-4" />
-            Latest on X
+            Follow on X
           </a>
         </div>
 
-        {/* Main contest card */}
-        <div
-          className="relative rounded-3xl p-6 md:p-8 mb-8 overflow-hidden border"
-          style={{
-            background: "linear-gradient(135deg, rgba(236,72,153,0.08) 0%, rgba(147,51,234,0.12) 50%, rgba(14,7,25,0.6) 100%)",
-            borderColor: "rgba(236,72,153,0.3)",
-            boxShadow: "0 0 60px rgba(236,72,153,0.08) inset",
-          }}
-        >
-          {/* Decorative glow */}
-          <div className="absolute -top-20 -right-20 w-60 h-60 rounded-full blur-3xl pointer-events-none" style={{ background: "rgba(236,72,153,0.12)" }} />
-          <div className="absolute -bottom-10 -left-10 w-40 h-40 rounded-full blur-2xl pointer-events-none" style={{ background: "rgba(147,51,234,0.1)" }} />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* ── TRADING CONTEST — ACTIVE ── */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5, delay: 0 }}
+            className="relative rounded-3xl overflow-hidden border flex flex-col"
+            style={{
+              background: "linear-gradient(135deg, rgba(236,72,153,0.10) 0%, rgba(147,51,234,0.14) 60%, rgba(14,7,25,0.7) 100%)",
+              borderColor: "rgba(236,72,153,0.35)",
+              boxShadow: "0 0 50px rgba(236,72,153,0.08) inset",
+            }}
+          >
+            <div className="absolute -top-16 -right-16 w-48 h-48 rounded-full blur-3xl pointer-events-none" style={{ background: "rgba(236,72,153,0.14)" }} />
 
-          <div className="relative z-10">
-            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 mb-8">
-              <div className="flex items-center gap-4">
-                <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-3xl border border-yellow-400/30" style={{ background: "rgba(251,191,36,0.1)" }}>
-                  🏆
-                </div>
-                <div>
-                  <div className="text-xs font-bold text-yellow-400 tracking-widest uppercase mb-1">Featured Contest</div>
-                  <div className="text-xl md:text-2xl font-black text-white">Fluffle Raffle</div>
-                  <div className="text-sm text-white/50">Ongoing · Auto-entry for all holders</div>
-                </div>
-              </div>
-              <div className="flex gap-3 flex-wrap">
-                <div className="px-4 py-2 rounded-2xl border border-white/10 text-center" style={{ background: "rgba(255,255,255,0.04)" }}>
-                  <div className="text-2xl font-black text-white">15</div>
-                  <div className="text-xs text-white/40">Free Tickets</div>
-                </div>
-                <div className="px-4 py-2 rounded-2xl border border-white/10 text-center" style={{ background: "rgba(255,255,255,0.04)" }}>
-                  <div className="text-2xl font-black text-white">8+</div>
-                  <div className="text-xs text-white/40">WL Spots</div>
-                </div>
-                <div className="px-4 py-2 rounded-2xl border border-white/10 text-center" style={{ background: "rgba(255,255,255,0.04)" }}>
-                  <div className="text-2xl font-black text-white">3,333</div>
-                  <div className="text-xs text-white/40">Eligible NFTs</div>
-                </div>
+            {/* Banner image */}
+            <div className="relative w-full h-40 overflow-hidden">
+              <img
+                src="https://pbs.twimg.com/media/HJKe7j7WUAAXbZM.jpg"
+                alt="Squad Trading Contest"
+                className="w-full h-full object-cover object-top opacity-70"
+              />
+              <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/60" />
+              <div className="absolute top-3 left-3 flex items-center gap-2 px-2.5 py-1 rounded-full text-[11px] font-bold text-red-400 border border-red-500/50" style={{ background: "rgba(0,0,0,0.6)" }}>
+                <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+                ENDS MAY 31, 2026
               </div>
             </div>
 
-            <div className="rounded-2xl border border-white/10 p-4 mb-4" style={{ background: "rgba(255,255,255,0.03)" }}>
-              <div className="flex items-start gap-3">
-                <span className="text-lg mt-0.5">📋</span>
+            <div className="relative z-10 p-6 flex flex-col flex-1">
+              <div className="flex items-start gap-3 mb-4">
+                <div className="text-3xl">🏆</div>
                 <div>
-                  <div className="text-sm font-bold text-white mb-1">How to enter</div>
-                  <div className="text-sm text-white/55 leading-relaxed">
-                    Hold any 10K Squad NFT in your connected wallet. Raffle tickets (15 per NFT) are automatically counted — equivalent to 15 hours of contribution credit. Additional boosts apply if your NFT has the Kintsu trait (+25% points on Kintsu protocol).
+                  <div className="text-xs font-bold text-yellow-400 tracking-widest uppercase mb-0.5">Trading Contest</div>
+                  <div className="text-xl font-black text-white leading-tight">Squad Trading Contest</div>
+                  <div className="text-xs text-white/45 mt-0.5">May 25 – 31, 2026 · 12:00 UTC</div>
+                </div>
+              </div>
+
+              <p className="text-sm text-white/55 leading-relaxed mb-4">
+                Celebrating over <span className="text-white font-semibold">1 million volume on OpenSea</span>. Trade, profit, accumulate — open to current holders and new members alike.
+              </p>
+
+              {/* Prize */}
+              <div className="rounded-2xl border border-yellow-400/20 p-3 mb-4 flex items-center gap-3" style={{ background: "rgba(251,191,36,0.06)" }}>
+                <span className="text-2xl">🎁</span>
+                <div>
+                  <div className="text-sm font-black text-white">Prize Pool</div>
+                  <div className="text-xs text-yellow-300 font-semibold">20 × The 10K Squad NFTs</div>
+                  <div className="text-[11px] text-white/35">Winners drawn live in Discord VC</div>
+                </div>
+              </div>
+
+              {/* Steps */}
+              <div className="rounded-2xl border border-white/8 p-4 mb-5 space-y-2" style={{ background: "rgba(255,255,255,0.03)" }}>
+                <div className="text-xs font-bold text-white/60 uppercase tracking-wide mb-2">How to enter (holders)</div>
+                {[
+                  "Sell 1 NFT for profit at floor price",
+                  "Buy 1 NFT from the floor (direct only, no offers)",
+                  "HODL that NFT unlisted until May 31",
+                  "Fill out the entry form",
+                ].map((step, i) => (
+                  <div key={i} className="flex items-start gap-2 text-xs text-white/55">
+                    <span className="w-4 h-4 rounded-full bg-pink-500/20 text-pink-400 font-bold text-[10px] flex items-center justify-center shrink-0 mt-0.5">{i + 1}</span>
+                    {step}
                   </div>
-                </div>
+                ))}
+              </div>
+
+              <div className="flex gap-2 mt-auto">
+                <a
+                  href="https://docs.google.com/forms/d/e/1FAIpQLScLuEZjRRaHKdAlpIJK-vo53pvozIFydhir-syB4xhwsdr9wg/viewform?usp=header"
+                  target="_blank" rel="noopener noreferrer"
+                  className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold text-white transition-all hover:scale-[1.02] hover:shadow-[0_0_20px_rgba(236,72,153,0.3)]"
+                  style={{ background: "linear-gradient(135deg, #ec4899, #9333ea)" }}
+                >
+                  Enter Now ↗
+                </a>
+                <a
+                  href="https://x.com/the10kSquad/status/2058882728905322586"
+                  target="_blank" rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-semibold border border-white/15 text-white/60 hover:text-white hover:border-white/30 transition-all"
+                  style={{ background: "rgba(255,255,255,0.04)" }}
+                >
+                  <ExternalLink className="w-3.5 h-3.5" /> Post
+                </a>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* ── CODING CONTEST — ENDED ── */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5, delay: 0.12 }}
+            className="relative rounded-3xl overflow-hidden border flex flex-col"
+            style={{
+              background: "linear-gradient(135deg, rgba(99,102,241,0.10) 0%, rgba(147,51,234,0.10) 60%, rgba(14,7,25,0.7) 100%)",
+              borderColor: "rgba(99,102,241,0.25)",
+            }}
+          >
+            <div className="absolute -top-16 -left-16 w-48 h-48 rounded-full blur-3xl pointer-events-none" style={{ background: "rgba(99,102,241,0.10)" }} />
+
+            {/* Banner image */}
+            <div className="relative w-full h-40 overflow-hidden">
+              <img
+                src="https://pbs.twimg.com/media/HGrY5DiXYAA8IES.jpg"
+                alt="Squad Coding Contest"
+                className="w-full h-full object-cover object-top opacity-55 grayscale-[30%]"
+              />
+              <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/60" />
+              <div className="absolute top-3 left-3 flex items-center gap-2 px-2.5 py-1 rounded-full text-[11px] font-bold text-white/50 border border-white/20" style={{ background: "rgba(0,0,0,0.6)" }}>
+                ✓ CONTEST ENDED — Results May 16
               </div>
             </div>
 
-            <div className="flex items-center gap-2 text-xs text-white/35">
-              <Star className="w-3.5 h-3.5 text-yellow-400" />
-              Diamond Wings status unlocked for top contributors and creators in the ecosystem
+            <div className="relative z-10 p-6 flex flex-col flex-1">
+              <div className="flex items-start gap-3 mb-4">
+                <div className="text-3xl">💻</div>
+                <div>
+                  <div className="text-xs font-bold text-indigo-400 tracking-widest uppercase mb-0.5">Coding Contest</div>
+                  <div className="text-xl font-black text-white leading-tight">Squad Coding Contest</div>
+                  <div className="text-xs text-white/45 mt-0.5">April 24 – May 15, 2026</div>
+                </div>
+              </div>
+
+              <p className="text-sm text-white/55 leading-relaxed mb-4">
+                Build anything using the 10K Squad parrots — a game, app, page, or anything fun. Inspired by the Monad vibecoding community.
+              </p>
+
+              {/* Prize breakdown */}
+              <div className="rounded-2xl border border-indigo-400/15 p-4 mb-4 space-y-1.5" style={{ background: "rgba(99,102,241,0.06)" }}>
+                <div className="text-xs font-bold text-white/60 uppercase tracking-wide mb-2">Prize Pool</div>
+                {[
+                  { place: "🥇", prize: "10,000 $MON + 5 NFTs" },
+                  { place: "🥈", prize: "4,000 $MON + 4 NFTs" },
+                  { place: "🥉", prize: "3,000 $MON + 3 NFTs" },
+                  { place: "4th", prize: "2,000 $MON + 2 NFTs" },
+                  { place: "5th", prize: "1,000 $MON + 1 NFT" },
+                ].map((p) => (
+                  <div key={p.place} className="flex items-center justify-between text-xs">
+                    <span className="text-white/50">{p.place}</span>
+                    <span className="text-white/80 font-semibold">{p.prize}</span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Rules */}
+              <div className="rounded-2xl border border-white/8 p-4 mb-5 space-y-1.5" style={{ background: "rgba(255,255,255,0.03)" }}>
+                <div className="text-xs font-bold text-white/60 uppercase tracking-wide mb-2">Rules</div>
+                {[
+                  "Build anything with 10K Squad parrots",
+                  "Test it and make sure it works",
+                  "Post on X and tag @the10kSquad",
+                  "Must be a holder to enter",
+                ].map((rule, i) => (
+                  <div key={i} className="flex items-start gap-2 text-xs text-white/55">
+                    <span className="text-indigo-400 font-bold shrink-0">·</span>
+                    {rule}
+                  </div>
+                ))}
+              </div>
+
+              <a
+                href="https://x.com/the10kSquad/status/2047687465587069000"
+                target="_blank" rel="noopener noreferrer"
+                className="mt-auto flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold border border-indigo-400/30 text-indigo-300 hover:text-white hover:border-indigo-400/60 transition-all"
+                style={{ background: "rgba(99,102,241,0.08)" }}
+              >
+                <ExternalLink className="w-3.5 h-3.5" /> View Original Post
+              </a>
             </div>
-          </div>
+          </motion.div>
         </div>
 
-        {/* Reward cards */}
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-          {rewards.map((r, i) => (
-            <motion.div
-              key={r.label}
-              initial={{ opacity: 0, y: 16 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.4, delay: i * 0.07 }}
-              className="rounded-2xl border border-white/10 p-5 flex flex-col gap-2 hover:border-pink-500/30 transition-all hover:-translate-y-0.5"
-              style={{ background: "rgba(88,28,135,0.1)" }}
-            >
-              <div className="text-2xl">{r.emoji}</div>
-              <div className="text-xs text-white/40 font-medium uppercase tracking-wide">{r.label}</div>
-              <div className="text-lg font-black text-white">{r.value}</div>
-              <div className="text-xs text-white/40">{r.sub}</div>
-            </motion.div>
-          ))}
-        </div>
-
-        {/* Footer CTA */}
+        {/* Footer */}
         <div className="mt-8 flex flex-col sm:flex-row items-center justify-between gap-4 rounded-2xl border border-white/10 p-5" style={{ background: "rgba(255,255,255,0.03)" }}>
           <div className="flex items-center gap-3">
             <Users className="w-5 h-5 text-purple-400 shrink-0" />
             <p className="text-sm text-white/60">
-              New contests and drops announced on <span className="text-white font-semibold">@the10kSquad</span> — follow for the latest giveaways and Monad mainnet whitelist announcements.
+              New contests announced on <span className="text-white font-semibold">@the10kSquad</span> — follow for the latest drops, prizes, and Monad events.
             </p>
           </div>
           <div className="flex gap-3 shrink-0">
