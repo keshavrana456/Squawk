@@ -1240,22 +1240,125 @@ export default function LandingPage() {
         className="px-4 md:px-12 py-16 z-10"
       >
         <div className="max-w-6xl mx-auto">
-          <h2 className="text-3xl md:text-4xl font-black text-white text-center mb-12">Built for the culture</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-black text-white mb-3">Built for the culture</h2>
+            <p className="text-muted-foreground text-base max-w-xl mx-auto">Every feature on Squawk is designed around how the 10K Squad actually lives online — fast, social, and always close to the drop.</p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
             {[
-              { Icon: Camera, title: "Share Moments", desc: "Post photos and videos. Add stories that disappear in 24 hours. Your feed stays fresh and alive." },
-              { Icon: Zap, title: "Flow — Short Videos", desc: "Swipe through full-screen video content from the community. Like, comment and discover new creators." },
-              { Icon: Heart, title: "10K Squad Home", desc: "Squawk is built for the 10K Squad community. Connect, post, and stay ahead of every Monad drop." },
+              {
+                Icon: Camera,
+                title: "Posts & Stories",
+                desc: "Share photos and videos with the squad. Stories disappear in 24 hours — keep the timeline fresh and alive.",
+                tag: "Core",
+              },
+              {
+                Icon: Zap,
+                title: "Flow — Reels",
+                desc: "Full-screen short video feed. Swipe, like, comment, and discover new creators from the Monad community.",
+                tag: "Core",
+              },
+              {
+                Icon: Heart,
+                title: "Chirps",
+                desc: "280-character short posts — quick thoughts, reactions, alpha drops. Fire off a chirp and see who replies.",
+                tag: "Core",
+              },
+              {
+                Icon: Palette,
+                title: "Explore",
+                desc: "Trending posts, top creators, and Monad events — all surfaced in one clean discovery feed.",
+                tag: "Discover",
+              },
+              {
+                Icon: Link2,
+                title: "Direct Messages",
+                desc: "Private one-on-one conversations. DM any squad member directly from their profile.",
+                tag: "Social",
+              },
+              {
+                Icon: Trophy,
+                title: "Contests & Live Feed",
+                desc: "Active trading and coding contests with live countdown timers. Contest tweets auto-fetched from @the10kSquad.",
+                tag: "Events",
+              },
             ].map(f => (
-              <div key={f.title} className="rounded-3xl border border-white/10 p-8 flex flex-col gap-4" style={{ background: "rgba(88,28,135,0.12)" }}>
-                <div className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{ background: "linear-gradient(135deg, rgba(236,72,153,0.2), rgba(147,51,234,0.2))", border: "1px solid rgba(236,72,153,0.25)" }}>
-                  <f.Icon className="w-6 h-6 text-purple-400" />
+              <div key={f.title} className="rounded-3xl border border-white/10 p-7 flex flex-col gap-4 group hover:border-purple-500/30 transition-all" style={{ background: "rgba(88,28,135,0.10)" }}>
+                <div className="flex items-center justify-between">
+                  <div className="w-11 h-11 rounded-2xl flex items-center justify-center" style={{ background: "linear-gradient(135deg, rgba(236,72,153,0.2), rgba(147,51,234,0.2))", border: "1px solid rgba(236,72,153,0.25)" }}>
+                    <f.Icon className="w-5 h-5 text-purple-400" />
+                  </div>
+                  <span className="text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded-full text-purple-300/70 border border-purple-500/20" style={{ background: "rgba(147,51,234,0.1)" }}>{f.tag}</span>
                 </div>
-                <div className="text-xl font-bold text-white">{f.title}</div>
-                <div className="text-muted-foreground text-[15px] leading-relaxed">{f.desc}</div>
+                <div className="text-lg font-bold text-white group-hover:text-purple-200 transition-colors">{f.title}</div>
+                <div className="text-muted-foreground text-[14px] leading-relaxed">{f.desc}</div>
               </div>
             ))}
           </div>
+        </div>
+      </motion.section>
+
+      {/* ── Must Try ─────────────────────────────────────────────────── */}
+      <motion.section
+        initial={{ opacity: 0, y: 20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        transition={{ duration: 0.6 }}
+        className="px-4 md:px-12 py-4 pb-16 z-10"
+      >
+        <div className="max-w-6xl mx-auto">
+          <div className="flex items-center gap-3 mb-7">
+            <div className="flex items-center gap-2">
+              <Star className="w-5 h-5 text-yellow-400 fill-yellow-400" />
+              <h2 className="text-2xl md:text-3xl font-black text-white">Must Try</h2>
+            </div>
+            <span className="text-xs font-bold uppercase tracking-widest px-2.5 py-1 rounded-full text-yellow-300/80 border border-yellow-500/25" style={{ background: "rgba(234,179,8,0.1)" }}>From the Squad</span>
+          </div>
+
+          <a
+            href="https://my-talking-squad.vercel.app/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="group flex flex-col md:flex-row overflow-hidden rounded-3xl border border-white/10 hover:border-purple-400/40 transition-all hover:shadow-[0_0_40px_rgba(147,51,234,0.15)]"
+            style={{ background: "rgba(88,28,135,0.12)" }}
+          >
+            {/* Image */}
+            <div className="relative md:w-64 lg:w-80 shrink-0 overflow-hidden" style={{ minHeight: "220px" }}>
+              <img
+                src="/promo-bestie.png"
+                alt="My Talking Squad"
+                className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-500"
+                style={{ minHeight: "220px" }}
+              />
+              <div className="absolute inset-0 md:hidden" style={{ background: "linear-gradient(to top, rgba(15,10,26,0.95) 0%, transparent 60%)" }} />
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 flex flex-col justify-center p-7 md:p-10">
+              <div className="flex items-center gap-2 mb-4">
+                <span className="text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full text-pink-300/80 border border-pink-500/25" style={{ background: "rgba(236,72,153,0.1)" }}>AI · 10K Squad</span>
+                <span className="text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full text-green-300/80 border border-green-500/25" style={{ background: "rgba(16,185,129,0.1)" }}>Free to play</span>
+              </div>
+              <h3 className="text-2xl md:text-3xl font-black text-white mb-3 leading-tight">My Talking Squad</h3>
+              <p className="text-muted-foreground text-[15px] leading-relaxed mb-6 max-w-lg">
+                Chat and interact with your favourite 10K Squad NFT characters — brought to life as AI companions. Each character has a unique personality, voice, and backstory. Your squad, now talking back.
+              </p>
+              <div className="flex flex-wrap gap-3 mb-6">
+                {["AI Companions", "10K Characters", "Chat & Play", "Free"].map(t => (
+                  <span key={t} className="text-xs font-semibold px-3 py-1.5 rounded-full border border-white/12 text-white/60" style={{ background: "rgba(255,255,255,0.05)" }}>{t}</span>
+                ))}
+              </div>
+              <div className="flex items-center gap-3">
+                <span
+                  className="inline-flex items-center gap-2 px-6 py-3 rounded-full font-bold text-white text-sm transition-all group-hover:scale-105"
+                  style={{ background: "linear-gradient(135deg, #ec4899, #9333ea)" }}
+                >
+                  Try it now <ArrowRight className="w-4 h-4" />
+                </span>
+                <span className="text-xs text-white/35">my-talking-squad.vercel.app</span>
+              </div>
+            </div>
+          </a>
         </div>
       </motion.section>
 
