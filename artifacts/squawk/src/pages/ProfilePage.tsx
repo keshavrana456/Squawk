@@ -150,7 +150,7 @@ export default function ProfilePage() {
   const profileStoryGroupIndex = storyGroups?.findIndex((g: any) => g.user.username === username) ?? -1;
   const hasActiveStory = !!profileStoryGroup;
 
-  const [statsTab, setStatsTab] = useState<"stats" | "sales">("stats");
+  const [statsTab, setStatsTab] = useState<"stats" | "sales" | "holders">("stats");
 
   const { data: nftStats, isLoading: nftLoading } = useQuery<any>({
     queryKey: ["nftStats"],
@@ -174,6 +174,19 @@ export default function ProfilePage() {
     staleTime: 30_000,
     refetchInterval: show10kStats && statsTab === "sales" ? 30_000 : false,
   });
+
+  const { data: holdersData, isLoading: holdersLoading } = useQuery<any>({
+    queryKey: ["nftHolders25"],
+    queryFn: async () => {
+      const res = await fetch("/api/nft/holders?limit=25");
+      if (!res.ok) throw new Error("Failed to fetch holders");
+      return res.json();
+    },
+    enabled: show10kStats && statsTab === "holders",
+    staleTime: 60_000,
+    refetchInterval: show10kStats && statsTab === "holders" ? 60_000 : false,
+  });
+
   const [founderToggling, setFounderToggling] = useState(false);
   const isAppOwner = (me as any)?.id === 1;
 
@@ -758,6 +771,13 @@ export default function ProfilePage() {
                   <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
                   Live Sales
                 </button>
+                <button
+                  onClick={() => setStatsTab("holders")}
+                  className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-1.5 ${statsTab === "holders" ? "bg-primary/15 text-primary" : "text-muted-foreground hover:text-foreground"}`}
+                >
+                  <Crown className="w-3 h-3" />
+                  Holders
+                </button>
               </div>
 
               <div className="p-5">
@@ -867,7 +887,7 @@ export default function ProfilePage() {
                 ) : (
                   <p className="text-center text-muted-foreground py-8 text-sm">No NFT data available</p>
                 )
-                ) : (
+                ) : statsTab === "sales" ? (
                   /* ── Live Sales Tab ── */
                   salesLoading ? (
                     <div className="flex flex-col items-center justify-center py-12 gap-3">
@@ -928,6 +948,75 @@ export default function ProfilePage() {
                     </div>
                   ) : (
                     <p className="text-center text-muted-foreground py-8 text-sm">No recent sales found</p>
+                  )
+                ) : (
+                  /* ── Top Holders Tab ── */
+                  holdersLoading ? (
+                    <div className="flex flex-col items-center justify-center py-12 gap-3">
+                      <div className="w-8 h-8 border-3 border-primary border-t-transparent rounded-full animate-spin" />
+                      <p className="text-sm text-muted-foreground">Scanning on-chain data…</p>
+                    </div>
+                  ) : holdersData?.data && holdersData.data.length > 0 ? (
+                    <div className="flex flex-col gap-0 max-h-[60vh] overflow-y-auto -mx-1 px-1">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <Crown className="w-3.5 h-3.5 text-yellow-400" />
+                          <span className="text-xs font-semibold text-yellow-400 uppercase tracking-widest">Top {holdersData.data.length} Wallets</span>
+                        </div>
+                        {holdersData.totalHolders && (
+                          <span className="text-xs text-muted-foreground">{holdersData.totalHolders.toLocaleString()} total holders</span>
+                        )}
+                      </div>
+                      {holdersData.data.map((h: any, i: number) => {
+                        const maxCount = holdersData.data[0]?.count ?? 1;
+                        const pct = Math.round((h.count / maxCount) * 100);
+                        const isTop3 = i < 3;
+                        const medalColor = i === 0 ? "text-yellow-400" : i === 1 ? "text-slate-300" : "text-amber-600";
+                        return (
+                          <motion.div
+                            key={h.address}
+                            initial={{ opacity: 0, x: -8 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: i * 0.03 }}
+                            className="flex items-center gap-3 py-2.5 border-b border-border last:border-0"
+                          >
+                            {/* Rank */}
+                            <div className="w-7 text-center shrink-0">
+                              {isTop3
+                                ? <span className={`text-base font-black ${medalColor}`}>{["🥇","🥈","🥉"][i]}</span>
+                                : <span className="text-xs text-muted-foreground font-bold">#{i + 1}</span>
+                              }
+                            </div>
+                            {/* Address */}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between gap-2 mb-1">
+                                <span className="text-xs font-mono text-foreground truncate">
+                                  {h.address.slice(0, 6)}…{h.address.slice(-4)}
+                                </span>
+                                <span className="text-xs font-bold text-primary shrink-0">{h.count} NFT{h.count !== 1 ? "s" : ""}</span>
+                              </div>
+                              <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                                <motion.div
+                                  className="h-full rounded-full bg-gradient-to-r from-primary to-[#c084fc]"
+                                  initial={{ width: 0 }}
+                                  animate={{ width: `${pct}%` }}
+                                  transition={{ delay: i * 0.03 + 0.1, duration: 0.5 }}
+                                />
+                              </div>
+                            </div>
+                          </motion.div>
+                        );
+                      })}
+                      {holdersData.scannedAt && (
+                        <p className="text-center text-[10px] text-muted-foreground mt-3">
+                          Scanned {Math.round((Date.now() - holdersData.scannedAt) / 60000)}m ago · multicall3 on Monad
+                        </p>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-center text-muted-foreground py-8 text-sm">
+                      {holdersData?.status === "scanning" ? "Still scanning all 3,333 tokens…" : "No holder data available"}
+                    </p>
                   )
                 )}
               </div>
