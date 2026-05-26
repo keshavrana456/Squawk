@@ -110,7 +110,7 @@ export function AboutModal({ onClose }: AboutModalProps) {
                   </div>
                 </div>
                 <div className="relative rounded-2xl overflow-hidden aspect-video">
-                  <img src="/promo-bestie.png" alt="10K Squad" className="w-full h-full object-cover" style={{ objectPosition: "top" }} />
+                  <img src="/nft-banner.png" alt="10K Squad" className="w-full h-full object-cover" style={{ objectPosition: "center 30%" }} />
                   <div className="absolute inset-0 flex items-end p-3" style={{ background: "linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 60%)" }}>
                     <span className="text-white text-xs font-bold">10K Squad NFT</span>
                   </div>

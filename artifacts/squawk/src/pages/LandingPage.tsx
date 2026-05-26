@@ -1315,50 +1315,93 @@ export default function LandingPage() {
             <span className="text-xs font-bold uppercase tracking-widest px-2.5 py-1 rounded-full text-yellow-300/80 border border-yellow-500/25" style={{ background: "rgba(234,179,8,0.1)" }}>From the Squad</span>
           </div>
 
-          <a
-            href="https://my-talking-squad.vercel.app/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="group flex flex-col md:flex-row overflow-hidden rounded-3xl border border-white/10 hover:border-purple-400/40 transition-all hover:shadow-[0_0_40px_rgba(147,51,234,0.15)]"
-            style={{ background: "rgba(88,28,135,0.12)" }}
-          >
-            {/* Image */}
-            <div className="relative md:w-64 lg:w-80 shrink-0 overflow-hidden" style={{ minHeight: "220px" }}>
-              <img
-                src="/nft-banner.png"
-                alt="10K Squad NFT"
-                className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
-                style={{ minHeight: "220px" }}
-              />
-              <div className="absolute inset-0 md:hidden" style={{ background: "linear-gradient(to top, rgba(15,10,26,0.95) 0%, transparent 60%)" }} />
-            </div>
+          <div className="flex flex-col gap-5">
+            {/* My Talking Squad */}
+            <a
+              href="https://my-talking-squad.vercel.app/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group flex flex-col md:flex-row overflow-hidden rounded-3xl border border-white/10 hover:border-purple-400/40 transition-all hover:shadow-[0_0_40px_rgba(147,51,234,0.15)]"
+              style={{ background: "rgba(88,28,135,0.12)" }}
+            >
+              <div className="relative md:w-64 lg:w-80 shrink-0 overflow-hidden" style={{ minHeight: "220px" }}>
+                <img
+                  src="/promo-bestie.png"
+                  alt="My Talking Squad"
+                  className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-500"
+                  style={{ minHeight: "220px" }}
+                />
+                <div className="absolute inset-0 md:hidden" style={{ background: "linear-gradient(to top, rgba(15,10,26,0.95) 0%, transparent 60%)" }} />
+              </div>
+              <div className="flex-1 flex flex-col justify-center p-7 md:p-10">
+                <div className="flex items-center gap-2 mb-4">
+                  <span className="text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full text-pink-300/80 border border-pink-500/25" style={{ background: "rgba(236,72,153,0.1)" }}>AI · 10K Squad</span>
+                  <span className="text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full text-green-300/80 border border-green-500/25" style={{ background: "rgba(16,185,129,0.1)" }}>Free to play</span>
+                </div>
+                <h3 className="text-2xl md:text-3xl font-black text-white mb-3 leading-tight">My Talking Squad</h3>
+                <p className="text-muted-foreground text-[15px] leading-relaxed mb-6 max-w-lg">
+                  Chat and interact with your favourite 10K Squad NFT characters — brought to life as AI companions. Each character has a unique personality, voice, and backstory. Your squad, now talking back.
+                </p>
+                <div className="flex flex-wrap gap-3 mb-6">
+                  {["AI Companions", "10K Characters", "Chat & Play", "Free"].map(t => (
+                    <span key={t} className="text-xs font-semibold px-3 py-1.5 rounded-full border border-white/12 text-white/60" style={{ background: "rgba(255,255,255,0.05)" }}>{t}</span>
+                  ))}
+                </div>
+                <div className="flex items-center gap-3">
+                  <span
+                    className="inline-flex items-center gap-2 px-6 py-3 rounded-full font-bold text-white text-sm transition-all group-hover:scale-105"
+                    style={{ background: "linear-gradient(135deg, #ec4899, #9333ea)" }}
+                  >
+                    Try it now <ArrowRight className="w-4 h-4" />
+                  </span>
+                  <span className="text-xs text-white/35">my-talking-squad.vercel.app</span>
+                </div>
+              </div>
+            </a>
 
-            {/* Content */}
-            <div className="flex-1 flex flex-col justify-center p-7 md:p-10">
-              <div className="flex items-center gap-2 mb-4">
-                <span className="text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full text-pink-300/80 border border-pink-500/25" style={{ background: "rgba(236,72,153,0.1)" }}>AI · 10K Squad</span>
-                <span className="text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full text-green-300/80 border border-green-500/25" style={{ background: "rgba(16,185,129,0.1)" }}>Free to play</span>
+            {/* 10K Squad Contra */}
+            <a
+              href="https://10ksquad-contra.vercel.app/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group flex flex-col md:flex-row overflow-hidden rounded-3xl border border-white/10 hover:border-pink-400/40 transition-all hover:shadow-[0_0_40px_rgba(236,72,153,0.15)]"
+              style={{ background: "rgba(88,28,135,0.12)" }}
+            >
+              <div className="relative md:w-64 lg:w-80 shrink-0 overflow-hidden" style={{ minHeight: "220px" }}>
+                <img
+                  src="/nft-banner.png"
+                  alt="10K Squad Contra"
+                  className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
+                  style={{ minHeight: "220px" }}
+                />
+                <div className="absolute inset-0 md:hidden" style={{ background: "linear-gradient(to top, rgba(15,10,26,0.95) 0%, transparent 60%)" }} />
               </div>
-              <h3 className="text-2xl md:text-3xl font-black text-white mb-3 leading-tight">My Talking Squad</h3>
-              <p className="text-muted-foreground text-[15px] leading-relaxed mb-6 max-w-lg">
-                Chat and interact with your favourite 10K Squad NFT characters — brought to life as AI companions. Each character has a unique personality, voice, and backstory. Your squad, now talking back.
-              </p>
-              <div className="flex flex-wrap gap-3 mb-6">
-                {["AI Companions", "10K Characters", "Chat & Play", "Free"].map(t => (
-                  <span key={t} className="text-xs font-semibold px-3 py-1.5 rounded-full border border-white/12 text-white/60" style={{ background: "rgba(255,255,255,0.05)" }}>{t}</span>
-                ))}
+              <div className="flex-1 flex flex-col justify-center p-7 md:p-10">
+                <div className="flex items-center gap-2 mb-4">
+                  <span className="text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full text-yellow-300/80 border border-yellow-500/25" style={{ background: "rgba(234,179,8,0.1)" }}>Game · 10K Squad</span>
+                  <span className="text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full text-green-300/80 border border-green-500/25" style={{ background: "rgba(16,185,129,0.1)" }}>Free to play</span>
+                </div>
+                <h3 className="text-2xl md:text-3xl font-black text-white mb-3 leading-tight">10K Squad Contra</h3>
+                <p className="text-muted-foreground text-[15px] leading-relaxed mb-6 max-w-lg">
+                  A squad-themed action game built by the community. Fight through the levels with your favourite 10K Squad NFT characters. Pure fun — straight from the squad.
+                </p>
+                <div className="flex flex-wrap gap-3 mb-6">
+                  {["Action Game", "10K Characters", "Browser Game", "Free"].map(t => (
+                    <span key={t} className="text-xs font-semibold px-3 py-1.5 rounded-full border border-white/12 text-white/60" style={{ background: "rgba(255,255,255,0.05)" }}>{t}</span>
+                  ))}
+                </div>
+                <div className="flex items-center gap-3">
+                  <span
+                    className="inline-flex items-center gap-2 px-6 py-3 rounded-full font-bold text-white text-sm transition-all group-hover:scale-105"
+                    style={{ background: "linear-gradient(135deg, #ec4899, #9333ea)" }}
+                  >
+                    Play now <ArrowRight className="w-4 h-4" />
+                  </span>
+                  <span className="text-xs text-white/35">10ksquad-contra.vercel.app</span>
+                </div>
               </div>
-              <div className="flex items-center gap-3">
-                <span
-                  className="inline-flex items-center gap-2 px-6 py-3 rounded-full font-bold text-white text-sm transition-all group-hover:scale-105"
-                  style={{ background: "linear-gradient(135deg, #ec4899, #9333ea)" }}
-                >
-                  Try it now <ArrowRight className="w-4 h-4" />
-                </span>
-                <span className="text-xs text-white/35">my-talking-squad.vercel.app</span>
-              </div>
-            </div>
-          </a>
+            </a>
+          </div>
         </div>
       </motion.section>
 
@@ -1386,13 +1429,6 @@ export default function LandingPage() {
               {link.label} ↗
             </a>
           ))}
-          <button
-            onClick={about.show}
-            className="flex items-center gap-2 px-6 py-2.5 rounded-full border border-purple-500/40 text-purple-300 hover:text-white hover:border-purple-400 hover:bg-purple-500/10 transition-all text-sm font-semibold backdrop-blur-sm"
-          >
-            <Info className="w-4 h-4" />
-            About Squawk
-          </button>
         </div>
       </motion.section>
 
@@ -1415,6 +1451,23 @@ export default function LandingPage() {
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
           </button>
         </Link>
+      </motion.section>
+
+      {/* ── About Squawk ─────────────────────────────────────────────── */}
+      <motion.section
+        initial={{ opacity: 0, y: 20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        transition={{ duration: 0.6 }}
+        className="px-4 md:px-12 pb-16 z-10 flex justify-center"
+      >
+        <button
+          onClick={about.show}
+          className="flex items-center gap-2 px-6 py-2.5 rounded-full border border-purple-500/40 text-purple-300 hover:text-white hover:border-purple-400 hover:bg-purple-500/10 transition-all text-sm font-semibold backdrop-blur-sm"
+        >
+          <Info className="w-4 h-4" />
+          About Squawk
+        </button>
       </motion.section>
 
       <div className="h-8" />
