@@ -1,7 +1,8 @@
 import { Link } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useState, useCallback, useRef } from "react";
-import { Palette, Link2, Gamepad2, Camera, Zap, Heart, Trophy, Globe, Gift, Users, TrendingUp, Star, ArrowRight, ExternalLink, Crown, RefreshCw } from "lucide-react";
+import { Palette, Link2, Gamepad2, Camera, Zap, Heart, Trophy, Globe, Gift, Users, TrendingUp, Star, ArrowRight, ExternalLink, Crown, RefreshCw, Info } from "lucide-react";
+import { useAboutModal } from "@/components/AboutModal";
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 const CONTEST_END = new Date("2026-05-31T12:00:00Z");
@@ -907,6 +908,7 @@ function StatCard({ label, value, sub, updating }: StatCardProps) {
 }
 
 export default function LandingPage() {
+  const about = useAboutModal();
   const [stats, setStats] = useState<NftStats | null>(null);
   const [updating, setUpdating] = useState(false);
   const [hasLiveData, setHasLiveData] = useState(false);
@@ -1281,6 +1283,13 @@ export default function LandingPage() {
               {link.label} ↗
             </a>
           ))}
+          <button
+            onClick={about.show}
+            className="flex items-center gap-2 px-6 py-2.5 rounded-full border border-purple-500/40 text-purple-300 hover:text-white hover:border-purple-400 hover:bg-purple-500/10 transition-all text-sm font-semibold backdrop-blur-sm"
+          >
+            <Info className="w-4 h-4" />
+            About Squawk
+          </button>
         </div>
       </motion.section>
 
@@ -1306,6 +1315,8 @@ export default function LandingPage() {
       </motion.section>
 
       <div className="h-8" />
+
+      {about.modal}
     </div>
   );
 }
