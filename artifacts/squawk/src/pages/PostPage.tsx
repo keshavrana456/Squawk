@@ -349,7 +349,7 @@ export default function PostPage() {
           </div>
 
           {/* Scrollable: Caption + Comments */}
-          <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar max-h-[52vh] md:max-h-none">
+          <div className="flex-1 min-h-0 overflow-y-auto max-h-[52vh] md:max-h-none comments-scroll">
             {/* Caption */}
             {post.caption && (
               <div className="px-4 pt-4 pb-3 border-b border-border/50">
