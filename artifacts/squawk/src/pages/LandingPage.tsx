@@ -945,6 +945,8 @@ function SectionNav({ onAbout }: { onAbout: () => void }) {
   }, []);
 
   const items = [
+    { label: "Recent Sales", href: "#recent-sales", emoji: "💰" },
+    { label: "Top Holders", href: "#top-holders", emoji: "👑" },
     { label: "Live Squad Contests", href: "#contests", emoji: "🏆" },
     { label: "About the 10K Squad NFTs", href: "#about-10k", emoji: "🎨" },
     { label: "Holder Rewards Hub", href: "#holder-rewards", emoji: "💎" },
