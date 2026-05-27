@@ -912,6 +912,26 @@ function StatCard({ label, value, sub, updating }: StatCardProps) {
 
 function SectionNav({ onAbout }: { onAbout: () => void }) {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [shaking, setShaking] = useState(false);
+  const shakeTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    let lastAcc = 0;
+    const handleMotion = (e: DeviceMotionEvent) => {
+      const acc = e.accelerationIncludingGravity;
+      if (!acc) return;
+      const total = Math.abs(acc.x ?? 0) + Math.abs(acc.y ?? 0) + Math.abs(acc.z ?? 0);
+      const delta = Math.abs(total - lastAcc);
+      lastAcc = total;
+      if (delta > 18) {
+        setShaking(true);
+        if (shakeTimeout.current) clearTimeout(shakeTimeout.current);
+        shakeTimeout.current = setTimeout(() => setShaking(false), 800);
+      }
+    };
+    window.addEventListener("devicemotion", handleMotion);
+    return () => window.removeEventListener("devicemotion", handleMotion);
+  }, []);
 
   const items = [
     { label: "Live Squad Contests", href: "#contests", emoji: "🏆" },
@@ -969,9 +989,17 @@ function SectionNav({ onAbout }: { onAbout: () => void }) {
                 <button
                   key={item.label}
                   onClick={() => handleClick(item.href, item.onClick)}
-                  className={`liquid-btn group relative flex items-center gap-2 px-5 py-2.5 rounded-full border border-white/10 overflow-hidden text-white/65 hover:text-white active:scale-95 transition-all duration-200 text-sm font-medium whitespace-nowrap shrink-0 ${glows[i % glows.length]}`}
+                  className={`liquid-fill-btn group relative flex items-center gap-2 px-5 py-2.5 rounded-full border border-white/15 overflow-hidden text-white/70 hover:text-white active:scale-95 transition-colors duration-200 text-sm font-medium whitespace-nowrap shrink-0 ${glows[i % glows.length]}${shaking ? " shaking" : ""}`}
                 >
-                  <span className="liquid-blob absolute inset-0 opacity-20 group-hover:opacity-100 transition-opacity duration-300" style={{ background: "linear-gradient(135deg, rgba(255,182,193,0.35) 0%, rgba(255,105,180,0.25) 60%, rgba(236,72,153,0.15) 100%)" }} />
+                  {/* Liquid half-fill — sits at the bottom 50% and waves at the surface */}
+                  <span className="liquid-body absolute bottom-0 left-0 right-0 pointer-events-none overflow-hidden" style={{ height: "50%" }}>
+                    {/* Solid pink body */}
+                    <span className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(255,105,180,0.38) 0%, rgba(255,182,193,0.22) 100%)" }} />
+                    {/* Wave ellipse 1 — slides left↔right */}
+                    <span className="wave-layer wave-layer-1 absolute" style={{ width: "200%", height: "14px", top: "-6px", left: "0", background: "rgba(255,182,193,0.55)", borderRadius: "50%" }} />
+                    {/* Wave ellipse 2 — counter-slides */}
+                    <span className="wave-layer wave-layer-2 absolute" style={{ width: "200%", height: "9px", top: "-2px", left: "-15%", background: "rgba(255,105,180,0.35)", borderRadius: "50%" }} />
+                  </span>
                   <span className="relative z-10 text-base leading-none">{item.emoji}</span>
                   <span className="relative z-10">{item.label}</span>
                 </button>

@@ -233,25 +233,34 @@
     background: hsl(var(--muted-foreground) / 0.4);
   }
 
-  /* Liquid / water droplet button effect */
-  @keyframes liquid-morph {
-    0%   { border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%; transform: scale(1.15); }
-    20%  { border-radius: 40% 60% 55% 45% / 45% 65% 35% 55%; }
-    40%  { border-radius: 55% 45% 70% 30% / 35% 55% 45% 65%; }
-    60%  { border-radius: 35% 65% 40% 60% / 65% 40% 60% 35%; }
-    80%  { border-radius: 65% 35% 55% 45% / 50% 60% 40% 50%; }
-    100% { border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%; transform: scale(1.15); }
+  /* Half-fill liquid wave button effect */
+  @keyframes wave-slide {
+    0%, 100% { transform: translateX(0%); }
+    50%       { transform: translateX(-25%); }
   }
-  @keyframes liquid-idle {
-    0%   { border-radius: 51% 49% 48% 52% / 52% 50% 50% 48%; }
-    33%  { border-radius: 48% 52% 55% 45% / 49% 54% 46% 51%; }
-    66%  { border-radius: 53% 47% 45% 55% / 54% 46% 54% 46%; }
-    100% { border-radius: 51% 49% 48% 52% / 52% 50% 50% 48%; }
+  @keyframes wave-slide-2 {
+    0%, 100% { transform: translateX(-10%); }
+    50%       { transform: translateX(15%); }
   }
-  .liquid-btn .liquid-blob {
-    animation: liquid-idle 6s ease-in-out infinite;
+  @keyframes liquid-rise {
+    0%, 100% { height: 50%; }
+    50%       { height: 58%; }
   }
-  .liquid-btn:hover .liquid-blob {
-    animation: liquid-morph 2s ease-in-out infinite;
+
+  .liquid-fill-btn .wave-layer {
+    animation-play-state: running;
+    animation-timing-function: ease-in-out;
+    animation-iteration-count: infinite;
   }
+  .liquid-fill-btn .wave-layer-1 { animation-name: wave-slide;   animation-duration: 3.5s; }
+  .liquid-fill-btn .wave-layer-2 { animation-name: wave-slide-2; animation-duration: 4.8s; }
+  .liquid-fill-btn .liquid-body  { animation: liquid-rise 3.5s ease-in-out infinite; }
+
+  /* Hover & shake — speed up waves */
+  .liquid-fill-btn:hover .wave-layer-1,
+  .liquid-fill-btn.shaking .wave-layer-1 { animation-duration: 0.8s !important; }
+  .liquid-fill-btn:hover .wave-layer-2,
+  .liquid-fill-btn.shaking .wave-layer-2 { animation-duration: 1.1s !important; }
+  .liquid-fill-btn:hover .liquid-body,
+  .liquid-fill-btn.shaking .liquid-body  { animation-duration: 0.8s !important; }
 }
