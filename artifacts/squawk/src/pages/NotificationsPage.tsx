@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useGetNotifications, useMarkAllNotificationsRead, getGetUnreadNotificationCountQueryKey, type Notification } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Heart, MessageCircle, UserPlus, AtSign, CheckCheck, Repeat2, Sparkles } from "lucide-react";
+import { Heart, MessageCircle, UserPlus, AtSign, CheckCheck, Repeat2, Sparkles, BadgeCheck, Users } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { motion } from "framer-motion";
 
@@ -22,17 +22,121 @@ function BellIcon({ className }: { className?: string }) {
   );
 }
 
+// ─── Suggested Users Strip ────────────────────────────────────────────────────
+function SuggestedUsers() {
+  const [users, setUsers] = useState<any[]>([]);
+  const [followingIds, setFollowingIds] = useState<Set<number>>(new Set());
+  const [togglingId, setTogglingId] = useState<number | null>(null);
+  const [expanded, setExpanded] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/users/suggested", { credentials: "include" })
+      .then(r => r.ok ? r.json() : [])
+      .then(d => setUsers(Array.isArray(d) ? d : (d.users || [])))
+      .catch(() => setUsers([]));
+  }, []);
+
+  const handleFollow = async (u: any) => {
+    if (togglingId === u.id) return;
+    setTogglingId(u.id);
+    const isFollowing = followingIds.has(u.id) || u.isFollowing;
+    try {
+      const method = isFollowing ? "DELETE" : "POST";
+      await fetch(`/api/users/${u.username}/follow`, { method, credentials: "include" });
+      setFollowingIds(prev => {
+        const next = new Set(prev);
+        isFollowing ? next.delete(u.id) : next.add(u.id);
+        return next;
+      });
+    } catch {}
+    finally { setTogglingId(null); }
+  };
+
+  if (users.length === 0) return null;
+
+  const shown = expanded ? users : users.slice(0, 5);
+
+  return (
+    <div className="border-b border-border/50 px-4 py-3">
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <Users className="w-4 h-4 text-primary" />
+          <span className="font-semibold text-sm text-foreground">Suggested for You</span>
+        </div>
+        {users.length > 5 && (
+          <button
+            onClick={() => setExpanded(v => !v)}
+            className="text-xs text-primary hover:text-primary/80 font-semibold transition-colors"
+          >
+            {expanded ? "Show less" : `See all ${users.length}`}
+          </button>
+        )}
+      </div>
+      <div className="flex flex-col gap-2">
+        {shown.map((u: any) => {
+          const isFollowing = followingIds.has(u.id) || u.isFollowing;
+          return (
+            <div key={u.id} className="flex items-center gap-3 group">
+              <Link href={`/profile/${u.username}`} className="shrink-0">
+                <Avatar className="w-9 h-9 border border-border group-hover:border-primary/50 transition-colors">
+                  <AvatarImage src={u.avatarUrl || ""} />
+                  <AvatarFallback className="bg-primary/20 text-primary font-bold text-sm">
+                    {u.displayName?.charAt(0)?.toUpperCase() || "?"}
+                  </AvatarFallback>
+                </Avatar>
+              </Link>
+              <Link href={`/profile/${u.username}`} className="flex-1 min-w-0">
+                <div className="flex items-center gap-1">
+                  <span className="font-semibold text-sm text-foreground truncate">{u.displayName}</span>
+                  {u.isFounder && <BadgeCheck className="w-3.5 h-3.5 text-pink-500 shrink-0" />}
+                  {u.isFounderVerified && <BadgeCheck className="w-3.5 h-3.5 text-purple-500 shrink-0" />}
+                  {u.isVerified && !u.isFounder && !u.isFounderVerified && <BadgeCheck className="w-3.5 h-3.5 text-primary shrink-0" />}
+                </div>
+                <p className="text-xs text-muted-foreground truncate">@{u.username}</p>
+              </Link>
+              <button
+                onClick={() => handleFollow(u)}
+                disabled={togglingId === u.id}
+                className={`shrink-0 px-3 py-1 rounded-full text-xs font-semibold border transition-all duration-200 ${
+                  isFollowing
+                    ? "border-border text-muted-foreground hover:border-red-400 hover:text-red-400"
+                    : "border-primary/50 text-primary hover:bg-primary/10"
+                }`}
+              >
+                {togglingId === u.id
+                  ? <span className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin inline-block" />
+                  : isFollowing ? "Following" : "Follow"
+                }
+              </button>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export default function NotificationsPage() {
   const [activeTab, setActiveTab] = useState<Tab>("All");
   const queryClient = useQueryClient();
 
   const { data: notifData, isLoading } = useGetNotifications({ query: { refetchInterval: 15_000, refetchOnWindowFocus: true } });
   const notifications = Array.isArray(notifData) ? notifData : [];
+
   const markReadMutation = useMarkAllNotificationsRead({
     mutation: {
+      onMutate: () => {
+        // Instantly clear the badge — optimistic update
+        queryClient.setQueryData(getGetUnreadNotificationCountQueryKey(), { count: 0 });
+        // Also mark all local notifications as read
+        queryClient.setQueryData(["getNotifications"], (old: any) => {
+          if (!Array.isArray(old)) return old;
+          return old.map((n: any) => ({ ...n, isRead: true }));
+        });
+      },
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: getGetUnreadNotificationCountQueryKey() });
-        queryClient.invalidateQueries({ queryKey: ["conversations-unread-count"] });
+        queryClient.invalidateQueries({ queryKey: ["getNotifications"] });
       },
     },
   });
@@ -91,7 +195,8 @@ export default function NotificationsPage() {
           <Button
             variant="ghost" size="sm"
             onClick={() => markReadMutation.mutate()}
-            className="text-primary hover:text-primary hover:bg-primary/10 gap-2"
+            disabled={markReadMutation.isPending || unreadCount === 0}
+            className="text-primary hover:text-primary hover:bg-primary/10 gap-2 disabled:opacity-40"
           >
             <CheckCheck className="w-4 h-4" />
             Mark all read
@@ -115,6 +220,9 @@ export default function NotificationsPage() {
           ))}
         </div>
       </div>
+
+      {/* Suggested for You — shown on All tab */}
+      {activeTab === "All" && <SuggestedUsers />}
 
       {/* Content */}
       <div className="flex-1 p-2 md:p-4">

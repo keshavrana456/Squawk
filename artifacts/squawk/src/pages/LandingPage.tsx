@@ -951,9 +951,9 @@ function SectionNav({ onAbout }: { onAbout: () => void }) {
               <button
                 key={item.label}
                 onClick={() => handleClick(item.href, item.onClick)}
-                className={`flex items-center gap-2 px-5 py-2.5 rounded-full border border-white/10 bg-transparent text-white/60 hover:text-white active:scale-95 transition-all duration-200 text-sm font-medium whitespace-nowrap shrink-0 ${glows[i % glows.length]}`}
+                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border border-white/10 bg-transparent text-white/55 hover:text-white active:scale-95 transition-all duration-200 text-xs font-medium whitespace-nowrap shrink-0 ${glows[i % glows.length]}`}
               >
-                <span className="text-base leading-none">{item.emoji}</span>
+                <span className="text-sm leading-none">{item.emoji}</span>
                 {item.label}
               </button>
             );
