@@ -51,6 +51,10 @@ export async function requireUser(req: Request, res: Response, next: NextFunctio
       res.status(404).json({ error: "User not found — complete onboarding first" });
       return;
     }
+    if ((user as any).isBanned) {
+      res.status(403).json({ error: "banned" });
+      return;
+    }
     (req as any).currentUser = user;
     next();
   } catch (err) {

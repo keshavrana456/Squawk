@@ -15,6 +15,9 @@ const ICE_SERVERS = [
   { urls: "stun:stun4.l.google.com:19302" },
   { urls: "stun:stun.cloudflare.com:3478" },
   { urls: "stun:stun.stunprotocol.org:3478" },
+  { urls: "turn:openrelay.metered.ca:80", username: "openrelayproject", credential: "openrelayproject" },
+  { urls: "turn:openrelay.metered.ca:443", username: "openrelayproject", credential: "openrelayproject" },
+  { urls: "turn:openrelay.metered.ca:443?transport=tcp", username: "openrelayproject", credential: "openrelayproject" },
 ];
 
 export interface CallUser {
@@ -83,12 +86,15 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
   const remoteAudioRef = useRef<HTMLAudioElement | null>(null);
   const pendingCandidatesRef = useRef<RTCIceCandidateInit[]>([]);
   const callTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const connectionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const endCallRef = useRef<(() => void) | null>(null);
   const [callDuration, setCallDuration] = useState(0);
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
 
   const cleanup = useCallback(() => {
     if (callTimerRef.current) clearInterval(callTimerRef.current);
+    if (connectionTimeoutRef.current) { clearTimeout(connectionTimeoutRef.current); connectionTimeoutRef.current = null; }
     if (localStreamRef.current) {
       localStreamRef.current.getTracks().forEach(t => t.stop());
       localStreamRef.current = null;
@@ -125,6 +131,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     };
 
     const markConnected = () => {
+      if (connectionTimeoutRef.current) { clearTimeout(connectionTimeoutRef.current); connectionTimeoutRef.current = null; }
       setActiveCall(prev => {
         if (prev && prev.status !== "connected") {
           if (!callTimerRef.current) {
@@ -142,13 +149,15 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       if (pc.connectionState === "connected") {
         markConnected();
       } else if (["disconnected", "failed", "closed"].includes(pc.connectionState)) {
-        endCall();
+        endCallRef.current?.();
       }
     };
 
     pc.oniceconnectionstatechange = () => {
       if (pc.iceConnectionState === "connected" || pc.iceConnectionState === "completed") {
         markConnected();
+      } else if (pc.iceConnectionState === "failed") {
+        endCallRef.current?.();
       }
     };
 
@@ -257,6 +266,26 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     setActiveCall(null);
     setIncomingCall(null);
   }, [socket, activeCall, cleanup]);
+
+  // Keep ref always pointing to latest endCall so stale-closure callbacks work
+  useEffect(() => { endCallRef.current = endCall; }, [endCall]);
+
+  // Connection timeout — auto-end if still "connecting" after 30s
+  useEffect(() => {
+    if (activeCall?.status === "connecting") {
+      connectionTimeoutRef.current = setTimeout(() => {
+        setActiveCall(prev => {
+          if (prev?.status === "connecting") {
+            endCallRef.current?.();
+          }
+          return prev;
+        });
+      }, 30_000);
+    }
+    return () => {
+      if (connectionTimeoutRef.current) { clearTimeout(connectionTimeoutRef.current); connectionTimeoutRef.current = null; }
+    };
+  }, [activeCall?.status]);
 
   const toggleMute = useCallback(() => {
     if (!localStreamRef.current) return;

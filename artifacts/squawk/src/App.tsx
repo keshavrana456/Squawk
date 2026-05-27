@@ -441,13 +441,33 @@ function ClerkQueryClientCacheInvalidator() {
 
 function AuthGuard({ children }: { children: React.ReactNode }) {
   const { isLoaded, isSignedIn } = useUser();
+  const { signOut } = useClerk();
   const { data: me, isLoading, error, refetch } = useGetMe({ query: { enabled: !!isSignedIn, retry: false } });
+
+  const isBanned = isSignedIn && me && (me as any).isBanned;
+
+  useEffect(() => {
+    if (isBanned) { signOut(); }
+  }, [isBanned, signOut]);
 
   // Still initialising Clerk or waiting for the first /api/users/me response
   if (!isLoaded || (isSignedIn && isLoading)) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="w-12 h-12 rounded-full border-4 border-primary/30 border-t-primary animate-spin" />
+      </div>
+    );
+  }
+
+  // Banned user — show message while signOut is called
+  if (isBanned) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4 p-4 text-center dark">
+        <div className="text-4xl">🚫</div>
+        <h2 className="text-xl font-bold text-foreground">Account suspended</h2>
+        <p className="text-muted-foreground text-sm max-w-xs">
+          Your account has been suspended. Contact support if you believe this is an error.
+        </p>
       </div>
     );
   }

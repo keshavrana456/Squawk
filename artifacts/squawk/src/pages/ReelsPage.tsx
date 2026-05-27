@@ -113,6 +113,8 @@ function Reel({ post, muted, setMuted }: { post: any; muted: boolean; setMuted: 
   const [showShare, setShowShare] = useState(false);
 
   const isOwner = me && (me as any).id === post.author?.id;
+  const isFounderOrAdmin = me && ((me as any).isFounder || (me as any).id === 1);
+  const canDelete = isOwner || isFounderOrAdmin;
 
   // Sync like state if cache updates externally (e.g. liked from feed)
   useEffect(() => {
@@ -187,13 +189,21 @@ function Reel({ post, muted, setMuted }: { post: any; muted: boolean; setMuted: 
   };
 
   const handleDelete = () => {
-    deleteMutation.mutate({ id: post.id }, {
-      onSuccess: () => {
+    if (!isOwner && isFounderOrAdmin) {
+      fetch(`/api/admin/posts/${post.id}`, { method: "DELETE", credentials: "include" }).then(() => {
         queryClient.invalidateQueries({ queryKey: getListPostsQueryKey() });
         queryClient.invalidateQueries({ queryKey: getGetFeedQueryKey() });
         queryClient.invalidateQueries({ queryKey: ["feed"] });
-      },
-    });
+      });
+    } else {
+      deleteMutation.mutate({ id: post.id }, {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: getListPostsQueryKey() });
+          queryClient.invalidateQueries({ queryKey: getGetFeedQueryKey() });
+          queryClient.invalidateQueries({ queryKey: ["feed"] });
+        },
+      });
+    }
     setShowDeleteConfirm(false);
   };
 
@@ -261,7 +271,7 @@ function Reel({ post, muted, setMuted }: { post: any; muted: boolean; setMuted: 
                     </button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-48">
-                    {isOwner ? (
+                    {canDelete ? (
                       <>
                         <DropdownMenuItem
                           onClick={() => setShowDeleteConfirm(true)}

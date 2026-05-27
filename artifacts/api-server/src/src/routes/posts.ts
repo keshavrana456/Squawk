@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
-import { eq, and, desc, sql, inArray } from "drizzle-orm";
-import { db, usersTable, postsTable, likesTable, savesTable, commentsTable, commentLikesTable, followsTable, notificationsTable } from "@workspace/db";
+import { eq, and, desc, sql, inArray, notInArray } from "drizzle-orm";
+import { db, usersTable, postsTable, likesTable, savesTable, commentsTable, commentLikesTable, followsTable, notificationsTable, blocksTable } from "@workspace/db";
 import { requireUser, resolveUser } from "../lib/auth";
 import { getAuth } from "@clerk/express";
 import { buildPostWithMeta, buildPostsWithMeta, buildUserSummary } from "../lib/userHelpers";
@@ -33,14 +33,27 @@ router.get("/posts", async (req, res): Promise<void> => {
     currentUserId = cur?.id;
   }
 
+  // Get blocked user IDs in both directions
+  let blockedIds: number[] = [];
+  if (currentUserId) {
+    const [blockedByMe, blockedMe] = await Promise.all([
+      db.select({ id: blocksTable.blockedId }).from(blocksTable).where(eq(blocksTable.blockerId, currentUserId)),
+      db.select({ id: blocksTable.blockerId }).from(blocksTable).where(eq(blocksTable.blockedId, currentUserId)),
+    ]);
+    blockedIds = [...new Set([...blockedByMe.map(b => b.id), ...blockedMe.map(b => b.id)])];
+  }
+
   let query = db.select({ post: postsTable, author: usersTable })
     .from(postsTable)
     .innerJoin(usersTable, eq(postsTable.authorId, usersTable.id))
     .orderBy(desc(postsTable.createdAt))
     .limit(limit + 1) as any;
 
-  if (cursor) {
-    query = query.where(sql`${postsTable.id} < ${cursor}`);
+  const conditions: any[] = [];
+  if (cursor) conditions.push(sql`${postsTable.id} < ${cursor}`);
+  if (blockedIds.length > 0) conditions.push(notInArray(postsTable.authorId, blockedIds));
+  if (conditions.length > 0) {
+    query = query.where(conditions.length === 1 ? conditions[0] : and(...conditions));
   }
 
   const rows = await query;

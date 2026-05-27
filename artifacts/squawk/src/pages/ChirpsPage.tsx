@@ -132,7 +132,8 @@ function useRechirp() {
 function useDeleteChirp() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (id: number) => apiFetch(`/api/chirps/${id}`, { method: "DELETE" }),
+    mutationFn: ({ id, isAdmin }: { id: number; isAdmin?: boolean }) =>
+      apiFetch(isAdmin ? `/api/admin/chirps/${id}` : `/api/chirps/${id}`, { method: "DELETE" }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["chirps"] }),
   });
 }
@@ -169,6 +170,8 @@ function ChirpCard({ chirp, onReply, isNested = false, onOpen }: { chirp: ChirpD
   const deleteMut = useDeleteChirp();
   const { data: me } = useGetMe();
   const isOwner = me && (me as any).id === chirp.authorId;
+  const isFounderOrAdmin = me && ((me as any).isFounder || (me as any).id === 1);
+  const canDelete = isOwner || isFounderOrAdmin;
 
   // Track last server-confirmed state so we don't revert optimistic updates
   const serverLikeRef = useRef({ liked: chirp.isLiked, count: chirp.likesCount });
@@ -236,7 +239,7 @@ function ChirpCard({ chirp, onReply, isNested = false, onOpen }: { chirp: ChirpD
   };
 
   const handleDeleteConfirmed = () => {
-    deleteMut.mutate(chirp.id);
+    deleteMut.mutate({ id: chirp.id, isAdmin: !isOwner && !!isFounderOrAdmin });
     setShowDeleteConfirm(false);
   };
 
@@ -251,7 +254,7 @@ function ChirpCard({ chirp, onReply, isNested = false, onOpen }: { chirp: ChirpD
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-44" onClick={e => e.stopPropagation()}>
-        {isOwner && (
+        {canDelete && (
           <>
             <DropdownMenuItem
               onClick={e => { e.stopPropagation(); setShowDeleteConfirm(true); }}

@@ -1122,14 +1122,14 @@ export default function LandingPage() {
           transition={{ duration: 0.85, ease: "easeOut" }}
           className="max-w-4xl mx-auto relative z-10 mt-8"
         >
-          <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold tracking-tighter mb-6 leading-tight text-white drop-shadow-xl">
-            <span className="block whitespace-nowrap">Connect. Trade. Create.</span>
+          <h1 className="text-[2.1rem] sm:text-5xl md:text-7xl lg:text-8xl font-bold tracking-tighter mb-6 leading-tight text-white drop-shadow-xl px-1">
+            <span className="block">Connect. Trade. Create.</span>
             <span className="block bg-clip-text text-transparent" style={{ backgroundImage: "linear-gradient(90deg, #f472b6, #c084fc, #818cf8)" }}>
               Squawk.
             </span>
           </h1>
 
-          <p className="text-xl md:text-2xl text-white/60 mb-12 max-w-2xl mx-auto font-light drop-shadow-md">
+          <p className="text-base sm:text-xl md:text-2xl text-white/60 mb-12 max-w-2xl mx-auto font-light drop-shadow-md px-2">
             Squawk is the social home of the 10K Squad — where creators and the Monad community collide.
           </p>
 

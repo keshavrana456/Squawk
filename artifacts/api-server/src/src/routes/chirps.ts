@@ -1,9 +1,9 @@
 import { Router, type IRouter } from "express";
-import { eq, and, desc, sql, isNull, inArray } from "drizzle-orm";
+import { eq, and, desc, sql, isNull, inArray, notInArray } from "drizzle-orm";
 import {
   db, usersTable, followsTable,
   chirpsTable, chirpLikesTable, chirpSavesTable, chirpCommentsTable,
-  notificationsTable,
+  notificationsTable, blocksTable,
 } from "@workspace/db";
 import { requireUser, optionalUser } from "../lib/auth";
 import { emitToUser } from "../lib/socket";
@@ -103,10 +103,24 @@ router.get("/chirps", optionalUser, async (req, res): Promise<void> => {
     return;
   }
 
+  // Get blocked user IDs in both directions
+  let blockedIds: number[] = [];
+  if (currentUser) {
+    const [blockedByMe, blockedMe] = await Promise.all([
+      db.select({ id: blocksTable.blockedId }).from(blocksTable).where(eq(blocksTable.blockerId, currentUser.id)),
+      db.select({ id: blocksTable.blockerId }).from(blocksTable).where(eq(blocksTable.blockedId, currentUser.id)),
+    ]);
+    blockedIds = [...new Set([...blockedByMe.map(b => b.id), ...blockedMe.map(b => b.id)])];
+  }
+
+  const baseWhere = blockedIds.length > 0
+    ? and(isNull(chirpsTable.parentId), notInArray(chirpsTable.authorId, blockedIds))
+    : isNull(chirpsTable.parentId);
+
   let q = db.select({ chirp: chirpsTable, author: usersTable })
     .from(chirpsTable)
     .innerJoin(usersTable, eq(chirpsTable.authorId, usersTable.id))
-    .where(isNull(chirpsTable.parentId))
+    .where(baseWhere)
     .orderBy(desc(chirpsTable.createdAt))
     .limit(limit + 1) as any;
 
@@ -114,7 +128,9 @@ router.get("/chirps", optionalUser, async (req, res): Promise<void> => {
     q = db.select({ chirp: chirpsTable, author: usersTable })
       .from(chirpsTable)
       .innerJoin(usersTable, eq(chirpsTable.authorId, usersTable.id))
-      .where(and(isNull(chirpsTable.parentId), sql`${chirpsTable.id} < ${cursor}`))
+      .where(blockedIds.length > 0
+        ? and(isNull(chirpsTable.parentId), sql`${chirpsTable.id} < ${cursor}`, notInArray(chirpsTable.authorId, blockedIds))
+        : and(isNull(chirpsTable.parentId), sql`${chirpsTable.id} < ${cursor}`))
       .orderBy(desc(chirpsTable.createdAt))
       .limit(limit + 1);
   }
