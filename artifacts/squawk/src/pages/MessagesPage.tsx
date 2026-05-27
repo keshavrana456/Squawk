@@ -928,6 +928,23 @@ function ChatView({ conversationId, onBack, me, conversation, onConversationLeft
     if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
     if (socket && me) socket.emit("stop_typing", { conversationId: String(conversationId), userId: String(me.id) });
 
+    // Optimistic update — show message immediately
+    const tempId = `temp-${Date.now()}`;
+    const optimisticMsg = {
+      id: tempId,
+      conversationId,
+      senderId: me?.id,
+      sender: me,
+      content: payload.content,
+      messageType: payload.messageType,
+      gifUrl: payload.gifUrl ?? null,
+      replyToMessageId: payload.replyToMessageId ?? null,
+      isRead: false,
+      createdAt: new Date().toISOString(),
+      _optimistic: true,
+    };
+    setLocalMessages(prev => [...prev, optimisticMsg]);
+
     setContent("");
     setReplyingTo(null);
     setShowGifPicker(false);
@@ -937,6 +954,8 @@ function ChatView({ conversationId, onBack, me, conversation, onConversationLeft
       refetch();
     } catch (e) {
       console.error(e);
+      // Roll back optimistic message on failure
+      setLocalMessages(prev => prev.filter((m: any) => m.id !== tempId));
     }
   };
 

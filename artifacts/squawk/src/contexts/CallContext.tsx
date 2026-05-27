@@ -319,7 +319,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     if (!socket) return;
 
     const handleCallInvite = (data: { fromUser: CallUser; callType: "voice" | "video"; offer: RTCSessionDescriptionInit }) => {
-      if (activeCall) {
+      if (activeCallRef.current) {
         socket.emit("call_declined", { targetUserId: data.fromUser.id });
         return;
       }
@@ -372,7 +372,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       socket.off("call_ended", handleCallEnded);
       socket.off("ice_candidate", handleIceCandidate);
     };
-  }, [socket, activeCall, cleanup]);
+  }, [socket, cleanup]);
 
   const formatDuration = (sec: number) => {
     const m = Math.floor(sec / 60).toString().padStart(2, "0");

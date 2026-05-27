@@ -16,7 +16,7 @@ import {
   BadgeCheck, Grid, Film, X, ImagePlus, Crown, Settings,
   PlusCircle, Bookmark, BarChart2, TrendingUp, Users,
   Activity, ExternalLink, Camera, MessageSquare, MoreHorizontal, Trash2, Copy, Repeat2,
-  ShieldAlert, ShieldOff, ShieldCheck, UserX, DollarSign,
+  DollarSign,
 } from "lucide-react";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
@@ -220,29 +220,11 @@ export default function ProfilePage() {
   const isAppOwner = (me as any)?.id === 1;
   const isFounder = (me as any)?.isFounder;
 
-  const [isBlocking, setIsBlocking] = useState(false);
-  const [isBlockingToggling, setIsBlockingToggling] = useState(false);
-  useEffect(() => { if (profile) setIsBlocking(!!(profile as any).isBlocked); }, [profile]);
-
   const [isBanned, setIsBanned] = useState(false);
   useEffect(() => { if (profile) setIsBanned(!!(profile as any).isBanned); }, [profile]);
 
   const [isFounderVerifiedToggling, setIsFounderVerifiedToggling] = useState(false);
   const [isBanToggling, setIsBanToggling] = useState(false);
-
-  const handleBlock = async () => {
-    if (!profile || isBlockingToggling) return;
-    setIsBlockingToggling(true);
-    try {
-      const method = isBlocking ? "DELETE" : "POST";
-      const res = await fetch(`/api/blocks/${profile.username}`, { method, credentials: "include" });
-      if (res.ok) {
-        setIsBlocking(!isBlocking);
-        refetchProfile();
-      }
-    } catch (e) { console.error(e); }
-    finally { setIsBlockingToggling(false); }
-  };
 
   const handleShareProfile = () => {
     if (!profile) return;
@@ -490,18 +472,6 @@ export default function ProfilePage() {
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuItem
-                  onClick={handleBlock}
-                  disabled={isBlockingToggling}
-                  className={isBlocking ? "text-red-400 focus:text-red-400" : ""}
-                >
-                  {isBlockingToggling
-                    ? <div className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin mr-2" />
-                    : <UserX className="w-4 h-4 mr-2" />
-                  }
-                  {isBlocking ? "Unblock" : "Block"}
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleShareProfile}>
                   <Copy className="w-4 h-4 mr-2" />
                   Share Profile

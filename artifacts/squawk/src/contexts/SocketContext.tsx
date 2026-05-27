@@ -2,7 +2,6 @@ import React, { createContext, useContext, useEffect, useRef, useState, useCallb
 import { io, Socket } from "socket.io-client";
 import { useUser } from "@clerk/react";
 import { useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 const API_BASE = BASE || "";
@@ -54,6 +53,43 @@ async function requestNotifPermission() {
   }
 }
 
+async function registerPushSubscription() {
+  try {
+    if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
+    if (Notification.permission !== "granted") return;
+
+    const reg = await navigator.serviceWorker.register("/sw.js");
+    await navigator.serviceWorker.ready;
+
+    const res = await fetch("/api/push/vapid-public-key");
+    const { publicKey } = await res.json();
+    if (!publicKey) return;
+
+    const existing = await reg.pushManager.getSubscription();
+    let sub = existing;
+    if (!sub) {
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(publicKey),
+      });
+    }
+
+    await fetch("/api/push/subscribe", {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ subscription: sub.toJSON() }),
+    });
+  } catch {}
+}
+
+function urlBase64ToUint8Array(base64String: string) {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const raw = window.atob(base64);
+  return Uint8Array.from([...raw].map((c) => c.charCodeAt(0)));
+}
+
 export function SocketProvider({ children }: { children: React.ReactNode }) {
   const { user, isLoaded } = useUser();
   const socketRef = useRef<Socket | null>(null);
@@ -63,7 +99,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!isLoaded || !user) return;
-    requestNotifPermission();
+    requestNotifPermission().then(() => registerPushSubscription());
   }, [isLoaded, user?.id]);
 
   useEffect(() => {
@@ -102,10 +138,13 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
       );
     });
 
-    socket.on("new_message", (msg: { senderUsername?: string; senderDisplayName?: string; content?: string; conversationId?: number; messageType?: string }) => {
+    socket.on("new_message", (msg: { senderId?: number; senderUsername?: string; senderDisplayName?: string; content?: string; conversationId?: number; messageType?: string }) => {
       qc.invalidateQueries({ queryKey: ["conversations"] });
       qc.invalidateQueries({ queryKey: ["unread-message-count"] });
       if (msg.messageType === "missed_call") return;
+      // Don't fire browser notification for own messages
+      const myDbId = (user as any)?.publicMetadata?.dbUserId as number | undefined;
+      if (msg.senderId && myDbId && msg.senderId === myDbId) return;
       const sender = msg.senderDisplayName || msg.senderUsername || "Someone";
       fireBrowserNotif(
         `Squawk — New message from ${sender}`,

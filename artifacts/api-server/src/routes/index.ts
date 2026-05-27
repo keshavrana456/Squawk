@@ -12,6 +12,7 @@ import botRouter from "../src/routes/bot";
 import nftRouter from "../src/routes/nft";
 import chirpsRouter from "../src/routes/chirps";
 import contestsRouter from "../src/routes/contests";
+import pushRouter from "../src/routes/push";
 
 const router: IRouter = Router();
 
@@ -28,5 +29,6 @@ router.use(botRouter);
 router.use(nftRouter);
 router.use(chirpsRouter);
 router.use(contestsRouter);
+router.use(pushRouter);
 
 export default router;
