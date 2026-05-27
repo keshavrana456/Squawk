@@ -16,7 +16,7 @@ import {
   BadgeCheck, Grid, Film, X, ImagePlus, Crown, Settings,
   PlusCircle, Bookmark, BarChart2, TrendingUp, Users,
   Activity, ExternalLink, Camera, MessageSquare, MoreHorizontal, Trash2, Copy, Repeat2,
-  ShieldAlert, ShieldOff, ShieldCheck, UserX,
+  ShieldAlert, ShieldOff, ShieldCheck, UserX, DollarSign,
 } from "lucide-react";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
@@ -147,6 +147,32 @@ export default function ProfilePage() {
   const [localAvatarUrl, setLocalAvatarUrl] = useState<string | null>(null);
   const [show10kStats, setShow10kStats] = useState(false);
   const [storyViewerOpen, setStoryViewerOpen] = useState(false);
+
+  const [showEarnModal, setShowEarnModal] = useState(false);
+  const [earnNoClicked, setEarnNoClicked] = useState(false);
+  const [showMobileYesMsg, setShowMobileYesMsg] = useState(false);
+  const [yesOffset, setYesOffset] = useState({ x: 0, y: 0 });
+  const yesBtnRef = useRef<HTMLButtonElement>(null);
+  const earnModalRef = useRef<HTMLDivElement>(null);
+
+  const handleYesMouseMove = (e: React.MouseEvent) => {
+    const btn = yesBtnRef.current;
+    if (!btn) return;
+    const rect = btn.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    const dx = e.clientX - cx;
+    const dy = e.clientY - cy;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    if (dist < 90) {
+      const angle = Math.atan2(dy, dx);
+      const flee = 130;
+      setYesOffset(prev => ({
+        x: prev.x - Math.cos(angle) * flee,
+        y: prev.y - Math.sin(angle) * flee,
+      }));
+    }
+  };
 
   // Find this user's story group
   const profileStoryGroup = storyGroups?.find((g: any) => g.user.username === username);
@@ -556,6 +582,15 @@ export default function ProfilePage() {
                     <Settings className="w-4 h-4" />
                   </Button>
                 </Link>
+                <Button
+                  onClick={() => { setShowEarnModal(true); setEarnNoClicked(false); setYesOffset({ x: 0, y: 0 }); setShowMobileYesMsg(false); }}
+                  variant="ghost"
+                  size="icon"
+                  className="rounded-full border border-emerald-500/50 btn-water shrink-0 text-emerald-400 hover:text-emerald-300 hover:border-emerald-400"
+                  title="Earn Money"
+                >
+                  <DollarSign className="w-4 h-4" />
+                </Button>
               </div>
             ) : (
               <>
@@ -1159,6 +1194,143 @@ export default function ProfilePage() {
                       {holdersData?.status === "scanning" ? "Still scanning all 3,333 tokens…" : "No holder data available"}
                     </p>
                   )
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Earn Money Modal ── */}
+      <AnimatePresence>
+        {showEarnModal && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+            style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(6px)" }}
+            onMouseMove={handleYesMouseMove}
+          >
+            {/* Mobile full-screen YES message */}
+            <AnimatePresence>
+              {showMobileYesMsg && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}
+                  className="fixed inset-0 z-[200] flex flex-col items-center justify-center bg-black text-center px-8"
+                  onClick={() => setShowMobileYesMsg(false)}
+                >
+                  <div className="text-6xl mb-6">🏳️‍🌈</div>
+                  <p className="text-white text-2xl font-black uppercase leading-tight mb-4">
+                    YOU'RE NOT ELIGIBLE FOR THIS
+                  </p>
+                  <p className="text-pink-400 text-xl font-bold uppercase">
+                    COZ YOU'RE A GAY.
+                  </p>
+                  <p className="text-white/60 text-lg mt-3 font-semibold uppercase">
+                    THANK YOU.
+                  </p>
+                  <p className="text-white/30 text-xs mt-10">tap anywhere to close</p>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            <motion.div
+              ref={earnModalRef}
+              initial={{ y: 40, opacity: 0, scale: 0.95 }}
+              animate={{ y: 0, opacity: 1, scale: 1 }}
+              exit={{ y: 40, opacity: 0, scale: 0.95 }}
+              transition={{ type: "spring", damping: 22, stiffness: 280 }}
+              className="relative bg-card border border-border rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl"
+              onClick={e => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="relative px-6 pt-6 pb-4 border-b border-border">
+                <button
+                  onClick={() => setShowEarnModal(false)}
+                  className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+                <div className="flex items-center gap-3 mb-1">
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: "linear-gradient(135deg,#10b981,#059669)" }}>
+                    <DollarSign className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-black text-foreground">Earn on Squawk</h2>
+                    <p className="text-xs text-muted-foreground">Turn your content into cash 💸</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Body */}
+              <div className="px-6 py-5 space-y-4 max-h-[55vh] overflow-y-auto">
+                <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-4 space-y-1">
+                  <p className="text-sm font-bold text-emerald-400 flex items-center gap-2">📸 Post Flows</p>
+                  <p className="text-sm text-muted-foreground">Every post you share earns flow points based on engagement — likes, comments, and reshares all count. Top creators get a monthly cash payout from the community pool.</p>
+                </div>
+                <div className="rounded-2xl border border-pink-500/20 bg-pink-500/5 p-4 space-y-1">
+                  <p className="text-sm font-bold text-pink-400 flex items-center gap-2">🎬 Reels Bonus</p>
+                  <p className="text-sm text-muted-foreground">Short-form video creators earn 3× the flow points of standard posts. Upload daily reels and watch your earnings multiply every week.</p>
+                </div>
+                <div className="rounded-2xl border border-purple-500/20 bg-purple-500/5 p-4 space-y-1">
+                  <p className="text-sm font-bold text-purple-400 flex items-center gap-2">⚡ Chirp Rewards</p>
+                  <p className="text-sm text-muted-foreground">Hot chirps (trending short posts) earn tip drops from other community members. The more viral your chirp, the bigger the tip pool.</p>
+                </div>
+                <div className="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-4 space-y-1">
+                  <p className="text-sm font-bold text-amber-400 flex items-center gap-2">🏆 10K Squad NFT Holders</p>
+                  <p className="text-sm text-muted-foreground">Holding a 10K Squad NFT unlocks the Founder tier — giving you a 2× earnings multiplier, exclusive drops, and early access to all future monetisation features.</p>
+                </div>
+                <div className="rounded-2xl border border-cyan-500/20 bg-cyan-500/5 p-4 space-y-1">
+                  <p className="text-sm font-bold text-cyan-400 flex items-center gap-2">🤝 Referral Program</p>
+                  <p className="text-sm text-muted-foreground">Invite friends using your unique link. Earn 10% of their flow points for 90 days — automatically, with zero extra effort required from you.</p>
+                </div>
+
+                {!earnNoClicked && (
+                  <div className="pt-2">
+                    <p className="text-center text-sm font-bold text-foreground mb-4">Ready to start earning? 🚀</p>
+                    <div className="relative flex items-center justify-between gap-4 min-h-[52px]" onMouseMove={handleYesMouseMove}>
+                      {/* No button */}
+                      <button
+                        onClick={() => { setEarnNoClicked(true); toast("BEST DECISION OF LIFE", { icon: "🏆", duration: 5000 }); }}
+                        className="flex-1 py-3 rounded-full font-black text-sm border-2 border-red-500/60 text-red-400 hover:bg-red-500/10 transition-all"
+                      >
+                        No
+                      </button>
+                      {/* Yes button — flees from cursor */}
+                      <button
+                        ref={yesBtnRef}
+                        onClick={() => setShowMobileYesMsg(true)}
+                        className="flex-1 py-3 rounded-full font-black text-sm text-white transition-none select-none"
+                        style={{
+                          background: "linear-gradient(135deg,#10b981,#059669)",
+                          transform: `translate(${yesOffset.x}px, ${yesOffset.y}px)`,
+                          transition: "transform 0.15s ease-out",
+                          boxShadow: "0 0 16px 4px rgba(16,185,129,0.35)",
+                        }}
+                        onMouseEnter={() => {
+                          const flee = 160;
+                          const angle = Math.random() * Math.PI * 2;
+                          setYesOffset(prev => ({
+                            x: prev.x + Math.cos(angle) * flee,
+                            y: prev.y + Math.sin(angle) * flee,
+                          }));
+                        }}
+                      >
+                        Yes
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {earnNoClicked && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.85 }} animate={{ opacity: 1, scale: 1 }}
+                    className="text-center py-6"
+                  >
+                    <div className="text-5xl mb-3">🏆</div>
+                    <p className="text-2xl font-black text-foreground uppercase tracking-wide">BEST DECISION</p>
+                    <p className="text-2xl font-black text-emerald-400 uppercase tracking-wide">OF LIFE</p>
+                    <p className="text-muted-foreground text-sm mt-2">You're already winning. 😎</p>
+                  </motion.div>
                 )}
               </div>
             </motion.div>
