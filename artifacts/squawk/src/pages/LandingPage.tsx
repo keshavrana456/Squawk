@@ -147,8 +147,6 @@ function LiveSalesFeed() {
     return () => clearInterval(interval);
   }, [fetchSales]);
 
-  if (!loading && sales.length === 0) return null;
-
   return (
     <motion.section
       id="recent-sales"
@@ -167,15 +165,15 @@ function LiveSalesFeed() {
               <span className="text-xs font-semibold text-green-400 uppercase tracking-widest">Live</span>
             </div>
             <h2 className="text-3xl md:text-4xl font-black text-white">Recent Sales</h2>
-            <p className="text-muted-foreground text-sm mt-1">Latest 10K Squad trades on OpenSea · refreshes every 30s</p>
+            <p className="text-muted-foreground text-sm mt-1">Latest 10K Squad trades · refreshes every 30s</p>
           </div>
           <a
-            href="https://opensea.io/collection/the-10k-squad-350905768"
+            href="https://magiceden.io/collections/monad/0x818030837e8350ba63e64d7dc01a547fa73c8279"
             target="_blank"
             rel="noopener noreferrer"
             className="hidden md:flex items-center gap-2 px-5 py-2 rounded-full border border-white/15 text-white/60 hover:text-white hover:border-white/30 transition-all text-sm font-medium"
           >
-            View all on OpenSea <ExternalLink className="w-3.5 h-3.5" />
+            View all on Magic Eden <ExternalLink className="w-3.5 h-3.5" />
           </a>
         </div>
 
@@ -192,6 +190,18 @@ function LiveSalesFeed() {
                 </div>
               </div>
             ))}
+          </div>
+        ) : sales.length === 0 ? (
+          <div className="rounded-2xl border border-white/10 p-10 text-center" style={{ background: "rgba(88,28,135,0.10)" }}>
+            <p className="text-white/40 text-sm">No recent sales data available — check back soon.</p>
+            <a
+              href="https://magiceden.io/collections/monad/0x818030837e8350ba63e64d7dc01a547fa73c8279"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 mt-3 text-xs text-purple-400 hover:text-pink-400 transition-colors"
+            >
+              Browse on Magic Eden <ExternalLink className="w-3 h-3" />
+            </a>
           </div>
         ) : (
           <div className="overflow-x-auto no-scrollbar pb-2">
@@ -219,12 +229,12 @@ function LiveSalesFeed() {
         {/* Mobile view-all link */}
         <div className="mt-4 flex md:hidden justify-center">
           <a
-            href="https://opensea.io/collection/the-10k-squad-350905768"
+            href="https://magiceden.io/collections/monad/0x818030837e8350ba63e64d7dc01a547fa73c8279"
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-2 text-sm text-purple-400 hover:text-pink-400 transition-colors font-medium"
           >
-            View all on OpenSea <ExternalLink className="w-3.5 h-3.5" />
+            View all on Magic Eden <ExternalLink className="w-3.5 h-3.5" />
           </a>
         </div>
       </div>

@@ -265,7 +265,59 @@ function shortAddr(addr: string): string {
   return addr.slice(0, 6) + "…" + addr.slice(-4);
 }
 
-async function fetchRecentSales(): Promise<NftSale[]> {
+// ── Magic Eden recent sales (primary) ────────────────────────────────────────
+async function fetchSalesViaMagicEden(): Promise<NftSale[]> {
+  try {
+    const meApiKey = process.env.MAGIC_EDEN_API_KEY;
+    const headers: Record<string, string> = { Accept: "application/json" };
+    if (meApiKey) headers["Authorization"] = `Bearer ${meApiKey}`;
+
+    const url = `https://api-mainnet.magiceden.dev/v3/rtp/${ME_CHAIN}/sales/v4?contract=${CONTRACT}&limit=20&sortBy=time&sortDirection=desc`;
+    const res = await fetch(url, { headers, signal: AbortSignal.timeout(8000) });
+    if (!res.ok) throw new Error(`ME sales ${res.status}`);
+    const json: any = await res.json();
+    const events: any[] = json.sales ?? [];
+    if (!events.length) throw new Error("empty");
+
+    const sales: NftSale[] = events.map((ev: any) => {
+      const token = ev.token ?? {};
+      const priceData = ev.price ?? {};
+      const nativeAmt: number = priceData.amount?.native ?? 0;
+      const sym: string = priceData.currency?.symbol ?? "MON";
+
+      const priceFormatted = nativeAmt > 0
+        ? nativeAmt.toLocaleString("en-US", { maximumFractionDigits: 2 }) + " " + sym
+        : "—";
+
+      const tokenId = token.tokenId ?? "?";
+      const name = token.name ?? `Squad #${tokenId}`;
+      const imageUrl = token.image ?? null;
+      const meUrl = `https://magiceden.io/item-details/monad/${CONTRACT}/${tokenId}`;
+
+      return {
+        id: `me-${ev.id ?? ev.txHash ?? tokenId}-${tokenId}`,
+        tokenId: String(tokenId),
+        name,
+        imageUrl,
+        priceRaw: String(nativeAmt),
+        priceFormatted,
+        symbol: sym,
+        seller: shortAddr(ev.from ?? ""),
+        buyer: shortAddr(ev.to ?? ""),
+        txHash: ev.txHash ?? null,
+        openseaUrl: meUrl,
+        timestamp: (ev.timestamp ?? 0) * 1000,
+      };
+    });
+
+    return sales.filter(s => s.timestamp > 0).sort((a, b) => b.timestamp - a.timestamp);
+  } catch {
+    return [];
+  }
+}
+
+// ── OpenSea recent sales (fallback) ──────────────────────────────────────────
+async function fetchSalesViaOpenSea(): Promise<NftSale[]> {
   const apiKey = process.env.OPENSEA_API_KEY;
   const headers: Record<string, string> = { Accept: "application/json" };
   if (apiKey) headers["X-API-KEY"] = apiKey;
@@ -274,7 +326,10 @@ async function fetchRecentSales(): Promise<NftSale[]> {
     try {
       const url = `https://api.opensea.io/api/v2/events/collection/${slug}?event_type=sale&limit=20`;
       const res = await fetch(url, { headers, signal: AbortSignal.timeout(6000) });
-      if (!res.ok) continue;
+      if (!res.ok) {
+        if (res.status === 401 || res.status === 403) break;
+        continue;
+      }
       const json: any = await res.json();
       const events: any[] = json.asset_events ?? [];
       if (!events.length) continue;
@@ -289,7 +344,6 @@ async function fetchRecentSales(): Promise<NftSale[]> {
         const priceFloat = Number(rawQty) / Math.pow(10, decimals);
         const sym: string = payment.symbol ?? "ETH";
 
-        // Convert to MON if the price is in ETH
         let displayPrice = priceFloat;
         let displaySym = sym;
         if (sym === "ETH" && priceFloat > 0) {
@@ -328,6 +382,12 @@ async function fetchRecentSales(): Promise<NftSale[]> {
     }
   }
   return [];
+}
+
+async function fetchRecentSales(): Promise<NftSale[]> {
+  const meSales = await fetchSalesViaMagicEden();
+  if (meSales.length > 0) return meSales;
+  return fetchSalesViaOpenSea();
 }
 
 // GET /nft/holders — top holders leaderboard
