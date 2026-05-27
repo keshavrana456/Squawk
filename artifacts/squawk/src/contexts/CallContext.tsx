@@ -11,13 +11,15 @@ const ICE_SERVERS = [
   { urls: "stun:stun.l.google.com:19302" },
   { urls: "stun:stun1.l.google.com:19302" },
   { urls: "stun:stun2.l.google.com:19302" },
-  { urls: "stun:stun3.l.google.com:19302" },
-  { urls: "stun:stun4.l.google.com:19302" },
   { urls: "stun:stun.cloudflare.com:3478" },
-  { urls: "stun:stun.stunprotocol.org:3478" },
-  { urls: "turn:openrelay.metered.ca:80", username: "openrelayproject", credential: "openrelayproject" },
-  { urls: "turn:openrelay.metered.ca:443", username: "openrelayproject", credential: "openrelayproject" },
-  { urls: "turn:openrelay.metered.ca:443?transport=tcp", username: "openrelayproject", credential: "openrelayproject" },
+  // Metered TURN — global relay endpoints (more reliable than openrelay)
+  { urls: "turn:global.relay.metered.ca:80",             username: "openrelayproject", credential: "openrelayproject" },
+  { urls: "turn:global.relay.metered.ca:80?transport=tcp", username: "openrelayproject", credential: "openrelayproject" },
+  { urls: "turn:global.relay.metered.ca:443",            username: "openrelayproject", credential: "openrelayproject" },
+  { urls: "turns:global.relay.metered.ca:443",           username: "openrelayproject", credential: "openrelayproject" },
+  // freestun fallback
+  { urls: "turn:freestun.net:3479",  username: "free", credential: "free" },
+  { urls: "turns:freestun.net:5350", username: "free", credential: "free" },
 ];
 
 export interface CallUser {
@@ -112,7 +114,12 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const createPeerConnection = useCallback((otherUserId: number) => {
-    const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
+    const pc = new RTCPeerConnection({
+      iceServers: ICE_SERVERS,
+      iceCandidatePoolSize: 10,
+      bundlePolicy: "max-bundle",
+      rtcpMuxPolicy: "require",
+    });
 
     pc.onicecandidate = (e) => {
       if (e.candidate && socket) {
@@ -123,39 +130,13 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       }
     };
 
-    pc.ontrack = (e) => {
-      const stream = e.streams[0] || new MediaStream([e.track]);
-      remoteStreamRef.current = stream;
-      setRemoteStream(stream);
-      if (remoteVideoRef.current) remoteVideoRef.current.srcObject = stream;
-      if (remoteAudioRef.current) remoteAudioRef.current.srcObject = stream;
-      // Fallback: mark as connected when remote stream arrives
-      // Some browsers/networks never fire connectionState="connected"
-      setTimeout(() => {
-        setActiveCall(prev => {
-          if (prev && prev.status === "connecting") {
-            if (!callTimerRef.current) {
-              callTimerRef.current = setInterval(() => setCallDuration(d => d + 1), 1000);
-            }
-            if (connectionTimeoutRef.current) {
-              clearTimeout(connectionTimeoutRef.current);
-              connectionTimeoutRef.current = null;
-            }
-            return { ...prev, status: "connected", startedAt: Date.now() };
-          }
-          return prev;
-        });
-      }, 1200);
-    };
-
     const markConnected = () => {
       if (connectionTimeoutRef.current) { clearTimeout(connectionTimeoutRef.current); connectionTimeoutRef.current = null; }
+      console.log("[Call] markConnected — starting timer");
       setActiveCall(prev => {
-        if (prev && prev.status !== "connected") {
+        if (prev && prev.status === "connecting") {
           if (!callTimerRef.current) {
-            callTimerRef.current = setInterval(() => {
-              setCallDuration(d => d + 1);
-            }, 1000);
+            callTimerRef.current = setInterval(() => setCallDuration(d => d + 1), 1000);
           }
           return { ...prev, status: "connected", startedAt: Date.now() };
         }
@@ -163,20 +144,71 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       });
     };
 
+    pc.ontrack = (e) => {
+      console.log("[Call] ontrack fired — track kind:", e.track.kind, "streams:", e.streams.length);
+      const stream = e.streams[0] || new MediaStream([e.track]);
+      remoteStreamRef.current = stream;
+      setRemoteStream(stream);
+      if (remoteVideoRef.current) remoteVideoRef.current.srcObject = stream;
+      if (remoteAudioRef.current) remoteAudioRef.current.srcObject = stream;
+      // Mark connected immediately when tracks arrive — most reliable signal
+      markConnected();
+    };
+
+    const handleIceFailed = async () => {
+      console.warn("[Call] ICE failed — attempting restart");
+      // Try ICE restart before giving up
+      if (pc.signalingState === "stable" && pc.localDescription) {
+        try {
+          const offer = await pc.createOffer({ iceRestart: true });
+          await pc.setLocalDescription(offer);
+          socket?.emit("call_ice_restart", {
+            targetUserId: otherUserId,
+            offer,
+          });
+          console.log("[Call] ICE restart offer sent");
+          return;
+        } catch (err) {
+          console.error("[Call] ICE restart failed:", err);
+        }
+      }
+      // If restart fails, end the call with a failed state
+      console.error("[Call] giving up — connection failed");
+      setActiveCall(prev => prev ? { ...prev, status: "ended" } : prev);
+      setTimeout(() => endCallRef.current?.(), 2000);
+    };
+
     pc.onconnectionstatechange = () => {
+      console.log("[Call] connectionState:", pc.connectionState);
       if (pc.connectionState === "connected") {
         markConnected();
-      } else if (["disconnected", "failed", "closed"].includes(pc.connectionState)) {
-        endCallRef.current?.();
+      } else if (pc.connectionState === "failed") {
+        handleIceFailed();
+      } else if (pc.connectionState === "disconnected") {
+        // Give a moment to recover before ending
+        setTimeout(() => {
+          if (pc.connectionState === "disconnected" || pc.connectionState === "failed") {
+            endCallRef.current?.();
+          }
+        }, 4000);
       }
     };
 
     pc.oniceconnectionstatechange = () => {
+      console.log("[Call] iceConnectionState:", pc.iceConnectionState);
       if (pc.iceConnectionState === "connected" || pc.iceConnectionState === "completed") {
         markConnected();
       } else if (pc.iceConnectionState === "failed") {
-        endCallRef.current?.();
+        handleIceFailed();
       }
+    };
+
+    pc.onicegatheringstatechange = () => {
+      console.log("[Call] iceGatheringState:", pc.iceGatheringState);
+    };
+
+    pc.onsignalingstatechange = () => {
+      console.log("[Call] signalingState:", pc.signalingState);
     };
 
     pcRef.current = pc;
@@ -195,7 +227,8 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
   };
 
   const startCall = useCallback(async (otherUser: CallUser, callType: "voice" | "video", fromUser: CallUser) => {
-    if (!socket) return;
+    if (!socket) { console.error("[Call] startCall: no socket"); return; }
+    console.log("[Call] startCall → user:", otherUser.id, "type:", callType, "fromUser:", fromUser.id);
     cleanup();
 
     setActiveCall({
@@ -210,11 +243,13 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
 
     try {
       const stream = await getMedia(callType);
+      console.log("[Call] media acquired — tracks:", stream.getTracks().map(t => t.kind));
       const pc = createPeerConnection(otherUser.id);
       stream.getTracks().forEach(t => pc.addTrack(t, stream));
 
       const offer = await pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: callType === "video" });
       await pc.setLocalDescription(offer);
+      console.log("[Call] offer created, emitting call_invite to userId:", otherUser.id);
 
       socket.emit("call_invite", {
         targetUserId: otherUser.id,
@@ -222,8 +257,12 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
         offer,
         fromUser,
       });
-    } catch (e) {
-      console.error("Call setup failed", e);
+    } catch (e: any) {
+      const msg = e?.name === "NotAllowedError" || e?.name === "PermissionDeniedError"
+        ? "Microphone/camera permission denied. Please allow access and try again."
+        : "Call setup failed: " + (e?.message || String(e));
+      console.error("[Call] startCall error:", e);
+      alert(msg);
       cleanup();
       setActiveCall(null);
     }
@@ -232,6 +271,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
   const acceptCall = useCallback(async () => {
     if (!socket || !incomingCall) return;
     const { fromUser, callType, offer } = incomingCall;
+    console.log("[Call] acceptCall — from user:", fromUser.id, "type:", callType);
     setIncomingCall(null);
 
     setActiveCall({
@@ -246,25 +286,32 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
 
     try {
       const stream = await getMedia(callType);
+      console.log("[Call] media acquired — tracks:", stream.getTracks().map(t => t.kind));
       const pc = createPeerConnection(fromUser.id);
       stream.getTracks().forEach(t => pc.addTrack(t, stream));
 
       await pc.setRemoteDescription(new RTCSessionDescription(offer));
+      console.log("[Call] remote description set (offer)");
       // flush pending ICE candidates
       for (const c of pendingCandidatesRef.current) {
-        await pc.addIceCandidate(new RTCIceCandidate(c)).catch(() => {});
+        await pc.addIceCandidate(new RTCIceCandidate(c)).catch(err => console.warn("[Call] pending ICE error:", err));
       }
       pendingCandidatesRef.current = [];
 
       const answer = await pc.createAnswer({ offerToReceiveAudio: true, offerToReceiveVideo: callType === "video" });
       await pc.setLocalDescription(answer);
+      console.log("[Call] answer created, emitting call_accepted to userId:", fromUser.id);
 
       socket.emit("call_accepted", {
         targetUserId: fromUser.id,
         answer,
       });
-    } catch (e) {
-      console.error("Accept call failed", e);
+    } catch (e: any) {
+      const msg = e?.name === "NotAllowedError" || e?.name === "PermissionDeniedError"
+        ? "Microphone/camera permission denied. Please allow access and try again."
+        : "Failed to accept call: " + (e?.message || String(e));
+      console.error("[Call] acceptCall error:", e);
+      alert(msg);
       cleanup();
       setActiveCall(null);
     }
@@ -294,7 +341,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => { endCallRef.current = endCall; }, [endCall]);
   useEffect(() => { activeCallRef.current = activeCall; }, [activeCall]);
 
-  // Connection timeout — auto-end if still "connecting" after 30s, emit missed call
+  // Connection timeout — auto-end if still "connecting" after 20s, emit missed call
   useEffect(() => {
     if (activeCall?.status === "connecting") {
       const capturedSocket = socket;
@@ -308,7 +355,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
           });
           endCallRef.current?.();
         }
-      }, 30_000);
+      }, 20_000);
     }
     return () => {
       if (connectionTimeoutRef.current) { clearTimeout(connectionTimeoutRef.current); connectionTimeoutRef.current = null; }
@@ -336,7 +383,9 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     if (!socket) return;
 
     const handleCallInvite = (data: { fromUser: CallUser; callType: "voice" | "video"; offer: RTCSessionDescriptionInit }) => {
+      console.log("[Call] socket: call_invite received from userId:", data.fromUser.id);
       if (activeCallRef.current) {
+        console.log("[Call] already in call — declining");
         socket.emit("call_declined", { targetUserId: data.fromUser.id });
         return;
       }
@@ -344,23 +393,27 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     };
 
     const handleCallAccepted = async (data: { answer: RTCSessionDescriptionInit }) => {
+      console.log("[Call] socket: call_accepted received");
       const pc = pcRef.current;
-      if (!pc) return;
+      if (!pc) { console.error("[Call] call_accepted: pcRef is null!"); return; }
       try {
         await pc.setRemoteDescription(new RTCSessionDescription(data.answer));
+        console.log("[Call] remote description set (answer), flushing", pendingCandidatesRef.current.length, "pending candidates");
         for (const c of pendingCandidatesRef.current) {
-          await pc.addIceCandidate(new RTCIceCandidate(c)).catch(() => {});
+          await pc.addIceCandidate(new RTCIceCandidate(c)).catch(err => console.warn("[Call] pending ICE error:", err));
         }
         pendingCandidatesRef.current = [];
-      } catch (e) { console.error(e); }
+      } catch (e) { console.error("[Call] setRemoteDescription(answer) error:", e); }
     };
 
     const handleCallDeclined = () => {
+      console.log("[Call] socket: call_declined");
       cleanup();
       setActiveCall(null);
     };
 
     const handleCallEnded = () => {
+      console.log("[Call] socket: call_ended");
       cleanup();
       setActiveCall(null);
       setIncomingCall(null);
@@ -370,16 +423,34 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       const pc = pcRef.current;
       if (!pc) return;
       if (pc.remoteDescription) {
-        await pc.addIceCandidate(new RTCIceCandidate(data.candidate)).catch(() => {});
+        await pc.addIceCandidate(new RTCIceCandidate(data.candidate)).catch(err => console.warn("[Call] addIceCandidate error:", err));
       } else {
+        console.log("[Call] buffering ICE candidate (no remote desc yet)");
         pendingCandidatesRef.current.push(data.candidate);
       }
+    };
+
+    const handleIceRestart = async (data: { offer: RTCSessionDescriptionInit }) => {
+      console.log("[Call] socket: call_ice_restart received");
+      const pc = pcRef.current;
+      if (!pc) return;
+      try {
+        await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
+        const answer = await pc.createAnswer();
+        await pc.setLocalDescription(answer);
+        socket.emit("call_accepted", {
+          targetUserId: activeCallRef.current?.otherUser.id,
+          answer,
+        });
+        console.log("[Call] ICE restart answer sent");
+      } catch (e) { console.error("[Call] handleIceRestart error:", e); }
     };
 
     socket.on("call_invite", handleCallInvite);
     socket.on("call_accepted", handleCallAccepted);
     socket.on("call_declined", handleCallDeclined);
     socket.on("call_ended", handleCallEnded);
+    socket.on("call_ice_restart", handleIceRestart);
     socket.on("ice_candidate", handleIceCandidate);
 
     return () => {
@@ -387,6 +458,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       socket.off("call_accepted", handleCallAccepted);
       socket.off("call_declined", handleCallDeclined);
       socket.off("call_ended", handleCallEnded);
+      socket.off("call_ice_restart", handleIceRestart);
       socket.off("ice_candidate", handleIceCandidate);
     };
   }, [socket, cleanup]);
@@ -484,6 +556,8 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
                   ? "Calling…"
                   : activeCall.status === "connected"
                   ? formatDuration(callDuration)
+                  : activeCall.status === "ended"
+                  ? "Connection failed"
                   : "Call ended"
                 }
               </p>
@@ -555,7 +629,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
                 </div>
                 <p className="text-white text-2xl font-bold">{activeCall.otherUser.displayName}</p>
                 <p className="text-white/50 text-base mt-1">
-                  {activeCall.status === "connecting" ? "Calling…" : formatDuration(callDuration)}
+                  {activeCall.status === "connecting" ? "Calling…" : activeCall.status === "ended" ? "Connection failed" : formatDuration(callDuration)}
                 </p>
                 {/* Audio elements for voice calls */}
                 <audio

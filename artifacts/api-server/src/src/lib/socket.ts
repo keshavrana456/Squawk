@@ -172,6 +172,11 @@ export function initSocket(httpServer: HttpServer): SocketIOServer {
       io!.to(`user:${data.targetUserId}`).emit("ice_candidate", { candidate: data.candidate });
     });
 
+    // call_ice_restart: caller sends a new offer to restart ICE
+    socket.on("call_ice_restart", (data: { targetUserId: number; offer: RTCSessionDescriptionInit }) => {
+      io!.to(`user:${data.targetUserId}`).emit("call_ice_restart", { offer: data.offer });
+    });
+
     socket.on("disconnect", () => {
       if (dbUserId !== undefined) {
         const sockets = onlineUsers.get(dbUserId);
