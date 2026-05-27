@@ -151,6 +151,7 @@ function LiveSalesFeed() {
 
   return (
     <motion.section
+      id="recent-sales"
       initial={{ opacity: 0, y: 20 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
@@ -293,6 +294,7 @@ function TopHolders() {
 
   return (
     <motion.section
+      id="top-holders"
       initial={{ opacity: 0, y: 20 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
@@ -467,6 +469,7 @@ function OngoingContest() {
   const { tweets, loading } = useContestFeed();
   return (
     <motion.section
+      id="contests"
       initial={{ opacity: 0, y: 24 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
@@ -907,6 +910,48 @@ function StatCard({ label, value, sub, updating }: StatCardProps) {
   );
 }
 
+function SectionNav({ onAbout }: { onAbout: () => void }) {
+  const items = [
+    { label: "Live Squad Contests", href: "#contests", emoji: "🏆" },
+    { label: "About the 10K Squad NFTs", href: "#about-10k", emoji: "🎨" },
+    { label: "Holder Rewards Hub", href: "#holder-rewards", emoji: "💎" },
+    { label: "Built for Culture", href: "#built-for-culture", emoji: "⚡" },
+    { label: "About Squawk", href: null, emoji: "ℹ️", onClick: onAbout },
+    { label: "Must Try", href: "#must-try", emoji: "⭐" },
+  ];
+
+  const handleClick = (href: string | null, onClick?: () => void) => {
+    if (onClick) { onClick(); return; }
+    if (href) {
+      const el = document.querySelector(href);
+      el?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
+
+  return (
+    <div className="relative z-10 px-4 md:px-12 py-8">
+      <div className="max-w-6xl mx-auto">
+        <div className="relative rounded-2xl border border-white/10 p-4 overflow-hidden" style={{ background: "linear-gradient(135deg, rgba(14,7,25,0.8) 0%, rgba(88,28,135,0.15) 100%)" }}>
+          <div className="absolute inset-0 pointer-events-none" style={{ background: "linear-gradient(90deg, rgba(236,72,153,0.04) 0%, rgba(147,51,234,0.08) 50%, rgba(99,102,241,0.04) 100%)" }} />
+          <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest text-center mb-3">Jump to section</p>
+          <div className="flex flex-wrap gap-2 justify-center">
+            {items.map(item => (
+              <button
+                key={item.label}
+                onClick={() => handleClick(item.href, item.onClick)}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-full border border-white/12 text-white/65 hover:text-white hover:border-pink-500/45 hover:bg-white/5 active:scale-95 transition-all duration-200 text-sm font-medium backdrop-blur-sm"
+              >
+                <span className="text-base leading-none">{item.emoji}</span>
+                {item.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function LandingPage() {
   const about = useAboutModal();
   const [stats, setStats] = useState<NftStats | null>(null);
@@ -1008,10 +1053,10 @@ export default function LandingPage() {
           className="max-w-4xl mx-auto relative z-10 mt-8"
         >
           <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold tracking-tighter mb-6 leading-tight text-white drop-shadow-xl">
-            A Living Ecosystem
+            Connect. Trade. Create.
             <br className="hidden md:block" />
             <span className="bg-clip-text text-transparent" style={{ backgroundImage: "linear-gradient(90deg, #f472b6, #c084fc, #818cf8)" }}>
-              For Collectors, Traders & Creators
+              Squawk.
             </span>
           </h1>
 
@@ -1063,6 +1108,9 @@ export default function LandingPage() {
         </motion.div>
       </section>
 
+      {/* ── Section Navigation Strip ─────────────────────────────────── */}
+      <SectionNav onAbout={about.show} />
+
       {/* ── Live NFT Sales Feed ──────────────────────────────────────── */}
       <LiveSalesFeed />
 
@@ -1074,6 +1122,7 @@ export default function LandingPage() {
 
       {/* ── About the 10K Squad ──────────────────────────────────────── */}
       <motion.section
+        id="about-10k"
         initial={{ opacity: 0, y: 20 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
@@ -1115,6 +1164,7 @@ export default function LandingPage() {
 
       {/* ── Holder Benefits ──────────────────────────────────────────── */}
       <motion.section
+        id="holder-rewards"
         initial={{ opacity: 0, y: 20 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
@@ -1233,6 +1283,7 @@ export default function LandingPage() {
 
       {/* ── App Features ─────────────────────────────────────────────── */}
       <motion.section
+        id="built-for-culture"
         initial={{ opacity: 0, y: 20 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
@@ -1300,6 +1351,7 @@ export default function LandingPage() {
 
       {/* ── Must Try ─────────────────────────────────────────────────── */}
       <motion.section
+        id="must-try"
         initial={{ opacity: 0, y: 20 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
@@ -1451,23 +1503,6 @@ export default function LandingPage() {
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
           </button>
         </Link>
-      </motion.section>
-
-      {/* ── About Squawk ─────────────────────────────────────────────── */}
-      <motion.section
-        initial={{ opacity: 0, y: 20 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
-        transition={{ duration: 0.6 }}
-        className="px-4 md:px-12 pb-16 z-10 flex justify-center"
-      >
-        <button
-          onClick={about.show}
-          className="flex items-center gap-2 px-6 py-2.5 rounded-full border border-purple-500/40 text-purple-300 hover:text-white hover:border-purple-400 hover:bg-purple-500/10 transition-all text-sm font-semibold backdrop-blur-sm"
-        >
-          <Info className="w-4 h-4" />
-          About Squawk
-        </button>
       </motion.section>
 
       <div className="h-8" />
