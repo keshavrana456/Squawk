@@ -970,14 +970,8 @@ function SectionNav({ onAbout }: { onAbout: () => void }) {
   return (
     <div className="relative z-10 py-6">
       <p className="text-[10px] font-bold text-white/25 uppercase tracking-widest text-center mb-4">Jump to section</p>
-      <div className="relative px-4">
-        {/* Scrollable strip */}
-        <div className="relative overflow-hidden">
-          <div className="absolute left-0 top-0 bottom-0 w-6 pointer-events-none z-10"
-            style={{ background: "linear-gradient(to right, rgba(5,0,15,0.9) 0%, transparent 100%)" }} />
-          <div className="absolute right-0 top-0 bottom-0 w-6 pointer-events-none z-10"
-            style={{ background: "linear-gradient(to left, rgba(5,0,15,0.9) 0%, transparent 100%)" }} />
-          <div ref={scrollRef} className="flex gap-3 overflow-x-auto no-scrollbar px-3 py-1">
+      <div className="px-4 max-w-3xl mx-auto">
+        <div className="flex flex-wrap justify-center gap-3 py-1">
             {items.map((item, i) => {
               const glows = [
                 "hover:border-pink-500/70 hover:shadow-[0_0_12px_rgba(236,72,153,0.45)]",
@@ -1037,7 +1031,6 @@ function SectionNav({ onAbout }: { onAbout: () => void }) {
                 </button>
               );
             })}
-          </div>
         </div>
       </div>
     </div>
@@ -1147,7 +1140,7 @@ export default function LandingPage() {
           <h1 className="font-bold tracking-tighter mb-6 leading-tight text-white drop-shadow-xl px-1">
             <span className="block text-[1.35rem] sm:text-2xl md:text-3xl lg:text-4xl font-semibold text-white/70 tracking-widest uppercase mb-1">Connect. Trade. Create.</span>
             <span className="block text-[3.4rem] sm:text-7xl md:text-9xl lg:text-[10rem] font-black tracking-tight bg-clip-text text-transparent leading-none" style={{ backgroundImage: "linear-gradient(90deg, #f472b6, #c084fc, #818cf8)" }}>
-              Squawk.
+              Squawk
             </span>
           </h1>
 
