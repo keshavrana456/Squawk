@@ -220,58 +220,7 @@ function shortAddr(addr: string): string {
   return addr.slice(0, 6) + "…" + addr.slice(-4);
 }
 
-// ── Magic Eden recent sales (primary) ────────────────────────────────────────
-async function fetchSalesViaMagicEden(): Promise<NftSale[]> {
-  try {
-    const meApiKey = process.env.MAGIC_EDEN_API_KEY;
-    const headers: Record<string, string> = { Accept: "application/json" };
-    if (meApiKey) headers["Authorization"] = `Bearer ${meApiKey}`;
-
-    const url = `https://api-mainnet.magiceden.dev/v3/rtp/${ME_CHAIN}/sales/v4?contract=${CONTRACT}&limit=20&sortBy=time&sortDirection=desc`;
-    const res = await fetch(url, { headers, signal: AbortSignal.timeout(8000) });
-    if (!res.ok) throw new Error(`ME sales ${res.status}`);
-    const json: any = await res.json();
-    const events: any[] = json.sales ?? [];
-    if (!events.length) throw new Error("empty");
-
-    const sales: NftSale[] = events.map((ev: any) => {
-      const token = ev.token ?? {};
-      const priceData = ev.price ?? {};
-      const nativeAmt: number = priceData.amount?.native ?? 0;
-      const sym: string = priceData.currency?.symbol ?? "MON";
-
-      const priceFormatted = nativeAmt > 0
-        ? nativeAmt.toLocaleString("en-US", { maximumFractionDigits: 2 }) + " " + sym
-        : "—";
-
-      const tokenId = token.tokenId ?? "?";
-      const name = token.name ?? `Squad #${tokenId}`;
-      const imageUrl = token.image ?? null;
-      const meUrl = `https://magiceden.io/item-details/monad/${CONTRACT}/${tokenId}`;
-
-      return {
-        id: `me-${ev.id ?? ev.txHash ?? tokenId}-${tokenId}`,
-        tokenId: String(tokenId),
-        name,
-        imageUrl,
-        priceRaw: String(nativeAmt),
-        priceFormatted,
-        symbol: sym,
-        seller: shortAddr(ev.from ?? ""),
-        buyer: shortAddr(ev.to ?? ""),
-        txHash: ev.txHash ?? null,
-        openseaUrl: meUrl,
-        timestamp: (ev.timestamp ?? 0) * 1000,
-      };
-    });
-
-    return sales.filter(s => s.timestamp > 0).sort((a, b) => b.timestamp - a.timestamp);
-  } catch {
-    return [];
-  }
-}
-
-// ── OpenSea recent sales (fallback) ──────────────────────────────────────────
+// ── OpenSea recent sales ──────────────────────────────────────────────────────
 async function fetchSalesViaOpenSea(): Promise<NftSale[]> {
   const apiKey = process.env.OPENSEA_API_KEY;
   const headers: Record<string, string> = { Accept: "application/json" };
@@ -340,8 +289,6 @@ async function fetchSalesViaOpenSea(): Promise<NftSale[]> {
 }
 
 async function fetchRecentSales(): Promise<NftSale[]> {
-  const meSales = await fetchSalesViaMagicEden();
-  if (meSales.length > 0) return meSales;
   return fetchSalesViaOpenSea();
 }
 
@@ -381,7 +328,7 @@ router.get("/nft/stats", async (_req, res): Promise<void> => {
     return;
   }
 
-  const stats = (await tryMagicEden()) ?? (await tryOpenSea());
+  const stats = await tryOpenSea();
 
   const result: NftStats = stats ?? {
     floorPrice: null,

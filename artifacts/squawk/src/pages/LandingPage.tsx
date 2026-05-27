@@ -1070,7 +1070,7 @@ export default function LandingPage() {
     {
       label: "Floor Price",
       value: fmtPrice(stats?.floorPrice ?? null, stats?.floorPriceSymbol ?? null),
-      sub: "via OpenSea",
+      sub: stats?.source ? `via ${stats.source === "opensea" ? "OpenSea" : stats.source}` : "via OpenSea",
     },
     {
       label: "Total Volume",
