@@ -977,21 +977,51 @@ function SectionNav({ onAbout }: { onAbout: () => void }) {
                 "hover:border-indigo-400/70 hover:shadow-[0_0_12px_rgba(99,102,241,0.45)]",
                 "hover:border-amber-400/70 hover:shadow-[0_0_12px_rgba(251,191,36,0.45)]",
               ];
+              // Star positions per button (deterministic)
+              const starSeeds = [
+                [{ x: 15, y: 35, dur: 1.8, delay: 0 }, { x: 70, y: 20, dur: 2.5, delay: 0.6 }, { x: 85, y: 65, dur: 1.4, delay: 1.1 }, { x: 40, y: 75, dur: 2.1, delay: 0.3 }],
+                [{ x: 10, y: 50, dur: 2.2, delay: 0.4 }, { x: 55, y: 15, dur: 1.6, delay: 1.0 }, { x: 80, y: 70, dur: 2.8, delay: 0.2 }, { x: 30, y: 80, dur: 1.9, delay: 0.8 }],
+                [{ x: 20, y: 25, dur: 1.5, delay: 0.7 }, { x: 60, y: 60, dur: 2.3, delay: 0.1 }, { x: 88, y: 30, dur: 1.7, delay: 1.3 }, { x: 45, y: 82, dur: 2.6, delay: 0.5 }],
+                [{ x: 12, y: 60, dur: 2.0, delay: 0.9 }, { x: 65, y: 25, dur: 1.5, delay: 0.3 }, { x: 78, y: 75, dur: 2.4, delay: 0.6 }, { x: 38, y: 45, dur: 1.8, delay: 1.2 }],
+                [{ x: 18, y: 40, dur: 2.7, delay: 0.2 }, { x: 72, y: 18, dur: 1.4, delay: 0.8 }, { x: 82, y: 55, dur: 2.1, delay: 1.4 }, { x: 42, y: 78, dur: 1.6, delay: 0.4 }],
+                [{ x: 8,  y: 55, dur: 1.9, delay: 0.5 }, { x: 58, y: 22, dur: 2.6, delay: 1.0 }, { x: 86, y: 68, dur: 1.3, delay: 0.2 }, { x: 35, y: 85, dur: 2.3, delay: 0.7 }],
+              ];
+              const stars = starSeeds[i % starSeeds.length];
+              const nebulaColors = [
+                "radial-gradient(ellipse at 30% 60%, rgba(236,72,153,0.28) 0%, transparent 65%), radial-gradient(ellipse at 75% 30%, rgba(147,51,234,0.22) 0%, transparent 60%)",
+                "radial-gradient(ellipse at 60% 40%, rgba(217,70,239,0.25) 0%, transparent 65%), radial-gradient(ellipse at 20% 70%, rgba(139,92,246,0.20) 0%, transparent 60%)",
+                "radial-gradient(ellipse at 40% 50%, rgba(34,211,238,0.20) 0%, transparent 65%), radial-gradient(ellipse at 80% 25%, rgba(99,102,241,0.22) 0%, transparent 55%)",
+                "radial-gradient(ellipse at 70% 35%, rgba(139,92,246,0.28) 0%, transparent 65%), radial-gradient(ellipse at 25% 65%, rgba(236,72,153,0.18) 0%, transparent 60%)",
+                "radial-gradient(ellipse at 50% 55%, rgba(99,102,241,0.22) 0%, transparent 65%), radial-gradient(ellipse at 80% 20%, rgba(34,211,238,0.20) 0%, transparent 55%)",
+                "radial-gradient(ellipse at 35% 45%, rgba(251,191,36,0.18) 0%, transparent 65%), radial-gradient(ellipse at 70% 60%, rgba(236,72,153,0.22) 0%, transparent 55%)",
+              ];
               return (
                 <button
                   key={item.label}
                   onClick={() => handleClick(item.href, item.onClick)}
-                  className={`liquid-fill-btn group relative flex items-center gap-2 px-5 py-2.5 rounded-full border border-white/15 overflow-hidden text-white/70 hover:text-white active:scale-95 transition-colors duration-200 text-sm font-medium whitespace-nowrap shrink-0 ${glows[i % glows.length]}${shaking ? " shaking" : ""}`}
+                  className={`cosmic-btn group relative flex items-center gap-2 px-5 py-2.5 rounded-full border border-white/20 overflow-hidden text-white/75 hover:text-white transition-colors duration-200 text-sm font-medium whitespace-nowrap shrink-0 ${glows[i % glows.length]}`}
+                  style={{ background: "linear-gradient(135deg, rgba(14,7,35,0.85) 0%, rgba(30,10,55,0.75) 100%)" }}
                 >
-                  {/* Liquid half-fill — sits at the bottom 50% and waves at the surface */}
-                  <span className="liquid-body absolute bottom-0 left-0 right-0 pointer-events-none overflow-hidden" style={{ height: "50%" }}>
-                    {/* Solid purple body */}
-                    <span className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(88,28,135,0.55) 0%, rgba(109,40,217,0.35) 100%)" }} />
-                    {/* Wave ellipse 1 — slides left↔right */}
-                    <span className="wave-layer wave-layer-1 absolute" style={{ width: "200%", height: "14px", top: "-6px", left: "0", background: "rgba(139,92,246,0.65)", borderRadius: "50%" }} />
-                    {/* Wave ellipse 2 — counter-slides */}
-                    <span className="wave-layer wave-layer-2 absolute" style={{ width: "200%", height: "9px", top: "-2px", left: "-15%", background: "rgba(109,40,217,0.45)", borderRadius: "50%" }} />
-                  </span>
+                  {/* Nebula glow background */}
+                  <span
+                    className="nebula-bg absolute inset-0 pointer-events-none rounded-full"
+                    style={{ background: nebulaColors[i % nebulaColors.length] }}
+                  />
+                  {/* Twinkling stars */}
+                  {stars.map((s, si) => (
+                    <span
+                      key={si}
+                      className="star-dot absolute rounded-full pointer-events-none"
+                      style={{
+                        left: `${s.x}%`, top: `${s.y}%`,
+                        width: si % 2 === 0 ? "2px" : "1.5px",
+                        height: si % 2 === 0 ? "2px" : "1.5px",
+                        background: "#fff",
+                        "--star-dur": `${s.dur}s`,
+                        "--star-delay": `${s.delay}s`,
+                      } as React.CSSProperties}
+                    />
+                  ))}
                   <span className="relative z-10 text-base leading-none">{item.emoji}</span>
                   <span className="relative z-10">{item.label}</span>
                 </button>
@@ -1104,9 +1134,9 @@ export default function LandingPage() {
           transition={{ duration: 0.85, ease: "easeOut" }}
           className="max-w-4xl mx-auto relative z-10 mt-8"
         >
-          <h1 className="text-[2.1rem] sm:text-5xl md:text-7xl lg:text-8xl font-bold tracking-tighter mb-6 leading-tight text-white drop-shadow-xl px-1">
-            <span className="block">Connect. Trade. Create.</span>
-            <span className="block bg-clip-text text-transparent" style={{ backgroundImage: "linear-gradient(90deg, #f472b6, #c084fc, #818cf8)" }}>
+          <h1 className="font-bold tracking-tighter mb-6 leading-tight text-white drop-shadow-xl px-1">
+            <span className="block text-[1.35rem] sm:text-2xl md:text-3xl lg:text-4xl font-semibold text-white/70 tracking-widest uppercase mb-1">Connect. Trade. Create.</span>
+            <span className="block text-[3.4rem] sm:text-7xl md:text-9xl lg:text-[10rem] font-black tracking-tight bg-clip-text text-transparent leading-none" style={{ backgroundImage: "linear-gradient(90deg, #f472b6, #c084fc, #818cf8)" }}>
               Squawk.
             </span>
           </h1>

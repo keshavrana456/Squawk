@@ -22,7 +22,8 @@ const CACHE_TTL = 8_000;
 
 const TOTAL_SUPPLY = 3333;
 const CONTRACT = "0x818030837e8350ba63e64d7dc01a547fa73c8279" as const;
-const OPENSEA_SLUGS = ["the-10k-squad-350905768", "the-10k-squad", "10k-squad"];
+const OPENSEA_SLUGS = ["the-10k-squad-350905768", "the-10k-squad", "10k-squad", "the-10k-squad-monad"];
+const ME_CHAIN = "monad-mainnet";
 
 // ── Monad viem client ────────────────────────────────────────────────────────
 const monad = defineChain({
@@ -137,6 +138,52 @@ async function getMonPerEth(): Promise<number> {
   }
 }
 
+// ── Magic Eden (Reservoir) stats — primary Monad marketplace ─────────────────
+async function tryMagicEden(): Promise<NftStats | null> {
+  try {
+    const meApiKey = process.env.MAGIC_EDEN_API_KEY;
+    const headers: Record<string, string> = { Accept: "application/json" };
+    if (meApiKey) headers["Authorization"] = `Bearer ${meApiKey}`;
+
+    // Reservoir-protocol endpoint proxied through Magic Eden
+    const url = `https://api-mainnet.magiceden.dev/v3/rtp/${ME_CHAIN}/collections/v7?id=${CONTRACT}&includeTopBid=false`;
+    const res = await fetch(url, { headers, signal: AbortSignal.timeout(7000) });
+    if (!res.ok) throw new Error(`ME ${res.status}`);
+    const json: any = await res.json();
+    const col = (json.collections ?? json)[0] ?? json;
+    if (!col) throw new Error("no collection");
+
+    const floorAsk = col.floorAsk ?? col.floor_ask ?? {};
+    const rawFloor: number | null = floorAsk?.price?.amount?.native ?? col.floorSalePrice ?? null;
+    const floorSymbol: string = floorAsk?.price?.currency?.symbol ?? "MON";
+
+    const volume = col.volume ?? {};
+    const vol24h: number | null = volume["1day"] ?? null;
+    const vol7d: number | null  = volume["7day"]  ?? null;
+    const volAll: number | null = volume["allTime"] ?? col.totalVolume ?? null;
+    const salesCount: number | null = col.salesCount?.["allTime"] ?? col.onSaleCount ?? null;
+
+    maybeRefreshHolders();
+    const numOwners: number | null = holderCache?.count ?? col.ownerCount ?? null;
+
+    return {
+      floorPrice: rawFloor !== null && rawFloor > 0 ? rawFloor : null,
+      floorPriceSymbol: floorSymbol,
+      totalVolume: volAll !== null && volAll > 0 ? Math.round(volAll) : null,
+      totalSales: salesCount,
+      numOwners,
+      numListed: col.onSaleCount ?? null,
+      volume24h: vol24h !== null && vol24h > 0 ? Math.round(vol24h) : null,
+      volume7d: vol7d !== null && vol7d > 0 ? Math.round(vol7d) : null,
+      totalSupply: TOTAL_SUPPLY,
+      source: "magiceden",
+      fetchedAt: Date.now(),
+    };
+  } catch {
+    return null;
+  }
+}
+
 // ── OpenSea stats ─────────────────────────────────────────────────────────────
 async function tryOpenSea(): Promise<NftStats | null> {
   const apiKey = process.env.OPENSEA_API_KEY;
@@ -147,9 +194,12 @@ async function tryOpenSea(): Promise<NftStats | null> {
     try {
       const res = await fetch(
         `https://api.opensea.io/api/v2/collections/${slug}/stats`,
-        { headers, signal: AbortSignal.timeout(5000) }
+        { headers, signal: AbortSignal.timeout(7000) }
       );
-      if (!res.ok) continue;
+      if (!res.ok) {
+        if (res.status === 401 || res.status === 403) break; // no key, stop trying
+        continue;
+      }
       const json: any = await res.json();
       const total = json.total ?? json;
       const intervals: any[] = json.intervals ?? [];
@@ -158,24 +208,28 @@ async function tryOpenSea(): Promise<NftStats | null> {
 
       const rawFloor = total.floor_price ?? null;
       const floorPrice = rawFloor !== null && rawFloor > 0 ? rawFloor : null;
+      const floorSymbol: string = total.floor_price_symbol ?? "MON";
 
       const monPerEth = await getMonPerEth();
-      const toMon = (v: number | null) =>
-        v !== null && v > 0 ? Math.round(v * monPerEth) : v;
+      const toMon = (v: number | null, sym?: string) => {
+        if (v === null || v <= 0) return v;
+        // Convert from ETH to MON only if symbol is ETH
+        if (sym === "ETH" || (!sym && v < 1000)) return Math.round(v * monPerEth);
+        return Math.round(v);
+      };
 
       maybeRefreshHolders();
-      // Prefer on-chain scan result; fall back to OpenSea
       const numOwners = holderCache?.count ?? total.num_owners ?? null;
 
       return {
-        floorPrice,
+        floorPrice: floorPrice !== null ? toMon(floorPrice, floorSymbol) : null,
         floorPriceSymbol: "MON",
-        totalVolume: toMon(total.volume ?? null),
+        totalVolume: toMon(total.volume ?? null, "ETH"),
         totalSales: total.sales ?? null,
         numOwners,
         numListed: null,
-        volume24h: toMon(interval1d?.volume ?? null),
-        volume7d: toMon(interval7d?.volume ?? null),
+        volume24h: toMon(interval1d?.volume ?? null, "ETH"),
+        volume7d: toMon(interval7d?.volume ?? null, "ETH"),
         totalSupply: TOTAL_SUPPLY,
         source: `opensea:${slug}`,
         fetchedAt: Date.now(),
@@ -312,7 +366,7 @@ router.get("/nft/stats", async (_req, res): Promise<void> => {
     return;
   }
 
-  const stats = await tryOpenSea();
+  const stats = (await tryMagicEden()) ?? (await tryOpenSea());
 
   const result: NftStats = stats ?? {
     floorPrice: null,
