@@ -1073,6 +1073,13 @@ function ChatView({ conversationId, onBack, me, conversation, onConversationLeft
                       </span>
                     </div>
                   )}
+                  {msg.messageType === "missed_call" ? (
+                    <div className="self-center flex items-center gap-2 px-4 py-2 rounded-full bg-muted/70 border border-border/50 text-sm text-muted-foreground my-1 max-w-[80%]">
+                      <Phone className="w-3.5 h-3.5 text-destructive shrink-0" />
+                      <span className="text-xs font-medium">{msg.content}</span>
+                      <span className="text-[11px] opacity-60 shrink-0">{format(msgDate, "h:mm a")}</span>
+                    </div>
+                  ) : (
                   <div className={`flex flex-col max-w-[75%] mb-1 ${isMine ? "self-end items-end" : "self-start items-start"}`}>
                     {senderName && (
                       <span className="text-[11px] text-muted-foreground mb-1 px-1 font-medium">{senderName}</span>
@@ -1146,6 +1153,7 @@ function ChatView({ conversationId, onBack, me, conversation, onConversationLeft
                       )}
                     </div>
                   </div>
+                  )}
                 </div>
               );
             })}

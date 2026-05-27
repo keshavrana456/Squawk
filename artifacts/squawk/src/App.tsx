@@ -13,6 +13,7 @@ import { useGetMe } from "@workspace/api-client-react";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { SocketProvider } from "@/contexts/SocketContext";
 import { CallProvider } from "@/contexts/CallContext";
+import LiveNotificationToast from "@/components/LiveNotificationToast";
 import { AnimatePresence } from "framer-motion";
 import SplashScreen from "./components/SplashScreen";
 
@@ -589,6 +590,7 @@ function ClerkProviderWithRoutes() {
         <ClerkQueryClientCacheInvalidator />
         <ActivityRefreshMount />
         <SocketProvider>
+          <LiveNotificationToast />
           <CallProvider>
             <Router />
           </CallProvider>

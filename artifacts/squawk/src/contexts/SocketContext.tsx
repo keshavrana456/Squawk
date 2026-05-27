@@ -96,23 +96,16 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
       const label = NOTIF_LABELS[notif.type] ?? "interacted with you";
       const name = notif.actorDisplayName || notif.actorUsername;
 
-      toast(
-        `${name} ${label}`,
-        {
-          description: notif.message ? notif.message.slice(0, 80) : undefined,
-          duration: 4000,
-        }
-      );
-
       fireBrowserNotif(
         `Squawk — ${name} ${label}`,
         notif.message ? notif.message.slice(0, 100) : undefined
       );
     });
 
-    socket.on("new_message", (msg: { senderUsername?: string; senderDisplayName?: string; content?: string; conversationId?: number }) => {
+    socket.on("new_message", (msg: { senderUsername?: string; senderDisplayName?: string; content?: string; conversationId?: number; messageType?: string }) => {
       qc.invalidateQueries({ queryKey: ["conversations"] });
       qc.invalidateQueries({ queryKey: ["unread-message-count"] });
+      if (msg.messageType === "missed_call") return;
       const sender = msg.senderDisplayName || msg.senderUsername || "Someone";
       fireBrowserNotif(
         `Squawk — New message from ${sender}`,

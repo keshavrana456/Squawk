@@ -1,7 +1,7 @@
 import { Server as HttpServer } from "http";
 import { Server as SocketIOServer } from "socket.io";
-import { db, usersTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { db, usersTable, conversationsTable, conversationParticipantsTable, messagesTable } from "@workspace/db";
+import { eq, and } from "drizzle-orm";
 
 let io: SocketIOServer | null = null;
 
@@ -85,6 +85,86 @@ export function initSocket(httpServer: HttpServer): SocketIOServer {
     // call_ended: either party → other
     socket.on("call_ended", (data: { targetUserId: number }) => {
       io!.to(`user:${data.targetUserId}`).emit("call_ended", {});
+    });
+
+    // call_missed: emitted when a call goes unanswered or is declined
+    // isCaller=true → dbUserId is the caller, otherUserId is the callee
+    // isCaller=false → dbUserId is the callee (declined), otherUserId is the caller
+    socket.on("call_missed", async (data: { otherUserId: number; isCaller: boolean; callType: "voice" | "video" }) => {
+      if (!dbUserId) return;
+      const callerId = data.isCaller ? dbUserId : data.otherUserId;
+      const calleeId = data.isCaller ? data.otherUserId : dbUserId;
+      try {
+        // Find existing 1-on-1 conversation between the two users
+        let conversationId: number | null = null;
+        const callerConvos = await db
+          .select({ id: conversationParticipantsTable.conversationId })
+          .from(conversationParticipantsTable)
+          .where(eq(conversationParticipantsTable.userId, callerId));
+
+        for (const { id: cid } of callerConvos) {
+          const [calleeMember] = await db
+            .select()
+            .from(conversationParticipantsTable)
+            .where(and(
+              eq(conversationParticipantsTable.conversationId, cid),
+              eq(conversationParticipantsTable.userId, calleeId)
+            ));
+          if (!calleeMember) continue;
+          const [conv] = await db
+            .select()
+            .from(conversationsTable)
+            .where(and(eq(conversationsTable.id, cid), eq(conversationsTable.isGroup, false)));
+          if (!conv) continue;
+          const members = await db
+            .select()
+            .from(conversationParticipantsTable)
+            .where(eq(conversationParticipantsTable.conversationId, cid));
+          if (members.length === 2) { conversationId = cid; break; }
+        }
+
+        if (!conversationId) {
+          const [conv] = await db.insert(conversationsTable).values({ isGroup: false }).returning();
+          conversationId = conv.id;
+          await db.insert(conversationParticipantsTable).values([
+            { conversationId: conv.id, userId: callerId },
+            { conversationId: conv.id, userId: calleeId },
+          ]);
+        }
+
+        const content = data.callType === "video" ? "Missed video call" : "Missed voice call";
+        const [msg] = await db.insert(messagesTable).values({
+          conversationId,
+          senderId: callerId,
+          content,
+          messageType: "missed_call",
+        } as any).returning();
+
+        const [sender] = await db.select().from(usersTable).where(eq(usersTable.id, callerId));
+        if (!msg || !sender) return;
+
+        const msgPayload = {
+          id: msg.id,
+          conversationId: msg.conversationId,
+          senderId: msg.senderId,
+          sender: { id: sender.id, username: sender.username, displayName: sender.displayName, avatarUrl: sender.avatarUrl },
+          content: msg.content,
+          mediaUrl: null,
+          messageType: "missed_call",
+          gifUrl: null,
+          sharedPostId: null,
+          replyToMessageId: null,
+          replyTo: null,
+          isRead: false,
+          createdAt: msg.createdAt.toISOString(),
+        };
+
+        io!.to(`conversation:${conversationId}`).emit("new_message", msgPayload);
+        io!.to(`user:${callerId}`).emit("conversation_updated", { conversationId });
+        io!.to(`user:${calleeId}`).emit("conversation_updated", { conversationId });
+      } catch (err) {
+        console.error("[call_missed] error:", err);
+      }
     });
 
     // ice_candidate: exchange between peers

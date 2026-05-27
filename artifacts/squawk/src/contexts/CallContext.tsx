@@ -78,6 +78,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
   const [incomingCall, setIncomingCall] = useState<IncomingCall | null>(null);
   const [activeCall, setActiveCall] = useState<ActiveCall | null>(null);
 
+  const activeCallRef = useRef<ActiveCall | null>(null);
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
   const remoteStreamRef = useRef<MediaStream | null>(null);
@@ -255,6 +256,11 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
   const declineCall = useCallback(() => {
     if (!socket || !incomingCall) return;
     socket.emit("call_declined", { targetUserId: incomingCall.fromUser.id });
+    socket.emit("call_missed", {
+      otherUserId: incomingCall.fromUser.id,
+      isCaller: false,
+      callType: incomingCall.callType,
+    });
     setIncomingCall(null);
   }, [socket, incomingCall]);
 
@@ -267,25 +273,30 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     setIncomingCall(null);
   }, [socket, activeCall, cleanup]);
 
-  // Keep ref always pointing to latest endCall so stale-closure callbacks work
+  // Keep ref always pointing to latest endCall and activeCall
   useEffect(() => { endCallRef.current = endCall; }, [endCall]);
+  useEffect(() => { activeCallRef.current = activeCall; }, [activeCall]);
 
-  // Connection timeout — auto-end if still "connecting" after 30s
+  // Connection timeout — auto-end if still "connecting" after 30s, emit missed call
   useEffect(() => {
     if (activeCall?.status === "connecting") {
+      const capturedSocket = socket;
       connectionTimeoutRef.current = setTimeout(() => {
-        setActiveCall(prev => {
-          if (prev?.status === "connecting") {
-            endCallRef.current?.();
-          }
-          return prev;
-        });
+        const current = activeCallRef.current;
+        if (current?.status === "connecting") {
+          capturedSocket?.emit("call_missed", {
+            otherUserId: current.otherUser.id,
+            isCaller: true,
+            callType: current.callType,
+          });
+          endCallRef.current?.();
+        }
       }, 30_000);
     }
     return () => {
       if (connectionTimeoutRef.current) { clearTimeout(connectionTimeoutRef.current); connectionTimeoutRef.current = null; }
     };
-  }, [activeCall?.status]);
+  }, [activeCall?.status, socket]);
 
   const toggleMute = useCallback(() => {
     if (!localStreamRef.current) return;
