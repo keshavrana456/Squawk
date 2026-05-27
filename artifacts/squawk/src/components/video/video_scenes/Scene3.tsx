@@ -1,10 +1,11 @@
 import { motion } from 'framer-motion';
 import { useState, useEffect } from 'react';
 
-const CHIRPS = [
-  { user: "@monad_degen", text: "Monad season is loading.", likes: "4.2K", time: "1m" },
-  { user: "@squad_alpha", text: "10K Squad going insane tonight.", likes: "12.8K", time: "3m" },
-  { user: "@nft_whale", text: "Rare mint spotted.", likes: "8.9K", time: "5m" }
+const STATS = [
+  { label: "Floor Price", value: "4.2 ETH", prefix: "" },
+  { label: "Total Volume", value: "12,450", prefix: "ETH " },
+  { label: "Total Holders", value: "3,333", prefix: "" },
+  { label: "Sales", value: "24,500+", prefix: "" }
 ];
 
 export function Scene3() {
@@ -12,65 +13,56 @@ export function Scene3() {
 
   useEffect(() => {
     const timers = [
-      setTimeout(() => setPhase(1), 300),
-      setTimeout(() => setPhase(2), 800),
-      setTimeout(() => setPhase(3), 1600),
-      setTimeout(() => setPhase(4), 2400),
+      setTimeout(() => setPhase(1), 400),
+      setTimeout(() => setPhase(2), 1000),
+      setTimeout(() => setPhase(3), 6000),
     ];
     return () => timers.forEach(t => clearTimeout(t));
   }, []);
 
   return (
     <motion.div 
-      className="absolute inset-0 flex items-center justify-center z-10 w-full h-full overflow-hidden"
-      initial={{ opacity: 0, x: -100, filter: 'blur(20px) hue-rotate(90deg)' }}
-      animate={{ opacity: 1, x: 0, filter: 'blur(0px) hue-rotate(0deg)' }}
-      exit={{ opacity: 0, scale: 0.9, filter: 'blur(10px)' }}
-      transition={{ duration: 0.5, ease: "easeOut" }}
+      className="absolute inset-0 flex flex-col items-center justify-center z-10 w-full h-full overflow-hidden"
+      initial={{ opacity: 0, x: '100vw' }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, y: '-100vh', scale: 0.9 }}
+      transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
     >
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-cyan-900/20 via-transparent to-transparent pointer-events-none" />
-
-      <div className="flex w-[80vw] h-full items-center gap-[5vw]">
-        {/* Left side text */}
-        <div className="w-1/2 relative z-20">
-          <motion.div className="overflow-hidden">
-            <motion.h2 
-              className="text-[8vw] font-bold leading-none text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500 tracking-wider uppercase"
-              style={{ fontFamily: "'Bebas Neue', sans-serif" }}
-              initial={{ y: '100%' }}
-              animate={phase >= 1 ? { y: '0%' } : { y: '100%' }}
-              transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-            >
-              LIVE FEED
-            </motion.h2>
+      <div className="grid grid-cols-2 gap-[3vw] w-[80vw] z-20">
+        {STATS.map((stat, i) => (
+          <motion.div
+            key={i}
+            className="bg-[#1a0b38]/80 backdrop-blur-xl border border-[#f472b6]/30 p-[4vw] rounded-3xl flex flex-col justify-center relative overflow-hidden"
+            initial={{ opacity: 0, y: 100, scale: 0.8 }}
+            animate={phase >= 1 ? { opacity: 1, y: 0, scale: 1 } : { opacity: 0, y: 100, scale: 0.8 }}
+            transition={{ type: 'spring', stiffness: 100, damping: 20, delay: i * 0.15 }}
+          >
+            <motion.div 
+              className="absolute -inset-[100%] bg-gradient-to-r from-transparent via-[#8b5cf6]/20 to-transparent"
+              animate={{ x: ['0%', '200%'] }}
+              transition={{ duration: 2.5, repeat: Infinity, ease: "linear", delay: i * 0.5 }}
+            />
+            <h3 className="text-[2vw] text-white/50 font-medium tracking-wider mb-[1vh]">{stat.label}</h3>
+            <div className="flex items-baseline gap-[1vw]">
+              <span className="text-[1.5vw] text-[#f472b6] font-bold">{stat.prefix}</span>
+              <span className="text-[5vw] font-bold text-white leading-none" style={{ fontFamily: "'Syncopate', sans-serif" }}>
+                {stat.value}
+              </span>
+            </div>
           </motion.div>
-        </div>
-
-        {/* Right side chirp cards */}
-        <div className="w-1/2 flex flex-col gap-[2vh] relative z-20">
-          {CHIRPS.map((chirp, i) => (
-            <motion.div
-              key={i}
-              className="bg-black/60 backdrop-blur-xl border border-cyan-500/30 p-[2vw] rounded-2xl shadow-[0_0_30px_rgba(6,182,212,0.2)]"
-              initial={{ opacity: 0, x: 100, rotateX: 45 }}
-              animate={phase >= i + 2 ? { opacity: 1, x: 0, rotateX: 0 } : { opacity: 0, x: 100, rotateX: 45 }}
-              transition={{ type: 'spring', stiffness: 150, damping: 20 }}
-            >
-              <div className="flex justify-between items-center mb-[1vh]">
-                <span className="text-cyan-400 font-bold text-[1.2vw]">{chirp.user}</span>
-                <span className="text-white/40 text-[1vw]">{chirp.time}</span>
-              </div>
-              <p className="text-white text-[1.8vw] font-medium leading-tight mb-[1.5vh]">
-                {chirp.text}
-              </p>
-              <div className="flex gap-[1vw] items-center text-white/60">
-                <span className="text-[1.2vw]">❤️</span>
-                <span className="text-[1.2vw] font-bold">{chirp.likes}</span>
-              </div>
-            </motion.div>
-          ))}
-        </div>
+        ))}
       </div>
+
+      <motion.div
+        className="mt-[8vh] z-20 text-center"
+        initial={{ opacity: 0, y: 30 }}
+        animate={phase >= 2 ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
+        transition={{ duration: 1, ease: "easeOut" }}
+      >
+        <h2 className="text-[4vw] font-bold text-white tracking-[0.2em] uppercase">
+          Track every move. <span className="text-[#f472b6]">Own the data.</span>
+        </h2>
+      </motion.div>
     </motion.div>
   );
 }

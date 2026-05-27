@@ -4,9 +4,10 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Heart, MessageCircle, UserPlus, AtSign, CheckCheck, Repeat2, Sparkles, BadgeCheck, Users } from "lucide-react";
+import { Heart, MessageCircle, UserPlus, AtSign, CheckCheck, Repeat2, Sparkles, BadgeCheck, Users, X } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { motion } from "framer-motion";
+import { useUser } from "@clerk/react";
 
 const TABS = ["All", "Likes", "Comments", "Reposts", "Stories", "Follows"] as const;
 type Tab = typeof TABS[number];
@@ -23,11 +24,34 @@ function BellIcon({ className }: { className?: string }) {
 }
 
 // ─── Suggested Users Strip ────────────────────────────────────────────────────
+function getDismissedKey(clerkId: string) {
+  return `squawk-dismissed-suggestions-${clerkId}`;
+}
+function loadDismissed(clerkId: string): Set<number> {
+  try {
+    const raw = localStorage.getItem(getDismissedKey(clerkId));
+    if (!raw) return new Set();
+    return new Set(JSON.parse(raw) as number[]);
+  } catch { return new Set(); }
+}
+function saveDismissed(clerkId: string, ids: Set<number>) {
+  try {
+    localStorage.setItem(getDismissedKey(clerkId), JSON.stringify([...ids]));
+  } catch {}
+}
+
 function SuggestedUsers() {
+  const { user } = useUser();
+  const clerkId = user?.id ?? "";
   const [users, setUsers] = useState<any[]>([]);
-  const [followingIds, setFollowingIds] = useState<Set<number>>(new Set());
+  const [dismissedIds, setDismissedIds] = useState<Set<number>>(new Set());
   const [togglingId, setTogglingId] = useState<number | null>(null);
   const [expanded, setExpanded] = useState(false);
+
+  useEffect(() => {
+    if (!clerkId) return;
+    setDismissedIds(loadDismissed(clerkId));
+  }, [clerkId]);
 
   useEffect(() => {
     fetch("/api/users/suggested", { credentials: "include" })
@@ -36,25 +60,30 @@ function SuggestedUsers() {
       .catch(() => setUsers([]));
   }, []);
 
+  const dismiss = (id: number) => {
+    setDismissedIds(prev => {
+      const next = new Set(prev);
+      next.add(id);
+      if (clerkId) saveDismissed(clerkId, next);
+      return next;
+    });
+  };
+
   const handleFollow = async (u: any) => {
     if (togglingId === u.id) return;
     setTogglingId(u.id);
-    const isFollowing = followingIds.has(u.id) || u.isFollowing;
     try {
-      const method = isFollowing ? "DELETE" : "POST";
-      await fetch(`/api/users/${u.username}/follow`, { method, credentials: "include" });
-      setFollowingIds(prev => {
-        const next = new Set(prev);
-        isFollowing ? next.delete(u.id) : next.add(u.id);
-        return next;
-      });
+      await fetch(`/api/users/${u.username}/follow`, { method: "POST", credentials: "include" });
+      // After following, permanently dismiss this suggestion
+      dismiss(u.id);
     } catch {}
     finally { setTogglingId(null); }
   };
 
-  if (users.length === 0) return null;
+  const visible = users.filter(u => !dismissedIds.has(u.id));
+  if (visible.length === 0) return null;
 
-  const shown = expanded ? users : users.slice(0, 5);
+  const shown = expanded ? visible : visible.slice(0, 5);
 
   return (
     <div className="border-b border-border/50 px-4 py-3">
@@ -63,54 +92,62 @@ function SuggestedUsers() {
           <Users className="w-4 h-4 text-primary" />
           <span className="font-semibold text-sm text-foreground">Suggested for You</span>
         </div>
-        {users.length > 5 && (
+        {visible.length > 5 && (
           <button
             onClick={() => setExpanded(v => !v)}
             className="text-xs text-primary hover:text-primary/80 font-semibold transition-colors"
           >
-            {expanded ? "Show less" : `See all ${users.length}`}
+            {expanded ? "Show less" : `See all ${visible.length}`}
           </button>
         )}
       </div>
       <div className="flex flex-col gap-2">
-        {shown.map((u: any) => {
-          const isFollowing = followingIds.has(u.id) || u.isFollowing;
-          return (
-            <div key={u.id} className="flex items-center gap-3 group">
-              <Link href={`/profile/${u.username}`} className="shrink-0">
-                <Avatar className="w-9 h-9 border border-border group-hover:border-primary/50 transition-colors">
-                  <AvatarImage src={u.avatarUrl || ""} />
-                  <AvatarFallback className="bg-primary/20 text-primary font-bold text-sm">
-                    {u.displayName?.charAt(0)?.toUpperCase() || "?"}
-                  </AvatarFallback>
-                </Avatar>
-              </Link>
-              <Link href={`/profile/${u.username}`} className="flex-1 min-w-0">
-                <div className="flex items-center gap-1">
-                  <span className="font-semibold text-sm text-foreground truncate">{u.displayName}</span>
-                  {u.isFounder && <BadgeCheck className="w-3.5 h-3.5 text-pink-500 shrink-0" />}
-                  {u.isFounderVerified && <BadgeCheck className="w-3.5 h-3.5 text-purple-500 shrink-0" />}
-                  {u.isVerified && !u.isFounder && !u.isFounderVerified && <BadgeCheck className="w-3.5 h-3.5 text-primary shrink-0" />}
-                </div>
-                <p className="text-xs text-muted-foreground truncate">@{u.username}</p>
-              </Link>
-              <button
-                onClick={() => handleFollow(u)}
-                disabled={togglingId === u.id}
-                className={`shrink-0 px-3 py-1 rounded-full text-xs font-semibold border transition-all duration-200 ${
-                  isFollowing
-                    ? "border-border text-muted-foreground hover:border-red-400 hover:text-red-400"
-                    : "border-primary/50 text-primary hover:bg-primary/10"
-                }`}
-              >
-                {togglingId === u.id
-                  ? <span className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin inline-block" />
-                  : isFollowing ? "Following" : "Follow"
-                }
-              </button>
-            </div>
-          );
-        })}
+        {shown.map((u: any) => (
+          <motion.div
+            key={u.id}
+            layout
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2 }}
+            className="flex items-center gap-3 group"
+          >
+            <Link href={`/profile/${u.username}`} className="shrink-0">
+              <Avatar className="w-9 h-9 border border-border group-hover:border-primary/50 transition-colors">
+                <AvatarImage src={u.avatarUrl || ""} />
+                <AvatarFallback className="bg-primary/20 text-primary font-bold text-sm">
+                  {u.displayName?.charAt(0)?.toUpperCase() || "?"}
+                </AvatarFallback>
+              </Avatar>
+            </Link>
+            <Link href={`/profile/${u.username}`} className="flex-1 min-w-0">
+              <div className="flex items-center gap-1">
+                <span className="font-semibold text-sm text-foreground truncate">{u.displayName}</span>
+                {u.isFounder && <BadgeCheck className="w-3.5 h-3.5 text-pink-500 shrink-0" />}
+                {u.isFounderVerified && <BadgeCheck className="w-3.5 h-3.5 text-purple-500 shrink-0" />}
+                {u.isVerified && !u.isFounder && !u.isFounderVerified && <BadgeCheck className="w-3.5 h-3.5 text-primary shrink-0" />}
+              </div>
+              <p className="text-xs text-muted-foreground truncate">@{u.username}</p>
+            </Link>
+            <button
+              onClick={() => handleFollow(u)}
+              disabled={togglingId === u.id}
+              className="shrink-0 px-3 py-1 rounded-full text-xs font-semibold border border-primary/50 text-primary hover:bg-primary/10 transition-all duration-200"
+            >
+              {togglingId === u.id
+                ? <span className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin inline-block" />
+                : "Follow"
+              }
+            </button>
+            <button
+              onClick={() => dismiss(u.id)}
+              className="shrink-0 p-1.5 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              aria-label="Dismiss"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </motion.div>
+        ))}
       </div>
     </div>
   );
