@@ -929,23 +929,35 @@ function SectionNav({ onAbout }: { onAbout: () => void }) {
   };
 
   return (
-    <div className="relative z-10 px-4 md:px-12 py-8">
-      <div className="max-w-6xl mx-auto">
-        <div className="relative rounded-2xl border border-white/10 p-4 overflow-hidden" style={{ background: "linear-gradient(135deg, rgba(14,7,25,0.8) 0%, rgba(88,28,135,0.15) 100%)" }}>
-          <div className="absolute inset-0 pointer-events-none" style={{ background: "linear-gradient(90deg, rgba(236,72,153,0.04) 0%, rgba(147,51,234,0.08) 50%, rgba(99,102,241,0.04) 100%)" }} />
-          <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest text-center mb-3">Jump to section</p>
-          <div className="flex flex-wrap gap-2 justify-center">
-            {items.map(item => (
+    <div className="relative z-10 py-6">
+      <p className="text-[10px] font-bold text-white/25 uppercase tracking-widest text-center mb-4">Jump to section</p>
+      {/* Horizontal slider — fade edges */}
+      <div className="relative">
+        <div className="absolute left-0 top-0 bottom-0 w-10 pointer-events-none z-10"
+          style={{ background: "linear-gradient(to right, rgba(5,0,15,0.9) 0%, transparent 100%)" }} />
+        <div className="absolute right-0 top-0 bottom-0 w-10 pointer-events-none z-10"
+          style={{ background: "linear-gradient(to left, rgba(5,0,15,0.9) 0%, transparent 100%)" }} />
+        <div className="flex gap-3 overflow-x-auto no-scrollbar px-6 pb-2 pt-1">
+          {items.map((item, i) => {
+            const glows = [
+              "hover:border-pink-500/70 hover:shadow-[0_0_12px_rgba(236,72,153,0.45)]",
+              "hover:border-fuchsia-500/70 hover:shadow-[0_0_12px_rgba(217,70,239,0.45)]",
+              "hover:border-cyan-400/70 hover:shadow-[0_0_12px_rgba(34,211,238,0.45)]",
+              "hover:border-violet-500/70 hover:shadow-[0_0_12px_rgba(139,92,246,0.45)]",
+              "hover:border-indigo-400/70 hover:shadow-[0_0_12px_rgba(99,102,241,0.45)]",
+              "hover:border-amber-400/70 hover:shadow-[0_0_12px_rgba(251,191,36,0.45)]",
+            ];
+            return (
               <button
                 key={item.label}
                 onClick={() => handleClick(item.href, item.onClick)}
-                className="flex items-center gap-1.5 px-4 py-2 rounded-full border border-white/12 text-white/65 hover:text-white hover:border-pink-500/45 hover:bg-white/5 active:scale-95 transition-all duration-200 text-sm font-medium backdrop-blur-sm"
+                className={`flex items-center gap-2 px-5 py-2.5 rounded-full border border-white/10 bg-transparent text-white/60 hover:text-white active:scale-95 transition-all duration-200 text-sm font-medium whitespace-nowrap shrink-0 ${glows[i % glows.length]}`}
               >
                 <span className="text-base leading-none">{item.emoji}</span>
                 {item.label}
               </button>
-            ))}
-          </div>
+            );
+          })}
         </div>
       </div>
     </div>
