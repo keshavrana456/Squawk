@@ -993,12 +993,12 @@ function SectionNav({ onAbout }: { onAbout: () => void }) {
                 >
                   {/* Liquid half-fill — sits at the bottom 50% and waves at the surface */}
                   <span className="liquid-body absolute bottom-0 left-0 right-0 pointer-events-none overflow-hidden" style={{ height: "50%" }}>
-                    {/* Solid pink body */}
-                    <span className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(255,105,180,0.38) 0%, rgba(255,182,193,0.22) 100%)" }} />
+                    {/* Solid purple body */}
+                    <span className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(88,28,135,0.55) 0%, rgba(109,40,217,0.35) 100%)" }} />
                     {/* Wave ellipse 1 — slides left↔right */}
-                    <span className="wave-layer wave-layer-1 absolute" style={{ width: "200%", height: "14px", top: "-6px", left: "0", background: "rgba(255,182,193,0.55)", borderRadius: "50%" }} />
+                    <span className="wave-layer wave-layer-1 absolute" style={{ width: "200%", height: "14px", top: "-6px", left: "0", background: "rgba(139,92,246,0.65)", borderRadius: "50%" }} />
                     {/* Wave ellipse 2 — counter-slides */}
-                    <span className="wave-layer wave-layer-2 absolute" style={{ width: "200%", height: "9px", top: "-2px", left: "-15%", background: "rgba(255,105,180,0.35)", borderRadius: "50%" }} />
+                    <span className="wave-layer wave-layer-2 absolute" style={{ width: "200%", height: "9px", top: "-2px", left: "-15%", background: "rgba(109,40,217,0.45)", borderRadius: "50%" }} />
                   </span>
                   <span className="relative z-10 text-base leading-none">{item.emoji}</span>
                   <span className="relative z-10">{item.label}</span>
