@@ -22,8 +22,9 @@ const CACHE_TTL = 8_000;
 
 const TOTAL_SUPPLY = 3333;
 const CONTRACT = "0x818030837e8350ba63e64d7dc01a547fa73c8279" as const;
-const OPENSEA_SLUGS = ["the-10k-squad-350905768", "the-10k-squad", "10k-squad", "the-10k-squad-monad"];
-const ME_CHAIN = "monad-mainnet";
+// OpenSea is the confirmed marketplace for this collection (chain: monad)
+const OPENSEA_SLUGS = ["the-10k-squad-350905768", "the-10k-squad"];
+const OPENSEA_CHAIN = "monad";
 
 // ── Monad viem client ────────────────────────────────────────────────────────
 const monad = defineChain({
@@ -135,52 +136,6 @@ async function getMonPerEth(): Promise<number> {
     return monPerEth;
   } catch {
     return monRateCache?.monPerEth ?? 79_000;
-  }
-}
-
-// ── Magic Eden (Reservoir) stats — primary Monad marketplace ─────────────────
-async function tryMagicEden(): Promise<NftStats | null> {
-  try {
-    const meApiKey = process.env.MAGIC_EDEN_API_KEY;
-    const headers: Record<string, string> = { Accept: "application/json" };
-    if (meApiKey) headers["Authorization"] = `Bearer ${meApiKey}`;
-
-    // Reservoir-protocol endpoint proxied through Magic Eden
-    const url = `https://api-mainnet.magiceden.dev/v3/rtp/${ME_CHAIN}/collections/v7?id=${CONTRACT}&includeTopBid=false`;
-    const res = await fetch(url, { headers, signal: AbortSignal.timeout(7000) });
-    if (!res.ok) throw new Error(`ME ${res.status}`);
-    const json: any = await res.json();
-    const col = (json.collections ?? json)[0] ?? json;
-    if (!col) throw new Error("no collection");
-
-    const floorAsk = col.floorAsk ?? col.floor_ask ?? {};
-    const rawFloor: number | null = floorAsk?.price?.amount?.native ?? col.floorSalePrice ?? null;
-    const floorSymbol: string = floorAsk?.price?.currency?.symbol ?? "MON";
-
-    const volume = col.volume ?? {};
-    const vol24h: number | null = volume["1day"] ?? null;
-    const vol7d: number | null  = volume["7day"]  ?? null;
-    const volAll: number | null = volume["allTime"] ?? col.totalVolume ?? null;
-    const salesCount: number | null = col.salesCount?.["allTime"] ?? col.onSaleCount ?? null;
-
-    maybeRefreshHolders();
-    const numOwners: number | null = holderCache?.count ?? col.ownerCount ?? null;
-
-    return {
-      floorPrice: rawFloor !== null && rawFloor > 0 ? rawFloor : null,
-      floorPriceSymbol: floorSymbol,
-      totalVolume: volAll !== null && volAll > 0 ? Math.round(volAll) : null,
-      totalSales: salesCount,
-      numOwners,
-      numListed: col.onSaleCount ?? null,
-      volume24h: vol24h !== null && vol24h > 0 ? Math.round(vol24h) : null,
-      volume7d: vol7d !== null && vol7d > 0 ? Math.round(vol7d) : null,
-      totalSupply: TOTAL_SUPPLY,
-      source: "magiceden",
-      fetchedAt: Date.now(),
-    };
-  } catch {
-    return null;
   }
 }
 
