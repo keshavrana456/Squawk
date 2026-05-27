@@ -129,6 +129,23 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       setRemoteStream(stream);
       if (remoteVideoRef.current) remoteVideoRef.current.srcObject = stream;
       if (remoteAudioRef.current) remoteAudioRef.current.srcObject = stream;
+      // Fallback: mark as connected when remote stream arrives
+      // Some browsers/networks never fire connectionState="connected"
+      setTimeout(() => {
+        setActiveCall(prev => {
+          if (prev && prev.status === "connecting") {
+            if (!callTimerRef.current) {
+              callTimerRef.current = setInterval(() => setCallDuration(d => d + 1), 1000);
+            }
+            if (connectionTimeoutRef.current) {
+              clearTimeout(connectionTimeoutRef.current);
+              connectionTimeoutRef.current = null;
+            }
+            return { ...prev, status: "connected", startedAt: Date.now() };
+          }
+          return prev;
+        });
+      }, 1200);
     };
 
     const markConnected = () => {

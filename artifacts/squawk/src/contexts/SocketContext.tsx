@@ -36,12 +36,19 @@ const NOTIF_LABELS: Record<string, string> = {
   repost: "reposted your chirp",
 };
 
-function fireBrowserNotif(title: string, body?: string, icon = "/logo.png") {
+async function fireBrowserNotif(title: string, body?: string, icon = "/logo.png") {
   if (typeof Notification === "undefined") return;
   if (Notification.permission !== "granted") return;
   if (document.visibilityState === "visible") return;
   try {
-    const n = new Notification(title, { body, icon, badge: "/logo.png" });
+    if ("serviceWorker" in navigator) {
+      const reg = await navigator.serviceWorker.getRegistration();
+      if (reg) {
+        reg.showNotification(title, { body: body || "", icon, badge: "/logo.png", vibrate: [100, 50, 100] } as NotificationOptions);
+        return;
+      }
+    }
+    const n = new Notification(title, { body, icon, badge: "/logo.png" } as NotificationOptions);
     n.onclick = () => { window.focus(); n.close(); };
   } catch {}
 }

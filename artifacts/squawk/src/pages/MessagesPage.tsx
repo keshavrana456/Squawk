@@ -18,6 +18,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useQueryClient } from "@tanstack/react-query";
 import { useSocket } from "@/contexts/SocketContext";
 import { useCall } from "@/contexts/CallContext";
+import { useActiveChat } from "@/contexts/ActiveChatContext";
 
 const GIPHY_KEY = (import.meta as any).env?.VITE_GIPHY_API_KEY || "dc6zaTOxFJmzC";
 
@@ -184,11 +185,21 @@ export default function MessagesPage() {
   const { data: convData, isLoading: isLoadingConvs, refetch: refetchConvs } = useGetConversations();
   const conversations = (convData as any) || [];
   const { socket } = useSocket();
+  const { setActiveConversationId } = useActiveChat();
 
-  const [selectedConvId, setSelectedConvId] = useState<number | null>(null);
+  const [selectedConvId, setSelectedConvIdRaw] = useState<number | null>(null);
   const [panelMode, setPanelMode] = useState<PanelMode>("none");
   const [showModeMenu, setShowModeMenu] = useState(false);
   const autoOpenedRef = useRef(false);
+
+  const setSelectedConvId = useCallback((id: number | null) => {
+    setSelectedConvIdRaw(id);
+    setActiveConversationId(id);
+  }, [setActiveConversationId]);
+
+  useEffect(() => {
+    return () => setActiveConversationId(null);
+  }, [setActiveConversationId]);
 
   const routeSearch = useRouteSearch();
   const createConvMutation = useCreateConversation();

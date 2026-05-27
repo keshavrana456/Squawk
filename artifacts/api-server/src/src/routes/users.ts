@@ -3,6 +3,7 @@ import { eq, and, notInArray, sql, desc, inArray } from "drizzle-orm";
 import { db, usersTable, followsTable, postsTable, notificationsTable, blocksTable } from "@workspace/db";
 import { requireAuth, requireUser, resolveUser } from "../lib/auth";
 import { emitToUser } from "../lib/socket";
+import { sendPushToUser } from "../lib/push";
 import { clerkClient, getAuth } from "@clerk/express";
 import { buildUserProfile, buildUserSummary, buildPostWithMeta, buildPostsWithMeta } from "../lib/userHelpers";
 import {
@@ -279,6 +280,7 @@ router.post("/follows/:username", requireUser, async (req, res): Promise<void> =
       message: null,
       createdAt: new Date().toISOString(),
     });
+    sendPushToUser(target.id, `${currentUser.displayName} started following you`, "", "/notifications");
   }
 
   const [countResult] = await db.select({ count: sql<number>`count(*)::int` })

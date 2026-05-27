@@ -5,6 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Link } from "wouter";
 import { useSocket } from "@/contexts/SocketContext";
 import { useGetMe } from "@workspace/api-client-react";
+import { useActiveChat } from "@/contexts/ActiveChatContext";
 
 interface ToastItem {
   id: string;
@@ -35,6 +36,7 @@ export default function LiveNotificationToast() {
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const { socket } = useSocket();
   const { data: me } = useGetMe();
+  const { activeConversationId } = useActiveChat();
 
   const addToast = useCallback((item: Omit<ToastItem, "id">) => {
     const id = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -69,6 +71,8 @@ export default function LiveNotificationToast() {
       if (msg.messageType === "missed_call") return;
       // Don't show popup for messages the current user sent
       if (me && (msg.senderId === me.id || msg.sender?.id === me.id)) return;
+      // Suppress toast when user is actively viewing this conversation
+      if (activeConversationId && msg.conversationId === activeConversationId) return;
       const name = msg.sender?.displayName || msg.sender?.username || "Someone";
       const body = msg.messageType === "gif" ? "Sent a GIF" : (msg.content?.slice(0, 90) || "Sent a message");
       addToast({
@@ -88,7 +92,7 @@ export default function LiveNotificationToast() {
       socket.off("notification", onNotification);
       socket.off("new_message", onNewMessage);
     };
-  }, [socket, addToast]);
+  }, [socket, addToast, activeConversationId]);
 
   return (
     <div

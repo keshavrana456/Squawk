@@ -16,7 +16,7 @@ import {
   BadgeCheck, Grid, Film, X, ImagePlus, Crown, Settings,
   PlusCircle, Bookmark, BarChart2, TrendingUp, Users,
   Activity, ExternalLink, Camera, MessageSquare, MoreHorizontal, Trash2, Copy, Repeat2,
-  DollarSign,
+  DollarSign, ShieldCheck, ShieldAlert,
 } from "lucide-react";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,

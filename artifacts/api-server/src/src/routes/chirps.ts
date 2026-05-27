@@ -325,6 +325,14 @@ router.post("/chirps/:id/rechirp", requireUser, async (req, res): Promise<void> 
       type: "repost",
       message: originalChirp.content?.slice(0, 100) ?? null,
     }).onConflictDoNothing();
+    emitToUser(originalChirp.authorId, "notification", {
+      type: "repost",
+      actorUsername: currentUser.username,
+      actorDisplayName: currentUser.displayName,
+      actorAvatarUrl: currentUser.avatarUrl,
+      message: originalChirp.content?.slice(0, 100) ?? null,
+      createdAt: new Date().toISOString(),
+    });
   }
 
   res.json({ rechirped: true });

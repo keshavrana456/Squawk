@@ -13,6 +13,7 @@ import { useGetMe } from "@workspace/api-client-react";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { SocketProvider } from "@/contexts/SocketContext";
 import { CallProvider } from "@/contexts/CallContext";
+import { ActiveChatProvider } from "@/contexts/ActiveChatContext";
 import LiveNotificationToast from "@/components/LiveNotificationToast";
 import { AnimatePresence } from "framer-motion";
 import SplashScreen from "./components/SplashScreen";
@@ -74,10 +75,10 @@ const clerkAppearance = {
   variables: {
     colorPrimary: "hsl(330, 100%, 71%)",
     colorForeground: "hsl(280, 20%, 97%)",
-    colorBackground: "hsl(268, 45%, 7%)",
-    colorInputBackground: "hsl(268, 38%, 12%)",
+    colorBackground: "hsl(268, 40%, 14%)",
+    colorInputBackground: "hsl(268, 35%, 18%)",
     colorInputText: "hsl(280, 20%, 97%)",
-    colorNeutral: "hsl(268, 35%, 14%)",
+    colorNeutral: "hsl(268, 30%, 20%)",
     fontFamily: "'Outfit', sans-serif",
     borderRadius: "1rem",
   },
@@ -589,12 +590,14 @@ function ClerkProviderWithRoutes() {
       <QueryClientProvider client={queryClient}>
         <ClerkQueryClientCacheInvalidator />
         <ActivityRefreshMount />
-        <SocketProvider>
-          <LiveNotificationToast />
-          <CallProvider>
-            <Router />
-          </CallProvider>
-        </SocketProvider>
+        <ActiveChatProvider>
+          <SocketProvider>
+            <LiveNotificationToast />
+            <CallProvider>
+              <Router />
+            </CallProvider>
+          </SocketProvider>
+        </ActiveChatProvider>
       </QueryClientProvider>
     </ClerkProvider>
   );

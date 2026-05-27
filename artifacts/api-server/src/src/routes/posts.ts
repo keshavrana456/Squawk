@@ -2,6 +2,8 @@ import { Router, type IRouter } from "express";
 import { eq, and, desc, sql, inArray, notInArray } from "drizzle-orm";
 import { db, usersTable, postsTable, likesTable, savesTable, commentsTable, commentLikesTable, followsTable, notificationsTable, blocksTable } from "@workspace/db";
 import { requireUser, resolveUser } from "../lib/auth";
+import { emitToUser } from "../lib/socket";
+import { sendPushToUser } from "../lib/push";
 import { getAuth } from "@clerk/express";
 import { buildPostWithMeta, buildPostsWithMeta, buildUserSummary } from "../lib/userHelpers";
 import {
@@ -167,6 +169,15 @@ router.post("/posts/:id/like", requireUser, async (req, res): Promise<void> => {
         type: "like",
         postId: params.data.id,
       }).onConflictDoNothing();
+      emitToUser(post.authorId, "notification", {
+        type: "like",
+        actorUsername: currentUser.username,
+        actorDisplayName: currentUser.displayName,
+        actorAvatarUrl: currentUser.avatarUrl,
+        message: null,
+        createdAt: new Date().toISOString(),
+      });
+      sendPushToUser(post.authorId, `${currentUser.displayName} liked your post`, "", "/notifications");
     }
   }
 
@@ -286,6 +297,15 @@ router.post("/posts/:id/comments", requireUser, async (req, res): Promise<void> 
       postId: params.data.id,
       message: body.data.content.slice(0, 100),
     }).onConflictDoNothing();
+    emitToUser(post.authorId, "notification", {
+      type: "comment",
+      actorUsername: currentUser.username,
+      actorDisplayName: currentUser.displayName,
+      actorAvatarUrl: currentUser.avatarUrl,
+      message: body.data.content.slice(0, 100),
+      createdAt: new Date().toISOString(),
+    });
+    sendPushToUser(post.authorId, `${currentUser.displayName} commented on your post`, body.data.content.slice(0, 80), "/notifications");
   }
 
   res.status(201).json({

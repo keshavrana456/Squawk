@@ -970,8 +970,17 @@ function SectionNav({ onAbout }: { onAbout: () => void }) {
   return (
     <div className="relative z-10 py-6">
       <p className="text-[10px] font-bold text-white/25 uppercase tracking-widest text-center mb-4">Jump to section</p>
-      <div className="px-4 max-w-3xl mx-auto">
-        <div className="flex flex-wrap justify-center gap-3 py-1">
+      <div className="relative px-10 max-w-3xl mx-auto">
+        <button
+          onClick={() => scroll("left")}
+          className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full flex items-center justify-center border border-white/20 text-white/60 hover:text-white hover:border-white/40 transition-colors"
+          style={{ background: "rgba(14,7,35,0.85)" }}
+          aria-label="Scroll left"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M15 18l-6-6 6-6"/></svg>
+        </button>
+        <div ref={scrollRef} className="flex gap-3 py-1 overflow-x-auto no-scrollbar scroll-smooth">
+
             {items.map((item, i) => {
               const glows = [
                 "hover:border-pink-500/70 hover:shadow-[0_0_12px_rgba(236,72,153,0.45)]",
@@ -1032,6 +1041,14 @@ function SectionNav({ onAbout }: { onAbout: () => void }) {
               );
             })}
         </div>
+        <button
+          onClick={() => scroll("right")}
+          className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full flex items-center justify-center border border-white/20 text-white/60 hover:text-white hover:border-white/40 transition-colors"
+          style={{ background: "rgba(14,7,35,0.85)" }}
+          aria-label="Scroll right"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M9 18l6-6-6-6"/></svg>
+        </button>
       </div>
     </div>
   );
