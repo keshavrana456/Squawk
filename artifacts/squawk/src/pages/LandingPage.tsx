@@ -960,18 +960,9 @@ function SectionNav({ onAbout }: { onAbout: () => void }) {
   return (
     <div className="relative z-10 py-6">
       <p className="text-[10px] font-bold text-white/25 uppercase tracking-widest text-center mb-4">Jump to section</p>
-      <div className="relative flex items-center gap-2 px-4">
-        {/* Left arrow */}
-        <button
-          onClick={() => scroll("left")}
-          className="shrink-0 w-8 h-8 flex items-center justify-center rounded-full border border-white/15 text-white/50 hover:text-white hover:border-white/35 hover:bg-white/8 transition-all text-sm font-bold select-none"
-          aria-label="Scroll left"
-        >
-          ‹
-        </button>
-
+      <div className="relative px-4">
         {/* Scrollable strip */}
-        <div className="relative flex-1 overflow-hidden">
+        <div className="relative overflow-hidden">
           <div className="absolute left-0 top-0 bottom-0 w-6 pointer-events-none z-10"
             style={{ background: "linear-gradient(to right, rgba(5,0,15,0.9) 0%, transparent 100%)" }} />
           <div className="absolute right-0 top-0 bottom-0 w-6 pointer-events-none z-10"
@@ -1008,15 +999,6 @@ function SectionNav({ onAbout }: { onAbout: () => void }) {
             })}
           </div>
         </div>
-
-        {/* Right arrow */}
-        <button
-          onClick={() => scroll("right")}
-          className="shrink-0 w-8 h-8 flex items-center justify-center rounded-full border border-white/15 text-white/50 hover:text-white hover:border-white/35 hover:bg-white/8 transition-all text-sm font-bold select-none"
-          aria-label="Scroll right"
-        >
-          ›
-        </button>
       </div>
     </div>
   );

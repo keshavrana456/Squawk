@@ -1,4 +1,5 @@
 import { useRoute, Link, useLocation } from "wouter";
+import { toast } from "sonner";
 import {
   useGetUserByUsername, useGetUserPosts, useGetMe,
   useFollowUser, useUnfollowUser, useUpdateMyProfile,
@@ -215,6 +216,20 @@ export default function ProfilePage() {
       }
     } catch (e) { console.error(e); }
     finally { setIsBlockingToggling(false); }
+  };
+
+  const handleShareProfile = () => {
+    if (!profile) return;
+    const url = `${window.location.origin}/profile/${profile.username}`;
+    if (navigator.share) {
+      navigator.share({ title: profile.displayName || profile.username, url }).catch(() => {});
+    } else {
+      navigator.clipboard.writeText(url).then(() => {
+        toast.success("Profile link copied!");
+      }).catch(() => {
+        toast.error("Could not copy link");
+      });
+    }
   };
 
   const handleToggleFounderVerified = async () => {
@@ -439,6 +454,36 @@ export default function ProfilePage() {
             </div>
           </label>
         )}
+        {/* Three-dot options menu — only visible when viewing another user's profile */}
+        {!isMe && (
+          <div className="absolute top-3 right-3 z-20">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="w-9 h-9 flex items-center justify-center rounded-full bg-black/40 backdrop-blur-sm border border-white/20 text-white hover:bg-black/60 transition-colors">
+                  <MoreHorizontal className="w-4 h-4" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem
+                  onClick={handleBlock}
+                  disabled={isBlockingToggling}
+                  className={isBlocking ? "text-red-400 focus:text-red-400" : ""}
+                >
+                  {isBlockingToggling
+                    ? <div className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin mr-2" />
+                    : <UserX className="w-4 h-4 mr-2" />
+                  }
+                  {isBlocking ? "Unblock" : "Block"}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleShareProfile}>
+                  <Copy className="w-4 h-4 mr-2" />
+                  Share Profile
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        )}
       </div>
 
       <div className="px-4 md:px-8 relative">
@@ -530,17 +575,6 @@ export default function ProfilePage() {
                 </Button>
                 <Button variant="secondary" className="rounded-full px-6 border border-border btn-water" onClick={() => navigate(`/messages?username=${profile.username}`)}>Message</Button>
               </>
-            )}
-            {!isMe && (
-              <Button
-                onClick={handleBlock}
-                disabled={isBlockingToggling}
-                variant="outline"
-                className={`rounded-full px-4 border font-semibold text-sm gap-1.5 transition-all ${isBlocking ? "border-red-500 text-red-500 hover:bg-red-500/10" : "border-border text-muted-foreground hover:border-red-400 hover:text-red-400"}`}
-              >
-                {isBlockingToggling ? <div className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" /> : <UserX className="w-3.5 h-3.5" />}
-                {isBlocking ? "Blocked" : "Block"}
-              </Button>
             )}
             {isAppOwner && !isMe && (
               <Button
