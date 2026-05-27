@@ -51,7 +51,7 @@ export function AboutModal({ onClose }: AboutModalProps) {
       >
         <motion.div
           key="about-panel"
-          className="relative w-full max-w-sm md:max-w-md mx-auto my-8 mx-4 rounded-3xl overflow-hidden shadow-2xl"
+          className="relative w-full max-w-xs md:max-w-xs mx-auto my-8 mx-4 rounded-3xl overflow-hidden shadow-2xl"
           initial={{ opacity: 0, y: 32, scale: 0.96 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 16, scale: 0.97 }}

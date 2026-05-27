@@ -37,12 +37,34 @@ const NOTIF_LABELS: Record<string, string> = {
   repost: "reposted your chirp",
 };
 
+function fireBrowserNotif(title: string, body?: string, icon = "/logo.png") {
+  if (typeof Notification === "undefined") return;
+  if (Notification.permission !== "granted") return;
+  if (document.visibilityState === "visible") return;
+  try {
+    const n = new Notification(title, { body, icon, badge: "/logo.png" });
+    n.onclick = () => { window.focus(); n.close(); };
+  } catch {}
+}
+
+async function requestNotifPermission() {
+  if (typeof Notification === "undefined") return;
+  if (Notification.permission === "default") {
+    await Notification.requestPermission();
+  }
+}
+
 export function SocketProvider({ children }: { children: React.ReactNode }) {
   const { user, isLoaded } = useUser();
   const socketRef = useRef<Socket | null>(null);
   const [connected, setConnected] = useState(false);
   const [onlineUserIds, setOnlineUserIds] = useState<Set<number>>(new Set());
   const qc = useQueryClient();
+
+  useEffect(() => {
+    if (!isLoaded || !user) return;
+    requestNotifPermission();
+  }, [isLoaded, user?.id]);
 
   useEffect(() => {
     if (!isLoaded || !user) return;
@@ -80,6 +102,21 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
           description: notif.message ? notif.message.slice(0, 80) : undefined,
           duration: 4000,
         }
+      );
+
+      fireBrowserNotif(
+        `Squawk — ${name} ${label}`,
+        notif.message ? notif.message.slice(0, 100) : undefined
+      );
+    });
+
+    socket.on("new_message", (msg: { senderUsername?: string; senderDisplayName?: string; content?: string; conversationId?: number }) => {
+      qc.invalidateQueries({ queryKey: ["conversations"] });
+      qc.invalidateQueries({ queryKey: ["unread-message-count"] });
+      const sender = msg.senderDisplayName || msg.senderUsername || "Someone";
+      fireBrowserNotif(
+        `Squawk — New message from ${sender}`,
+        msg.content ? msg.content.slice(0, 100) : undefined
       );
     });
 

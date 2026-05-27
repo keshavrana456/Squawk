@@ -969,10 +969,10 @@ function SectionNav({ onAbout }: { onAbout: () => void }) {
                 <button
                   key={item.label}
                   onClick={() => handleClick(item.href, item.onClick)}
-                  className={`liquid-btn group relative flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border border-white/10 overflow-hidden text-white/55 hover:text-white active:scale-95 transition-all duration-200 text-xs font-medium whitespace-nowrap shrink-0 ${glows[i % glows.length]}`}
+                  className={`liquid-btn group relative flex items-center gap-2 px-5 py-2.5 rounded-full border border-white/10 overflow-hidden text-white/65 hover:text-white active:scale-95 transition-all duration-200 text-sm font-medium whitespace-nowrap shrink-0 ${glows[i % glows.length]}`}
                 >
-                  <span className="liquid-blob absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300" style={{ background: "rgba(255,255,255,0.07)" }} />
-                  <span className="relative z-10 text-sm leading-none">{item.emoji}</span>
+                  <span className="liquid-blob absolute inset-0 opacity-20 group-hover:opacity-100 transition-opacity duration-300" style={{ background: "linear-gradient(135deg, rgba(255,182,193,0.35) 0%, rgba(255,105,180,0.25) 60%, rgba(236,72,153,0.15) 100%)" }} />
+                  <span className="relative z-10 text-base leading-none">{item.emoji}</span>
                   <span className="relative z-10">{item.label}</span>
                 </button>
               );
