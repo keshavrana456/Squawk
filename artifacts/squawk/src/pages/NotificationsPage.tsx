@@ -122,9 +122,9 @@ function SuggestedUsers() {
             </Link>
             <Link href={`/profile/${u.username}`} className="flex-1 min-w-0">
               <div className="flex items-center gap-1">
+                {u.isFounderVerified && <BadgeCheck className="w-3.5 h-3.5 text-purple-500 shrink-0" />}
                 <span className="font-semibold text-sm text-foreground truncate">{u.displayName}</span>
                 {u.isFounder && <BadgeCheck className="w-3.5 h-3.5 text-pink-500 shrink-0" />}
-                {u.isFounderVerified && <BadgeCheck className="w-3.5 h-3.5 text-purple-500 shrink-0" />}
                 {u.isVerified && !u.isFounder && !u.isFounderVerified && <BadgeCheck className="w-3.5 h-3.5 text-primary shrink-0" />}
               </div>
               <p className="text-xs text-muted-foreground truncate">@{u.username}</p>

@@ -763,9 +763,9 @@ function GroupInfoPanel({ conversation, me, onClose, onUpdated }: { conversation
                 </Avatar>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1">
+                    {m.isFounderVerified && <BadgeCheck className="w-3.5 h-3.5 text-purple-500 shrink-0" />}
                     <span className="font-semibold text-sm text-foreground truncate">{m.displayName}</span>
                     {m.isFounder && <BadgeCheck className="w-3.5 h-3.5 text-pink-500 shrink-0" />}
-                    {m.isFounderVerified && <BadgeCheck className="w-3.5 h-3.5 text-purple-500 shrink-0" />}
                     {m.isVerified && !m.isFounder && !m.isFounderVerified && <BadgeCheck className="w-3.5 h-3.5 text-primary shrink-0" />}
                     {m.id === me?.id && <span className="text-[10px] text-muted-foreground ml-1">(you)</span>}
                   </div>

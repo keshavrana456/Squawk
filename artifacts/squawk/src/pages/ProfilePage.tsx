@@ -91,9 +91,9 @@ function UserListModal({
                   </Avatar>
                   <div className="flex-1 min-w-0">
                     <div className="font-semibold text-foreground text-sm flex items-center gap-1">
+                      {(u as any).isFounderVerified && <BadgeCheck className="w-4 h-4 text-purple-500" />}
                       {u.displayName}
                       {(u as any).isFounder && <BadgeCheck className="w-4 h-4 text-pink-500" />}
-                      {(u as any).isFounderVerified && <BadgeCheck className="w-4 h-4 text-purple-500" />}
                       {u.isVerified && !((u as any).isFounder) && !((u as any).isFounderVerified) && <BadgeCheck className="w-4 h-4 text-primary" />}
                     </div>
                     <div className="text-muted-foreground text-xs">@{u.username}</div>
@@ -581,17 +581,6 @@ export default function ProfilePage() {
                 <Button variant="secondary" className="rounded-full px-6 border border-border btn-water" onClick={() => navigate(`/messages?username=${profile.username}`)}>Message</Button>
               </>
             )}
-            {isAppOwner && !isMe && (
-              <Button
-                onClick={handleToggleFounder}
-                disabled={founderToggling}
-                variant="outline"
-                className={`rounded-full px-4 border font-semibold text-sm gap-1.5 transition-all ${(profile as any).isFounder ? "border-pink-500 text-pink-500 hover:bg-pink-500/10" : "border-border text-muted-foreground hover:border-pink-400 hover:text-pink-400"}`}
-              >
-                {founderToggling ? <div className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" /> : <Crown className="w-3.5 h-3.5" />}
-                {(profile as any).isFounder ? "Remove Founder" : "Mark as Founder"}
-              </Button>
-            )}
             {isFounder && !isMe && (
               <Button
                 onClick={handleToggleFounderVerified}
@@ -620,9 +609,9 @@ export default function ProfilePage() {
         {/* Profile info */}
         <div className="mb-8">
           <div className="flex items-center gap-2 mb-1">
+            {(profile as any).isFounderVerified && <BadgeCheck className="w-6 h-6 text-purple-500" title="Verified by Founder" />}
             <h1 className="text-2xl font-bold text-foreground">{profile.displayName}</h1>
             {(profile as any).isFounder && <BadgeCheck className="w-6 h-6 text-pink-500" title="Founder" />}
-            {(profile as any).isFounderVerified && <BadgeCheck className="w-6 h-6 text-purple-500" title="Verified by Founder" />}
             {profile.isVerified && !((profile as any).isFounder) && !((profile as any).isFounderVerified) && <BadgeCheck className="w-6 h-6 text-primary" title="Verified" />}
           </div>
           <p className="text-muted-foreground font-medium text-[15px]">@{profile.username}</p>
