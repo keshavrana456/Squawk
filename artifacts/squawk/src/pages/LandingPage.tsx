@@ -969,10 +969,11 @@ function SectionNav({ onAbout }: { onAbout: () => void }) {
                 <button
                   key={item.label}
                   onClick={() => handleClick(item.href, item.onClick)}
-                  className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border border-white/10 bg-transparent text-white/55 hover:text-white active:scale-95 transition-all duration-200 text-xs font-medium whitespace-nowrap shrink-0 ${glows[i % glows.length]}`}
+                  className={`liquid-btn group relative flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border border-white/10 overflow-hidden text-white/55 hover:text-white active:scale-95 transition-all duration-200 text-xs font-medium whitespace-nowrap shrink-0 ${glows[i % glows.length]}`}
                 >
-                  <span className="text-sm leading-none">{item.emoji}</span>
-                  {item.label}
+                  <span className="liquid-blob absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300" style={{ background: "rgba(255,255,255,0.07)" }} />
+                  <span className="relative z-10 text-sm leading-none">{item.emoji}</span>
+                  <span className="relative z-10">{item.label}</span>
                 </button>
               );
             })}
@@ -1057,9 +1058,12 @@ export default function LandingPage() {
           >
             Sign In
           </Link>
-          <Link href="/sign-up" className="liquid-btn group relative inline-flex h-9 items-center justify-center overflow-hidden rounded-full px-6 text-sm font-bold text-white transition-all duration-300 hover:scale-105 shadow-[0_4px_20px_rgba(236,72,153,0.4)]">
-            <span className="liquid-blob absolute inset-0" style={{ background: "linear-gradient(135deg, #ec4899, #9333ea)" }} />
-            <span className="relative z-10">Join Now</span>
+          <Link
+            href="/sign-up"
+            className="px-5 py-1.5 rounded-full text-sm font-bold text-white transition-all hover:scale-105 hover:shadow-[0_0_20px_4px_rgba(219,39,119,0.4)]"
+            style={{ background: "linear-gradient(135deg, #ec4899, #9333ea)" }}
+          >
+            Join Now
           </Link>
         </div>
       </nav>
@@ -1102,14 +1106,12 @@ export default function LandingPage() {
 
           <Link href="/sign-up">
             <button
-              className="liquid-btn group relative inline-flex h-16 items-center justify-center overflow-hidden rounded-full px-12 font-black text-white text-xl transition-all duration-300 hover:scale-105 shadow-[0_8px_40px_rgba(236,72,153,0.55)] hover:shadow-[0_12px_55px_rgba(147,51,234,0.7)]"
+              className="group relative inline-flex h-14 items-center justify-center overflow-hidden rounded-full px-8 font-bold text-white text-lg transition-all duration-300 hover:scale-105 shadow-2xl shadow-pink-900/50"
+              style={{ background: "linear-gradient(135deg, #ec4899, #9333ea)" }}
               data-testid="button-get-started"
             >
-              <span className="liquid-blob absolute inset-0" style={{ background: "linear-gradient(135deg, #ec4899 0%, #9333ea 50%, #6366f1 100%)" }} />
-              <span className="relative z-10 flex items-center gap-2 drop-shadow-md">
-                Enter the Grid
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="transition-transform group-hover:translate-x-1.5"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-              </span>
+              Enter the Grid
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="ml-2 transition-transform group-hover:translate-x-1"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
             </button>
           </Link>
 
@@ -1533,12 +1535,12 @@ export default function LandingPage() {
         <h2 className="text-4xl md:text-6xl font-black text-white mb-6">Ready to join the grid?</h2>
         <p className="text-muted-foreground text-lg mb-10 max-w-xl mx-auto">Sign up in seconds and step into the Monad community.</p>
         <Link href="/sign-up">
-          <button className="liquid-btn group relative inline-flex h-16 items-center justify-center overflow-hidden rounded-full px-12 font-black text-white text-xl transition-all duration-300 hover:scale-105 shadow-[0_8px_40px_rgba(236,72,153,0.55)] hover:shadow-[0_12px_55px_rgba(147,51,234,0.7)]">
-            <span className="liquid-blob absolute inset-0" style={{ background: "linear-gradient(135deg, #ec4899 0%, #9333ea 50%, #6366f1 100%)" }} />
-            <span className="relative z-10 flex items-center gap-2 drop-shadow-md">
-              Create your Squawk
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="transition-transform group-hover:translate-x-1.5"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-            </span>
+          <button
+            className="inline-flex h-14 items-center gap-2 rounded-full px-10 font-bold text-white text-lg transition-all hover:scale-105 shadow-2xl shadow-pink-900/50"
+            style={{ background: "linear-gradient(135deg, #ec4899, #9333ea)" }}
+          >
+            Create your Squawk
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
           </button>
         </Link>
       </motion.section>
