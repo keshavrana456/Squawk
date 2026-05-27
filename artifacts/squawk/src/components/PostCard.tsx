@@ -88,6 +88,16 @@ export default function PostCard({ post, onLike, onSave, onComment }: PostCardPr
   }, [post.isLiked, post.likesCount, post.isSaved, likeMutation.isPending]);
 
   const isOwner = me && (me as any).id === post.author.id;
+  const isFounderAdmin = me && ((me as any).isFounder || (me as any).id === 1);
+
+  const handleAdminDelete = () => {
+    fetch(`/api/admin/posts/${post.id}`, { method: "DELETE", credentials: "include" }).then(() => {
+      queryClient.invalidateQueries({ queryKey: getGetFeedQueryKey() });
+      queryClient.invalidateQueries({ queryKey: getListPostsQueryKey() });
+      queryClient.invalidateQueries({ queryKey: getGetUserPostsQueryKey(post.author.username) });
+    });
+    setShowDeleteConfirm(false);
+  };
   const getInitials = (name: string) => name ? name.charAt(0).toUpperCase() : "?";
   const avatarColor = `hsl(${post.author.username.length * 50 % 360}, 70%, 50%)`;
 
@@ -270,6 +280,15 @@ export default function PostCard({ post, onLike, onSave, onComment }: PostCardPr
                 </>
               ) : (
                 <>
+                  {isFounderAdmin && (
+                    <>
+                      <DropdownMenuItem onClick={() => setShowDeleteConfirm(true)} className="text-destructive focus:text-destructive cursor-pointer">
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        Delete post
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                    </>
+                  )}
                   <DropdownMenuItem className="cursor-pointer">
                     <Flag className="w-4 h-4 mr-2" />
                     Report
@@ -431,7 +450,7 @@ export default function PostCard({ post, onLike, onSave, onComment }: PostCardPr
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={handleDelete}
+              onClick={isOwner ? handleDelete : handleAdminDelete}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Delete

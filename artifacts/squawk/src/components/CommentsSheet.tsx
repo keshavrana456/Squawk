@@ -322,7 +322,7 @@ export default function CommentsSheet({ postId, commentsCount, isOpen, onClose }
                                 </span>
                               )}
                             </button>
-                            {(me as any)?.id === c.author?.id && (
+                            {((me as any)?.id === c.author?.id || (me as any)?.isFounder || (me as any)?.id === 1) && (
                               <button
                                 className="flex items-center gap-1 text-xs text-muted-foreground hover:text-red-500 transition-colors disabled:opacity-40"
                                 onClick={() => handleDeleteComment(c.id)}
@@ -386,7 +386,7 @@ export default function CommentsSheet({ postId, commentsCount, isOpen, onClose }
                                     </span>
                                   )}
                                 </button>
-                                {(me as any)?.id === reply.author?.id && (
+                                {((me as any)?.id === reply.author?.id || (me as any)?.isFounder || (me as any)?.id === 1) && (
                                   <button
                                     className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-red-500 transition-colors disabled:opacity-40"
                                     onClick={() => handleDeleteComment(reply.id)}

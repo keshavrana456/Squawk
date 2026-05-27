@@ -911,6 +911,8 @@ function StatCard({ label, value, sub, updating }: StatCardProps) {
 }
 
 function SectionNav({ onAbout }: { onAbout: () => void }) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+
   const items = [
     { label: "Live Squad Contests", href: "#contests", emoji: "🏆" },
     { label: "About the 10K Squad NFTs", href: "#about-10k", emoji: "🎨" },
@@ -928,37 +930,63 @@ function SectionNav({ onAbout }: { onAbout: () => void }) {
     }
   };
 
+  const scroll = (dir: "left" | "right") => {
+    const el = scrollRef.current;
+    if (!el) return;
+    el.scrollBy({ left: dir === "left" ? -220 : 220, behavior: "smooth" });
+  };
+
   return (
     <div className="relative z-10 py-6">
       <p className="text-[10px] font-bold text-white/25 uppercase tracking-widest text-center mb-4">Jump to section</p>
-      {/* Horizontal slider — fade edges */}
-      <div className="relative">
-        <div className="absolute left-0 top-0 bottom-0 w-10 pointer-events-none z-10"
-          style={{ background: "linear-gradient(to right, rgba(5,0,15,0.9) 0%, transparent 100%)" }} />
-        <div className="absolute right-0 top-0 bottom-0 w-10 pointer-events-none z-10"
-          style={{ background: "linear-gradient(to left, rgba(5,0,15,0.9) 0%, transparent 100%)" }} />
-        <div className="flex gap-3 overflow-x-auto no-scrollbar px-6 pb-2 pt-1">
-          {items.map((item, i) => {
-            const glows = [
-              "hover:border-pink-500/70 hover:shadow-[0_0_12px_rgba(236,72,153,0.45)]",
-              "hover:border-fuchsia-500/70 hover:shadow-[0_0_12px_rgba(217,70,239,0.45)]",
-              "hover:border-cyan-400/70 hover:shadow-[0_0_12px_rgba(34,211,238,0.45)]",
-              "hover:border-violet-500/70 hover:shadow-[0_0_12px_rgba(139,92,246,0.45)]",
-              "hover:border-indigo-400/70 hover:shadow-[0_0_12px_rgba(99,102,241,0.45)]",
-              "hover:border-amber-400/70 hover:shadow-[0_0_12px_rgba(251,191,36,0.45)]",
-            ];
-            return (
-              <button
-                key={item.label}
-                onClick={() => handleClick(item.href, item.onClick)}
-                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border border-white/10 bg-transparent text-white/55 hover:text-white active:scale-95 transition-all duration-200 text-xs font-medium whitespace-nowrap shrink-0 ${glows[i % glows.length]}`}
-              >
-                <span className="text-sm leading-none">{item.emoji}</span>
-                {item.label}
-              </button>
-            );
-          })}
+      <div className="relative flex items-center gap-2 px-4">
+        {/* Left arrow */}
+        <button
+          onClick={() => scroll("left")}
+          className="shrink-0 w-8 h-8 flex items-center justify-center rounded-full border border-white/15 text-white/50 hover:text-white hover:border-white/35 hover:bg-white/8 transition-all text-sm font-bold select-none"
+          aria-label="Scroll left"
+        >
+          ‹
+        </button>
+
+        {/* Scrollable strip */}
+        <div className="relative flex-1 overflow-hidden">
+          <div className="absolute left-0 top-0 bottom-0 w-6 pointer-events-none z-10"
+            style={{ background: "linear-gradient(to right, rgba(5,0,15,0.9) 0%, transparent 100%)" }} />
+          <div className="absolute right-0 top-0 bottom-0 w-6 pointer-events-none z-10"
+            style={{ background: "linear-gradient(to left, rgba(5,0,15,0.9) 0%, transparent 100%)" }} />
+          <div ref={scrollRef} className="flex gap-3 overflow-x-auto no-scrollbar px-3 py-1">
+            {items.map((item, i) => {
+              const glows = [
+                "hover:border-pink-500/70 hover:shadow-[0_0_12px_rgba(236,72,153,0.45)]",
+                "hover:border-fuchsia-500/70 hover:shadow-[0_0_12px_rgba(217,70,239,0.45)]",
+                "hover:border-cyan-400/70 hover:shadow-[0_0_12px_rgba(34,211,238,0.45)]",
+                "hover:border-violet-500/70 hover:shadow-[0_0_12px_rgba(139,92,246,0.45)]",
+                "hover:border-indigo-400/70 hover:shadow-[0_0_12px_rgba(99,102,241,0.45)]",
+                "hover:border-amber-400/70 hover:shadow-[0_0_12px_rgba(251,191,36,0.45)]",
+              ];
+              return (
+                <button
+                  key={item.label}
+                  onClick={() => handleClick(item.href, item.onClick)}
+                  className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border border-white/10 bg-transparent text-white/55 hover:text-white active:scale-95 transition-all duration-200 text-xs font-medium whitespace-nowrap shrink-0 ${glows[i % glows.length]}`}
+                >
+                  <span className="text-sm leading-none">{item.emoji}</span>
+                  {item.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
+
+        {/* Right arrow */}
+        <button
+          onClick={() => scroll("right")}
+          className="shrink-0 w-8 h-8 flex items-center justify-center rounded-full border border-white/15 text-white/50 hover:text-white hover:border-white/35 hover:bg-white/8 transition-all text-sm font-bold select-none"
+          aria-label="Scroll right"
+        >
+          ›
+        </button>
       </div>
     </div>
   );
@@ -1065,9 +1093,8 @@ export default function LandingPage() {
           className="max-w-4xl mx-auto relative z-10 mt-8"
         >
           <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold tracking-tighter mb-6 leading-tight text-white drop-shadow-xl">
-            Connect. Trade. Create.
-            <br className="hidden md:block" />
-            <span className="bg-clip-text text-transparent" style={{ backgroundImage: "linear-gradient(90deg, #f472b6, #c084fc, #818cf8)" }}>
+            <span className="block whitespace-nowrap">Connect. Trade. Create.</span>
+            <span className="block bg-clip-text text-transparent" style={{ backgroundImage: "linear-gradient(90deg, #f472b6, #c084fc, #818cf8)" }}>
               Squawk.
             </span>
           </h1>

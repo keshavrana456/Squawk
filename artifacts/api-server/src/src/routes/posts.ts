@@ -321,7 +321,8 @@ router.delete("/comments/:id", requireUser, async (req, res): Promise<void> => {
 
   const [comment] = await db.select().from(commentsTable).where(eq(commentsTable.id, params.data.id));
   if (!comment) { res.status(404).json({ error: "Comment not found" }); return; }
-  if (comment.authorId !== currentUser.id) { res.status(403).json({ error: "Forbidden" }); return; }
+  const isFounderOrAdmin = (currentUser as any).isFounder || currentUser.id === 1;
+  if (comment.authorId !== currentUser.id && !isFounderOrAdmin) { res.status(403).json({ error: "Forbidden" }); return; }
 
   await db.delete(commentsTable).where(eq(commentsTable.id, params.data.id));
   res.sendStatus(204);
