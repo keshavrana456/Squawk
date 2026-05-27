@@ -8,6 +8,22 @@ import PostCard from "@/components/PostCard";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Users, Heart, Image as ImageIcon, ArrowUp, BadgeCheck, Eye, X, ExternalLink } from "lucide-react";
+import { useUser } from "@clerk/react";
+
+function getSuggestionDismissKey(clerkId: string) {
+  return `squawk-dismissed-suggestions-${clerkId}`;
+}
+function loadDismissedSuggestions(clerkId: string): Set<number> {
+  try {
+    const raw = localStorage.getItem(getSuggestionDismissKey(clerkId));
+    return raw ? new Set(JSON.parse(raw) as number[]) : new Set();
+  } catch { return new Set(); }
+}
+function saveDismissedSuggestions(clerkId: string, ids: Set<number>) {
+  try {
+    localStorage.setItem(getSuggestionDismissKey(clerkId), JSON.stringify([...ids]));
+  } catch {}
+}
 
 const POLL_INTERVAL = 30 * 1000;
 const PROMO_DISMISSED_KEY = "squawk_promo_dismissed_v1";
@@ -80,7 +96,7 @@ function PromoModal({ onDismiss }: { onDismiss: () => void }) {
   );
 }
 
-function SuggestedUserCard({ user }: { user: UserSummary }) {
+function SuggestedUserCard({ user, onDismiss }: { user: UserSummary; onDismiss?: (id: number) => void }) {
   const [followed, setFollowed] = useState(user.isFollowing);
   const followMutation = useFollowUser();
   const avatarColor = `hsl(${user.username.length * 50 % 360}, 70%, 50%)`;
@@ -89,10 +105,12 @@ function SuggestedUserCard({ user }: { user: UserSummary }) {
     if (followed) return;
     setFollowed(true);
     followMutation.mutate({ username: user.username }, { onError: () => setFollowed(false) });
+    // permanently hide after following
+    onDismiss?.(user.id);
   };
 
   return (
-    <div className="flex items-center gap-3">
+    <div className="flex items-center gap-3 group">
       <Link href={`/profile/${user.username}`}>
         <Avatar className="w-9 h-9 shrink-0 cursor-pointer hover:opacity-80 transition-opacity">
           <AvatarImage src={user.avatarUrl || ''} className="object-cover" />
@@ -119,6 +137,15 @@ function SuggestedUserCard({ user }: { user: UserSummary }) {
       >
         {followed ? 'Following' : 'Follow'}
       </Button>
+      {onDismiss && (
+        <button
+          onClick={() => onDismiss(user.id)}
+          className="shrink-0 p-1 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-colors opacity-0 group-hover:opacity-100"
+          aria-label="Dismiss suggestion"
+        >
+          <X className="w-3.5 h-3.5" />
+        </button>
+      )}
     </div>
   );
 }
@@ -127,6 +154,22 @@ export default function HomePage() {
   const [newPostsAvailable, setNewPostsAvailable] = useState(false);
   const [showPromo, setShowPromo] = useState(false);
   const latestPostIdRef = useRef<number | null>(null);
+  const { user } = useUser();
+  const clerkId = user?.id ?? "";
+  const [dismissedSuggestions, setDismissedSuggestions] = useState<Set<number>>(new Set());
+
+  useEffect(() => {
+    if (clerkId) setDismissedSuggestions(loadDismissedSuggestions(clerkId));
+  }, [clerkId]);
+
+  const dismissSuggestion = (id: number) => {
+    setDismissedSuggestions(prev => {
+      const next = new Set(prev);
+      next.add(id);
+      if (clerkId) saveDismissedSuggestions(clerkId, next);
+      return next;
+    });
+  };
 
   // Show promo modal after a short delay on first visit this session
   useEffect(() => {
@@ -281,7 +324,9 @@ export default function HomePage() {
             </div>
           </div>
 
-          {suggestedUsers && suggestedUsers.length > 0 && (
+          {(() => {
+            const visible = (suggestedUsers ?? []).filter((u: UserSummary) => !dismissedSuggestions.has(u.id));
+            return visible.length > 0 ? (
             <div className="bg-card border border-border rounded-2xl p-5 shadow-sm">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-bold text-base">Suggested for you</h3>
@@ -290,12 +335,13 @@ export default function HomePage() {
                 </Link>
               </div>
               <div className="space-y-4">
-                {suggestedUsers.map((user: UserSummary) => (
-                  <SuggestedUserCard key={user.id} user={user} />
+                {visible.map((u: UserSummary) => (
+                  <SuggestedUserCard key={u.id} user={u} onDismiss={dismissSuggestion} />
                 ))}
               </div>
             </div>
-          )}
+          ) : null;
+          })()}
         </div>
       </div>
     </motion.div>
