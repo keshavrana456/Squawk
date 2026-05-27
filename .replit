@@ -85,6 +85,8 @@ VITE_SUPABASE_URL = "https://ngsvenudlagubljtcvok.supabase.co"
 VITE_CLOUDINARY_CLOUD_NAME = "dnvwdktiy"
 CLERK_PUBLISHABLE_KEY = "pk_test_ZHJpdmVuLXBsYXR5cHVzLTg5LmNsZXJrLmFjY291bnRzLmRldiQ"
 VITE_CLERK_PUBLISHABLE_KEY = "pk_test_ZHJpdmVuLXBsYXR5cHVzLTg5LmNsZXJrLmFjY291bnRzLmRldiQ"
+VAPID_PUBLIC_KEY = "BPhZd2immSxZ1ArgrEbdMx0Mv-5tlajE4g1HNs8Wy2YC7SjgNaMbWciOPejO5AesgDc1qBqYRy4uIiiBwfbwwlQ"
+VITE_VAPID_PUBLIC_KEY = "BPhZd2immSxZ1ArgrEbdMx0Mv-5tlajE4g1HNs8Wy2YC7SjgNaMbWciOPejO5AesgDc1qBqYRy4uIiiBwfbwwlQ"
 
 [nix]
 channel = "stable-25_05"
