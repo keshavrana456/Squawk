@@ -1,16 +1,13 @@
 import { motion } from 'framer-motion';
 import { useState, useEffect } from 'react';
-import squadLogo from "@assets/my_talking_squad_png_for_intro_1779543965946.png";
 
 export function Scene8() {
   const [phase, setPhase] = useState(0);
 
   useEffect(() => {
     const timers = [
-      setTimeout(() => setPhase(1), 500),
-      setTimeout(() => setPhase(2), 1500),
-      setTimeout(() => setPhase(3), 2500),
-      setTimeout(() => setPhase(4), 4500),
+      setTimeout(() => setPhase(1), 800),
+      setTimeout(() => setPhase(2), 2500),
     ];
     return () => timers.forEach(t => clearTimeout(t));
   }, []);
@@ -23,56 +20,70 @@ export function Scene8() {
       exit={{ opacity: 0 }}
       transition={{ duration: 1 }}
     >
-      {/* Giant Background Text Sweep */}
+      {/* Intense Background Glow */}
       <motion.div
-        className="absolute inset-0 flex items-center justify-center overflow-hidden pointer-events-none mix-blend-screen opacity-20"
-        initial={{ scale: 2, opacity: 0 }}
-        animate={{ scale: 1, opacity: 0.2 }}
-        transition={{ duration: 4, ease: "easeOut" }}
+        className="absolute inset-0 flex items-center justify-center z-0"
+        initial={{ opacity: 0, scale: 0.5 }}
+        animate={phase >= 1 ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.5 }}
+        transition={{ duration: 2, ease: "easeOut" }}
       >
-         <h1 className="text-[40vw] font-black text-[#f472b6] leading-none" style={{ fontFamily: 'Bebas Neue, sans-serif' }}>
-           SQUAD
-         </h1>
+        <div className="w-[80vw] h-[80vw] bg-pink-600/30 rounded-full blur-[100px] mix-blend-screen" />
       </motion.div>
 
-      {/* Main Logo */}
-      <motion.div
-        className="relative z-20 w-[45vw] max-w-2xl mb-[8vh]"
-        initial={{ scale: 0, rotate: -20, opacity: 0 }}
-        animate={phase >= 1 ? { scale: 1, rotate: 0, opacity: 1 } : { scale: 0, rotate: -20, opacity: 0 }}
-        transition={{ type: 'spring', stiffness: 120, damping: 15 }}
-      >
-        <img src={squadLogo} alt="My Talking Squad" className="w-full h-auto drop-shadow-[0_0_80px_rgba(236,72,153,0.8)]" />
+      <motion.div className="relative z-20 flex flex-col items-center justify-center">
+        <motion.div className="overflow-hidden">
+          <motion.h1
+            className="text-[18vw] font-black text-transparent bg-clip-text bg-gradient-to-b from-white to-pink-500 uppercase tracking-tighter leading-none"
+            style={{ fontFamily: "'Bebas Neue', sans-serif" }}
+            initial={{ y: '100%', rotateX: 90 }}
+            animate={phase >= 1 ? { y: '0%', rotateX: 0 } : { y: '100%', rotateX: 90 }}
+            transition={{ type: 'spring', stiffness: 60, damping: 20 }}
+          >
+            SQUAWK
+          </motion.h1>
+        </motion.div>
+
+        <motion.div className="overflow-hidden mt-[2vh]">
+          <motion.p
+            className="text-[3vw] text-cyan-400 font-bold uppercase tracking-[0.4em]"
+            style={{ fontFamily: "'Bebas Neue', sans-serif" }}
+            initial={{ y: '-100%', opacity: 0 }}
+            animate={phase >= 2 ? { y: '0%', opacity: 1 } : { y: '-100%', opacity: 0 }}
+            transition={{ duration: 1, ease: "easeOut" }}
+          >
+            Enter the Ecosystem
+          </motion.p>
+        </motion.div>
       </motion.div>
 
-      {/* Call to Action Text */}
-      <motion.div
-        className="relative z-30 flex flex-col items-center gap-[2vh]"
-        initial={{ y: 50, opacity: 0 }}
-        animate={phase >= 2 ? { y: 0, opacity: 1 } : { y: 50, opacity: 0 }}
-        transition={{ duration: 0.8 }}
-      >
-        <h2 className="text-[5vw] font-bold text-white uppercase tracking-[0.2em]" style={{ fontFamily: 'Bebas Neue, sans-serif' }}>
-          JOIN THE GRID.
-        </h2>
-        <h2 className="text-[6vw] font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#ec4899] to-[#9333ea] uppercase tracking-[0.1em]" style={{ fontFamily: 'Bebas Neue, sans-serif' }}>
-          BE THE SQUAD.
-        </h2>
-      </motion.div>
-
-      {/* Fake Button (Visual Only) */}
-      <motion.div
-        className="relative z-40 mt-[8vh]"
-        initial={{ scale: 0, opacity: 0 }}
-        animate={phase >= 3 ? { scale: 1, opacity: 1 } : { scale: 0, opacity: 0 }}
-        transition={{ type: 'spring', stiffness: 200, damping: 20 }}
-      >
-        <div className="bg-white text-black px-[4vw] py-[1.5vw] rounded-full font-bold text-[2vw] uppercase tracking-wider flex items-center gap-[1vw]">
-           <span>ENTER APP</span>
-           <span className="text-[1.5vw]">→</span>
+      {/* Floating particles specific to outro */}
+      {phase >= 1 && (
+        <div className="absolute inset-0 pointer-events-none z-30">
+          {Array.from({ length: 30 }).map((_, i) => (
+            <motion.div
+              key={i}
+              className="absolute bg-white rounded-full"
+              style={{
+                width: Math.random() * 4 + 2 + 'px',
+                height: Math.random() * 4 + 2 + 'px',
+                left: '50%',
+                top: '50%',
+              }}
+              initial={{ x: 0, y: 0, scale: 0, opacity: 1 }}
+              animate={{
+                x: (Math.random() - 0.5) * window.innerWidth,
+                y: (Math.random() - 0.5) * window.innerHeight,
+                scale: Math.random() * 2,
+                opacity: 0,
+              }}
+              transition={{
+                duration: Math.random() * 2 + 1.5,
+                ease: "easeOut",
+              }}
+            />
+          ))}
         </div>
-      </motion.div>
-
+      )}
     </motion.div>
   );
 }

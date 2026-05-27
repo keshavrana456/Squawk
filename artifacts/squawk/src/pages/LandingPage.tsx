@@ -3,17 +3,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useState, useCallback, useRef } from "react";
 import { Palette, Link2, Gamepad2, Camera, Zap, Heart, Trophy, Globe, Gift, Users, TrendingUp, Star, ArrowRight, ExternalLink, Crown, RefreshCw, Info } from "lucide-react";
 import { useAboutModal } from "@/components/AboutModal";
-import nft1 from "@assets/image_1779877992328.png";
-import nft2 from "@assets/image_1779878042161.png";
-import nft3 from "@assets/image_1779878054078.png";
-import nft4 from "@assets/image_1779878087667.png";
-import nft5 from "@assets/image_1779878100535.png";
-import flowVideo from "@assets/party_1779878150807.mp4";
-import post1 from "@assets/intro_bg_1779878199011.png";
-import post2 from "@assets/image_1779878309038.png";
-import post3 from "@assets/image_1779878321888.png";
-import post4 from "@assets/image_1779878351944.png";
-import contestBanner from "@assets/image_1779878393550.png";
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 const CONTEST_END = new Date("2026-05-31T12:00:00Z");
@@ -439,188 +428,6 @@ function TopHolders() {
   );
 }
 
-// ── Featured NFTs ─────────────────────────────────────────────────────────────
-const FEATURED_NFTS = [
-  { id: "1", name: "10K Squad #4201", image: nft1 },
-  { id: "2", name: "10K Squad #0887", image: nft2 },
-  { id: "3", name: "10K Squad #2134", image: nft3 },
-  { id: "4", name: "10K Squad #1337", image: nft4 },
-  { id: "5", name: "10K Squad #0042", image: nft5 },
-];
-
-function FeaturedNFTs() {
-  return (
-    <motion.section
-      id="featured-nfts"
-      initial={{ opacity: 0, y: 20 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
-      transition={{ duration: 0.6 }}
-      className="px-4 md:px-12 py-16 z-10"
-    >
-      <div className="max-w-6xl mx-auto">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-base">🎨</span>
-              <span className="text-xs font-semibold text-pink-400 uppercase tracking-widest">10K Squad</span>
-            </div>
-            <h2 className="text-3xl md:text-4xl font-black text-white">Featured NFTs</h2>
-            <p className="text-muted-foreground text-sm mt-1">3,333 hand-drawn 1/1s · Floor: 3,000 MON · Last Sale: 5,000 MON</p>
-          </div>
-          <a href="https://opensea.io/collection/the-10k-squad-350905768" target="_blank" rel="noopener noreferrer"
-            className="hidden md:flex items-center gap-2 px-5 py-2 rounded-full border border-white/15 text-white/60 hover:text-white hover:border-white/30 transition-all text-sm font-medium">
-            View on OpenSea <ExternalLink className="w-3.5 h-3.5" />
-          </a>
-        </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
-          {FEATURED_NFTS.map((nft, i) => (
-            <motion.a
-              key={nft.id}
-              href="https://opensea.io/collection/the-10k-squad-350905768"
-              target="_blank"
-              rel="noopener noreferrer"
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.4, delay: i * 0.08 }}
-              className="group relative flex flex-col overflow-hidden rounded-2xl border border-white/10 hover:border-pink-500/40 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_30px_rgba(236,72,153,0.2)] cursor-pointer"
-              style={{ background: "linear-gradient(160deg, rgba(88,28,135,0.25) 0%, rgba(14,7,25,0.6) 100%)" }}
-            >
-              <div className="relative w-full aspect-square overflow-hidden">
-                <img src={nft.image} alt={nft.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                <div className="absolute bottom-2 left-2 px-2 py-0.5 rounded-full text-[11px] font-bold text-white backdrop-blur-md"
-                  style={{ background: "linear-gradient(135deg, rgba(236,72,153,0.85), rgba(147,51,234,0.85))" }}>
-                  3,000 MON
-                </div>
-              </div>
-              <div className="p-3">
-                <div className="text-[13px] font-bold text-white truncate">{nft.name}</div>
-                <div className="text-[10px] text-white/40 mt-0.5">1/1 · Monad</div>
-              </div>
-            </motion.a>
-          ))}
-        </div>
-      </div>
-    </motion.section>
-  );
-}
-
-// ── Flow Video Showcase ────────────────────────────────────────────────────────
-function FlowShowcase() {
-  return (
-    <motion.section
-      id="flow-showcase"
-      initial={{ opacity: 0, y: 20 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
-      transition={{ duration: 0.6 }}
-      className="px-4 md:px-12 py-16 z-10"
-    >
-      <div className="max-w-6xl mx-auto">
-        <div className="text-center mb-10">
-          <div className="flex items-center justify-center gap-2 mb-2">
-            <Zap className="w-4 h-4 text-pink-400" />
-            <span className="text-xs font-semibold text-pink-400 uppercase tracking-widest">Flow</span>
-          </div>
-          <h2 className="text-3xl md:text-4xl font-black text-white">The Squad Is Always Live</h2>
-          <p className="text-muted-foreground text-sm mt-2 max-w-lg mx-auto">Full-screen short video feed powered by the 10K Squad community. Swipe, like, discover.</p>
-        </div>
-        <div className="relative rounded-3xl overflow-hidden border border-white/15 shadow-[0_0_80px_rgba(147,51,234,0.2)]">
-          <video
-            src={flowVideo}
-            autoPlay
-            loop
-            muted
-            playsInline
-            className="w-full max-h-[600px] object-cover"
-          />
-          <div className="absolute inset-0 pointer-events-none" style={{ background: "linear-gradient(to top, rgba(14,7,25,0.7) 0%, transparent 45%)" }} />
-          <div className="absolute bottom-6 left-6 right-6 flex items-end justify-between">
-            <div>
-              <div className="text-white font-black text-xl drop-shadow-lg">Flow — Reels</div>
-              <div className="text-white/70 text-sm drop-shadow">The 10K Squad never stops</div>
-            </div>
-            <Link href="/sign-up">
-              <button className="px-5 py-2.5 rounded-full font-bold text-white text-sm transition-all hover:scale-105 shadow-lg"
-                style={{ background: "linear-gradient(135deg, #ec4899, #9333ea)" }}>
-                Watch Now →
-              </button>
-            </Link>
-          </div>
-        </div>
-      </div>
-    </motion.section>
-  );
-}
-
-// ── Featured Posts ─────────────────────────────────────────────────────────────
-const FEATURED_POSTS = [
-  { id: "p1", image: post1, user: "SquadKing", handle: "squadking", text: "The 10K Squad is taking over the Monad ecosystem 🔥 Nothing can stop us now.", likes: 284, comments: 47 },
-  { id: "p2", image: post2, user: "MonadDegen", handle: "monad_degen", text: "Late night grinding sessions hit different 🎮 Gm to everyone building on Monad.", likes: 193, comments: 31 },
-  { id: "p3", image: post3, user: "SquadElite", handle: "squad_elite", text: "SQUAD bracelet energy only ✨ Who else rocking the S·Q·U·A·D merch?", likes: 421, comments: 68 },
-  { id: "p4", image: post4, user: "10KResearcher", handle: "10k_lab", text: "10K research lab cooking up something huge — stay tuned 🧪🔬", likes: 356, comments: 52 },
-];
-
-function FeaturedPosts() {
-  return (
-    <motion.section
-      id="featured-posts"
-      initial={{ opacity: 0, y: 20 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
-      transition={{ duration: 0.6 }}
-      className="px-4 md:px-12 py-16 z-10"
-    >
-      <div className="max-w-6xl mx-auto">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <Camera className="w-4 h-4 text-purple-400" />
-              <span className="text-xs font-semibold text-purple-400 uppercase tracking-widest">Posts</span>
-            </div>
-            <h2 className="text-3xl md:text-4xl font-black text-white">From the Squad</h2>
-            <p className="text-muted-foreground text-sm mt-1">Community posts from the 10K Squad on Squawk</p>
-          </div>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-          {FEATURED_POSTS.map((post, i) => (
-            <motion.div
-              key={post.id}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.4, delay: i * 0.1 }}
-              className="rounded-2xl border border-white/10 overflow-hidden hover:border-purple-500/30 transition-all hover:-translate-y-1 hover:shadow-[0_0_30px_rgba(147,51,234,0.15)]"
-              style={{ background: "rgba(88,28,135,0.12)" }}
-            >
-              <div className="p-4 flex items-center gap-3 border-b border-white/8">
-                <div className="w-9 h-9 rounded-full overflow-hidden ring-2 ring-purple-500/30 shrink-0 flex items-center justify-center text-white font-bold text-sm"
-                  style={{ background: "linear-gradient(135deg, #ec4899, #9333ea)" }}>
-                  {post.user[0]}
-                </div>
-                <div>
-                  <div className="text-sm font-bold text-white">{post.user}</div>
-                  <div className="text-[11px] text-white/40">@{post.handle}</div>
-                </div>
-              </div>
-              <div className="relative aspect-video overflow-hidden">
-                <img src={post.image} alt="" className="w-full h-full object-cover" />
-              </div>
-              <div className="p-4">
-                <p className="text-sm text-white/80 mb-3 leading-relaxed">{post.text}</p>
-                <div className="flex items-center gap-5 text-xs text-white/40">
-                  <span className="flex items-center gap-1.5"><Heart className="w-3.5 h-3.5" /> {post.likes}</span>
-                  <span className="flex items-center gap-1.5">💬 {post.comments}</span>
-                </div>
-              </div>
-            </motion.div>
-          ))}
-        </div>
-      </div>
-    </motion.section>
-  );
-}
 
 interface ContestTweet {
   id: number;
@@ -833,9 +640,9 @@ function OngoingContest() {
             {/* Banner image */}
             <div className="relative w-full h-40 overflow-hidden">
               <img
-                src={contestBanner}
+                src="https://pbs.twimg.com/media/HGrY5DiXYAA8IES.jpg"
                 alt="Squad Coding Contest"
-                className="w-full h-full object-cover object-top opacity-90"
+                className="w-full h-full object-cover object-top opacity-70"
               />
               <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/60" />
               <div className="absolute top-3 left-3 flex items-center gap-2 px-2.5 py-1 rounded-full text-[11px] font-bold text-indigo-300 border border-indigo-500/50" style={{ background: "rgba(0,0,0,0.6)" }}>
@@ -1247,18 +1054,18 @@ export default function LandingPage() {
   const statCards = [
     {
       label: "Floor Price",
-      value: fmtPrice(stats?.floorPrice ?? 3000, stats?.floorPriceSymbol ?? "MON"),
+      value: fmtPrice(stats?.floorPrice ?? null, stats?.floorPriceSymbol ?? null),
       sub: "via OpenSea",
     },
     {
       label: "Total Volume",
-      value: fmtVolume(stats?.totalVolume ?? 500000),
+      value: fmtVolume(stats?.totalVolume ?? null),
       sub: "all-time",
     },
     {
-      label: "Last Sale",
-      value: "5,000 MON",
-      sub: "most recent",
+      label: "Total Holders",
+      value: fmt(stats?.numOwners ?? null),
+      sub: "unique wallets",
     },
     {
       label: "Total Supply",
@@ -1373,20 +1180,11 @@ export default function LandingPage() {
       {/* ── Section Navigation Strip ─────────────────────────────────── */}
       <SectionNav onAbout={about.show} />
 
-      {/* ── Featured NFTs ────────────────────────────────────────────── */}
-      <FeaturedNFTs />
-
       {/* ── Live NFT Sales Feed ──────────────────────────────────────── */}
       <LiveSalesFeed />
 
       {/* ── Top Holders Leaderboard ──────────────────────────────────── */}
       <TopHolders />
-
-      {/* ── Flow Video Showcase ──────────────────────────────────────── */}
-      <FlowShowcase />
-
-      {/* ── Featured Posts ───────────────────────────────────────────── */}
-      <FeaturedPosts />
 
       {/* ── Ongoing Contest ──────────────────────────────────────────── */}
       <OngoingContest />

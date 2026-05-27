@@ -8,62 +8,103 @@ import { Scene5 } from './video_scenes/Scene5';
 import { Scene6 } from './video_scenes/Scene6';
 import { Scene7 } from './video_scenes/Scene7';
 import { Scene8 } from './video_scenes/Scene8';
-import introBg from "@assets/intro_bg_1779543965947.png";
+import { useEffect } from 'react';
 
 const SCENE_DURATIONS = { 
-  intro: 4500, 
-  feed: 4500, 
-  flow: 4500, 
-  chirps: 4000, 
-  messages: 4000,
-  explore: 4000,
-  nfts: 5500,
+  intro: 5000, 
+  nft_showcase: 5500, 
+  live_feed: 5000, 
+  flow_video: 5000, 
+  posts: 5000,
+  contests: 5000,
+  features: 4500,
   outro: 5000 
 };
+
+function ParticleField() {
+  return (
+    <div className="absolute inset-0 pointer-events-none overflow-hidden mix-blend-screen opacity-60">
+      {Array.from({ length: 40 }).map((_, i) => (
+        <motion.div
+          key={i}
+          className="absolute rounded-full bg-white"
+          style={{
+            width: Math.random() * 4 + 1 + 'px',
+            height: Math.random() * 4 + 1 + 'px',
+            left: Math.random() * 100 + 'vw',
+            top: Math.random() * 100 + 'vh',
+            filter: 'blur(1px)',
+            boxShadow: '0 0 8px 2px rgba(236,72,153,0.5)'
+          }}
+          animate={{
+            y: [0, -100, -200],
+            x: [0, Math.random() * 50 - 25, Math.random() * 100 - 50],
+            opacity: [0, Math.random() * 0.5 + 0.3, 0],
+          }}
+          transition={{
+            duration: Math.random() * 5 + 5,
+            repeat: Infinity,
+            ease: 'linear',
+            delay: Math.random() * 5,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
 
 export default function VideoTemplate() {
   const { currentScene } = useVideoPlayer({ durations: SCENE_DURATIONS });
 
+  useEffect(() => {
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = 'https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600;700&display=swap';
+    document.head.appendChild(link);
+    return () => { document.head.removeChild(link); };
+  }, []);
+
   return (
     <div className="relative w-full h-[100vh] overflow-hidden bg-[#0a0010] text-white" style={{ fontFamily: 'Inter, sans-serif' }}>
       
-      {/* Persistent Background Layer - Outside AnimatePresence for continuity */}
+      {/* Persistent Background Layer */}
       <motion.div 
-        className="absolute inset-0 z-0 mix-blend-screen pointer-events-none"
+        className="absolute inset-0 z-0 pointer-events-none"
         animate={{
-          scale: [1.1, 1.2, 1.15, 1.25, 1.1],
-          x: ['-2vw', '2vw', '-1vw', '1vw', '0vw'],
-          y: ['-1vh', '1vh', '-2vh', '2vh', '0vh'],
-          opacity: currentScene === 7 ? 0.8 : 0.4
+          background: [
+            'radial-gradient(circle at 50% 50%, #1a0030 0%, #0d0018 100%)',
+            'radial-gradient(circle at 60% 40%, #1a0030 0%, #0d0018 100%)',
+            'radial-gradient(circle at 40% 60%, #1a0030 0%, #0d0018 100%)',
+          ][currentScene % 3]
         }}
-        transition={{ duration: 30, ease: 'linear', repeat: Infinity }}
-      >
-        <img src={introBg} className="w-full h-full object-cover blur-3xl" alt="" />
-      </motion.div>
+        transition={{ duration: 4, ease: 'easeInOut' }}
+      />
 
+      <ParticleField />
+      
       {/* Persistent Grid & Noise */}
-      <div className="absolute inset-0 z-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiPjxyZWN0IHdpZHRoPSI0IiBoZWlnaHQ9IjQiIGZpbGw9IiNmZmZmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSIvPjwvc3ZnPg==')] opacity-30 mix-blend-overlay pointer-events-none"></div>
+      <div className="absolute inset-0 z-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiPjxyZWN0IHdpZHRoPSI0IiBoZWlnaHQ9IjQiIGZpbGw9IiNmZmZmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSIvPjwvc3ZnPg==')] opacity-[0.15] mix-blend-overlay pointer-events-none"></div>
       
       {/* Kinetic Midground Accents */}
       <motion.div
-        className="absolute w-[40vw] h-[40vw] rounded-full blur-[100px] pointer-events-none z-0"
+        className="absolute w-[50vw] h-[50vw] rounded-full blur-[120px] pointer-events-none z-0"
         animate={{
-          background: currentScene % 2 === 0 ? 'radial-gradient(circle, rgba(236,72,153,0.4) 0%, transparent 70%)' : 'radial-gradient(circle, rgba(147,51,234,0.4) 0%, transparent 70%)',
-          x: currentScene === 0 ? '50vw' : currentScene === 3 ? '10vw' : currentScene === 6 ? '70vw' : '40vw',
-          y: currentScene === 1 ? '50vh' : currentScene === 4 ? '10vh' : currentScene === 7 ? '60vh' : '30vh',
-          scale: currentScene === 6 ? 1.5 : 1,
+          background: currentScene % 2 === 0 ? 'radial-gradient(circle, rgba(236,72,153,0.3) 0%, transparent 70%)' : 'radial-gradient(circle, rgba(6,182,212,0.3) 0%, transparent 70%)',
+          x: ['20vw', '60vw', '10vw', '70vw', '30vw', '80vw', '20vw', '50vw'][currentScene],
+          y: ['30vh', '10vh', '60vh', '20vh', '50vh', '30vh', '70vh', '40vh'][currentScene],
+          scale: [1, 1.2, 0.8, 1.5, 1, 1.3, 0.9, 1.4][currentScene],
         }}
-        transition={{ duration: 1.5, ease: [0.16, 1, 0.3, 1] }}
+        transition={{ duration: 2, ease: [0.16, 1, 0.3, 1] }}
       />
 
       <AnimatePresence mode="popLayout" initial={false}>
         {currentScene === 0 && <Scene1 key="intro" />}
-        {currentScene === 1 && <Scene2 key="feed" />}
-        {currentScene === 2 && <Scene3 key="flow" />}
-        {currentScene === 3 && <Scene4 key="chirps" />}
-        {currentScene === 4 && <Scene5 key="messages" />}
-        {currentScene === 5 && <Scene6 key="explore" />}
-        {currentScene === 6 && <Scene7 key="nfts" />}
+        {currentScene === 1 && <Scene2 key="nft" />}
+        {currentScene === 2 && <Scene3 key="feed" />}
+        {currentScene === 3 && <Scene4 key="flow" />}
+        {currentScene === 4 && <Scene5 key="posts" />}
+        {currentScene === 5 && <Scene6 key="contests" />}
+        {currentScene === 6 && <Scene7 key="features" />}
         {currentScene === 7 && <Scene8 key="outro" />}
       </AnimatePresence>
     </div>
