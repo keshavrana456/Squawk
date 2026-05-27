@@ -13,6 +13,8 @@ export const usersTable = pgTable("users", {
   website: text("website"),
   isVerified: boolean("is_verified").notNull().default(false),
   isFounder: boolean("is_founder").notNull().default(false),
+  isFounderVerified: boolean("is_founder_verified").notNull().default(false),
+  isBanned: boolean("is_banned").notNull().default(false),
   bannerOffsetY: integer("banner_offset_y").notNull().default(0),
   usernameChangedAt: timestamp("username_changed_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -31,3 +33,12 @@ export const followsTable = pgTable("follows", {
 });
 
 export type Follow = typeof followsTable.$inferSelect;
+
+export const blocksTable = pgTable("blocks", {
+  id: serial("id").primaryKey(),
+  blockerId: integer("blocker_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
+  blockedId: integer("blocked_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export type Block = typeof blocksTable.$inferSelect;

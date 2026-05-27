@@ -1,4 +1,4 @@
-import { db, usersTable, followsTable, postsTable, likesTable, savesTable, commentsTable } from "@workspace/db";
+import { db, usersTable, followsTable, postsTable, likesTable, savesTable, commentsTable, blocksTable } from "@workspace/db";
 import { eq, and, inArray, sql, desc, or, ilike } from "drizzle-orm";
 
 export async function buildPostsWithMeta(
@@ -77,6 +77,19 @@ export async function buildUserProfile(user: typeof usersTable.$inferSelect, cur
     isFollowing = !!follow;
   }
 
+  let isBlocked = false;
+  let isBlockedBy = false;
+  if (currentUserId && currentUserId !== user.id) {
+    const [blockOut] = await db.select().from(blocksTable).where(
+      and(eq(blocksTable.blockerId, currentUserId), eq(blocksTable.blockedId, user.id))
+    );
+    const [blockIn] = await db.select().from(blocksTable).where(
+      and(eq(blocksTable.blockerId, user.id), eq(blocksTable.blockedId, currentUserId))
+    );
+    isBlocked = !!blockOut;
+    isBlockedBy = !!blockIn;
+  }
+
   return {
     id: user.id,
     clerkId: user.clerkId,
@@ -88,6 +101,10 @@ export async function buildUserProfile(user: typeof usersTable.$inferSelect, cur
     website: user.website ?? null,
     isVerified: user.isVerified,
     isFounder: user.isFounder,
+    isFounderVerified: (user as any).isFounderVerified ?? false,
+    isBanned: (user as any).isBanned ?? false,
+    isBlocked,
+    isBlockedBy,
     bannerOffsetY: (user as any).bannerOffsetY ?? 0,
     followersCount: followersCountResult[0]?.count ?? 0,
     followingCount: followingCountResult[0]?.count ?? 0,
@@ -105,6 +122,7 @@ export function buildUserSummary(user: typeof usersTable.$inferSelect, isFollowi
     avatarUrl: user.avatarUrl ?? null,
     isVerified: user.isVerified,
     isFounder: user.isFounder,
+    isFounderVerified: (user as any).isFounderVerified ?? false,
     isFollowing,
     bio: user.bio ?? null,
   };

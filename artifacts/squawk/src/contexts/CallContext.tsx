@@ -124,14 +124,31 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       if (remoteAudioRef.current) remoteAudioRef.current.srcObject = stream;
     };
 
+    const markConnected = () => {
+      setActiveCall(prev => {
+        if (prev && prev.status !== "connected") {
+          if (!callTimerRef.current) {
+            callTimerRef.current = setInterval(() => {
+              setCallDuration(d => d + 1);
+            }, 1000);
+          }
+          return { ...prev, status: "connected", startedAt: Date.now() };
+        }
+        return prev;
+      });
+    };
+
     pc.onconnectionstatechange = () => {
       if (pc.connectionState === "connected") {
-        setActiveCall(prev => prev ? { ...prev, status: "connected", startedAt: Date.now() } : prev);
-        callTimerRef.current = setInterval(() => {
-          setCallDuration(d => d + 1);
-        }, 1000);
+        markConnected();
       } else if (["disconnected", "failed", "closed"].includes(pc.connectionState)) {
         endCall();
+      }
+    };
+
+    pc.oniceconnectionstatechange = () => {
+      if (pc.iceConnectionState === "connected" || pc.iceConnectionState === "completed") {
+        markConnected();
       }
     };
 
@@ -508,66 +525,59 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
 
             {/* Controls */}
             <div className="pb-12 pt-6 px-8 bg-gradient-to-t from-black/80 to-transparent">
-              <div className="flex items-center justify-center gap-5">
-                {/* Mute */}
-                <button
-                  onClick={toggleMute}
-                  className={`w-14 h-14 rounded-full flex items-center justify-center transition-all ${
-                    activeCall.isMuted
-                      ? "bg-white/20 border border-white/30"
-                      : "bg-white/10 border border-white/10"
-                  }`}
-                >
-                  {activeCall.isMuted
-                    ? <MicOff className="w-6 h-6 text-white" />
-                    : <Mic className="w-6 h-6 text-white" />
-                  }
-                </button>
-
-                {/* Camera (video only) */}
-                {activeCall.callType === "video" && (
+              {activeCall.callType === "video" ? (
+                /* Video call: Mute | Camera | EndCall | Speaker */
+                <div className="flex items-center justify-center gap-5">
+                  <button
+                    onClick={toggleMute}
+                    className={`w-14 h-14 rounded-full flex items-center justify-center transition-all ${activeCall.isMuted ? "bg-white/20 border border-white/30" : "bg-white/10 border border-white/10"}`}
+                  >
+                    {activeCall.isMuted ? <MicOff className="w-6 h-6 text-white" /> : <Mic className="w-6 h-6 text-white" />}
+                  </button>
                   <button
                     onClick={toggleCamera}
-                    className={`w-14 h-14 rounded-full flex items-center justify-center transition-all ${
-                      activeCall.isCameraOff
-                        ? "bg-white/20 border border-white/30"
-                        : "bg-white/10 border border-white/10"
-                    }`}
+                    className={`w-14 h-14 rounded-full flex items-center justify-center transition-all ${activeCall.isCameraOff ? "bg-white/20 border border-white/30" : "bg-white/10 border border-white/10"}`}
                   >
-                    {activeCall.isCameraOff
-                      ? <VideoOff className="w-6 h-6 text-white" />
-                      : <Video className="w-6 h-6 text-white" />
-                    }
+                    {activeCall.isCameraOff ? <VideoOff className="w-6 h-6 text-white" /> : <Video className="w-6 h-6 text-white" />}
                   </button>
-                )}
-
-                {/* End call */}
-                <button
-                  onClick={endCall}
-                  className="w-16 h-16 rounded-full flex items-center justify-center shadow-2xl"
-                  style={{ background: "linear-gradient(135deg, #ef4444, #dc2626)", boxShadow: "0 0 20px rgba(239,68,68,0.5)" }}
-                >
-                  <PhoneOff className="w-7 h-7 text-white" />
-                </button>
-
-                {/* Speaker */}
-                <button
-                  onClick={toggleSpeaker}
-                  className={`w-14 h-14 rounded-full flex items-center justify-center transition-all ${
-                    activeCall.isSpeakerOff
-                      ? "bg-white/20 border border-white/30"
-                      : "bg-white/10 border border-white/10"
-                  }`}
-                >
-                  {activeCall.isSpeakerOff
-                    ? <VolumeX className="w-6 h-6 text-white" />
-                    : <Volume2 className="w-6 h-6 text-white" />
-                  }
-                </button>
-
-                {/* Placeholder to balance layout when no camera button */}
-                {activeCall.callType === "voice" && <div className="w-14 h-14" />}
-              </div>
+                  <button
+                    onClick={endCall}
+                    className="w-16 h-16 rounded-full flex items-center justify-center shadow-2xl"
+                    style={{ background: "linear-gradient(135deg, #ef4444, #dc2626)", boxShadow: "0 0 20px rgba(239,68,68,0.5)" }}
+                  >
+                    <PhoneOff className="w-7 h-7 text-white" />
+                  </button>
+                  <button
+                    onClick={toggleSpeaker}
+                    className={`w-14 h-14 rounded-full flex items-center justify-center transition-all ${activeCall.isSpeakerOff ? "bg-white/20 border border-white/30" : "bg-white/10 border border-white/10"}`}
+                  >
+                    {activeCall.isSpeakerOff ? <VolumeX className="w-6 h-6 text-white" /> : <Volume2 className="w-6 h-6 text-white" />}
+                  </button>
+                </div>
+              ) : (
+                /* Voice call: Mute | EndCall | Speaker — centered */
+                <div className="flex items-center justify-center gap-8">
+                  <button
+                    onClick={toggleMute}
+                    className={`w-14 h-14 rounded-full flex items-center justify-center transition-all ${activeCall.isMuted ? "bg-white/20 border border-white/30" : "bg-white/10 border border-white/10"}`}
+                  >
+                    {activeCall.isMuted ? <MicOff className="w-6 h-6 text-white" /> : <Mic className="w-6 h-6 text-white" />}
+                  </button>
+                  <button
+                    onClick={endCall}
+                    className="w-20 h-20 rounded-full flex items-center justify-center shadow-2xl"
+                    style={{ background: "linear-gradient(135deg, #ef4444, #dc2626)", boxShadow: "0 0 24px rgba(239,68,68,0.6)" }}
+                  >
+                    <PhoneOff className="w-8 h-8 text-white" />
+                  </button>
+                  <button
+                    onClick={toggleSpeaker}
+                    className={`w-14 h-14 rounded-full flex items-center justify-center transition-all ${activeCall.isSpeakerOff ? "bg-white/20 border border-white/30" : "bg-white/10 border border-white/10"}`}
+                  >
+                    {activeCall.isSpeakerOff ? <VolumeX className="w-6 h-6 text-white" /> : <Volume2 className="w-6 h-6 text-white" />}
+                  </button>
+                </div>
+              )}
             </div>
           </motion.div>
         )}

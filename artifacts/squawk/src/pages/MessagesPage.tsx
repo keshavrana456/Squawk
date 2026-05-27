@@ -3,7 +3,7 @@ import { Link, useSearch as useRouteSearch } from "wouter";
 import {
   Send, Plus, ArrowLeft, MessageCircle, Search, X, Users, UserPlus,
   Image as ImageIcon, CornerDownRight, Check, CheckCheck, Circle,
-  Phone, Video, ExternalLink,
+  Phone, Video, ExternalLink, LogOut, ChevronRight, BadgeCheck,
 } from "lucide-react";
 import {
   useGetConversations, useGetMessages, useSendMessage, useCreateConversation,
@@ -610,6 +610,7 @@ export default function MessagesPage() {
             onBack={() => setSelectedConvId(null)}
             me={me}
             conversation={conversations.find((c: any) => c.id === selectedConvId)}
+            onConversationLeft={() => { setSelectedConvId(null); queryClient.invalidateQueries({ queryKey: ["getConversations"] }); }}
           />
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground p-8">
@@ -640,8 +641,185 @@ export default function MessagesPage() {
   );
 }
 
+// ─── Group Info Panel ──────────────────────────────────────────────────────────
+function GroupInfoPanel({ conversation, me, onClose, onUpdated }: { conversation: any; me: any; onClose: () => void; onUpdated: () => void }) {
+  const [members, setMembers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [addQuery, setAddQuery] = useState("");
+  const [addDebounced, setAddDebounced] = useState("");
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [adding, setAdding] = useState(false);
+  const [leaving, setLeaving] = useState(false);
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    setLoading(true);
+    fetch(`/api/conversations/${conversation.id}/members`, { credentials: "include" })
+      .then(r => r.ok ? r.json() : [])
+      .then(data => setMembers(Array.isArray(data) ? data : []))
+      .catch(() => setMembers([]))
+      .finally(() => setLoading(false));
+  }, [conversation.id]);
+
+  useEffect(() => {
+    const t = setTimeout(() => setAddDebounced(addQuery), 300);
+    return () => clearTimeout(t);
+  }, [addQuery]);
+
+  useEffect(() => {
+    if (!addDebounced || addDebounced.length < 1) { setSearchResults([]); return; }
+    fetch(`/api/search?q=${encodeURIComponent(addDebounced)}&type=users`, { credentials: "include" })
+      .then(r => r.ok ? r.json() : { users: [] })
+      .then(d => {
+        const memberIds = new Set(members.map(m => m.id));
+        setSearchResults((d.users || []).filter((u: any) => u.id !== me?.id && !memberIds.has(u.id)));
+      })
+      .catch(() => setSearchResults([]));
+  }, [addDebounced, members, me?.id]);
+
+  const handleAdd = async (username: string) => {
+    setAdding(true);
+    try {
+      const res = await fetch(`/api/conversations/${conversation.id}/members`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ usernames: [username] }),
+        credentials: "include",
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        setMembers(updated.participants || []);
+        onUpdated();
+        setAddQuery("");
+        setSearchResults([]);
+      }
+    } catch (e) { console.error(e); }
+    finally { setAdding(false); }
+  };
+
+  const handleLeave = async () => {
+    setLeaving(true);
+    try {
+      const res = await fetch(`/api/conversations/${conversation.id}/leave`, { method: "DELETE", credentials: "include" });
+      if (res.ok) {
+        await queryClient.invalidateQueries({ queryKey: ["getConversations"] });
+        onClose();
+        onUpdated();
+      }
+    } catch (e) { console.error(e); }
+    finally { setLeaving(false); }
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: 40 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: 40 }}
+      className="absolute inset-0 bg-background z-20 flex flex-col"
+    >
+      <div className="h-16 border-b border-border flex items-center gap-3 px-4 shrink-0">
+        <button onClick={onClose} className="p-2 -ml-2 text-muted-foreground hover:text-foreground">
+          <ArrowLeft className="w-5 h-5" />
+        </button>
+        <div className="flex-1 min-w-0">
+          <p className="font-semibold text-foreground truncate">{conversation.name}</p>
+          <p className="text-xs text-muted-foreground">{members.length} members</p>
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-y-auto no-scrollbar p-4 space-y-4">
+        {/* Members */}
+        <div>
+          <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">Members</h3>
+          {loading ? (
+            [...Array(3)].map((_, i) => (
+              <div key={i} className="flex items-center gap-3 p-2.5 animate-pulse">
+                <div className="w-9 h-9 rounded-full bg-muted shrink-0" />
+                <div className="flex-1 space-y-1.5">
+                  <div className="h-3.5 bg-muted rounded w-1/2" />
+                  <div className="h-3 bg-muted rounded w-1/3" />
+                </div>
+              </div>
+            ))
+          ) : (
+            members.map((m: any) => (
+              <div key={m.id} className="flex items-center gap-3 p-2.5 rounded-2xl hover:bg-muted/50 transition-colors">
+                <Avatar className="w-9 h-9 border border-border shrink-0">
+                  <AvatarImage src={m.avatarUrl || ""} />
+                  <AvatarFallback className="bg-primary/20 text-primary text-sm font-bold">
+                    {m.displayName?.charAt(0)?.toUpperCase() || "?"}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1">
+                    <span className="font-semibold text-sm text-foreground truncate">{m.displayName}</span>
+                    {m.isFounder && <BadgeCheck className="w-3.5 h-3.5 text-pink-500 shrink-0" />}
+                    {m.isFounderVerified && <BadgeCheck className="w-3.5 h-3.5 text-purple-500 shrink-0" />}
+                    {m.isVerified && !m.isFounder && !m.isFounderVerified && <BadgeCheck className="w-3.5 h-3.5 text-primary shrink-0" />}
+                    {m.id === me?.id && <span className="text-[10px] text-muted-foreground ml-1">(you)</span>}
+                  </div>
+                  <p className="text-xs text-muted-foreground">@{m.username}</p>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* Add member */}
+        <div>
+          <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">Add Members</h3>
+          <div className="flex items-center gap-2 bg-muted border border-border rounded-2xl px-3 focus-within:ring-1 focus-within:ring-primary mb-2">
+            <Search className="w-4 h-4 text-muted-foreground shrink-0" />
+            <input
+              value={addQuery}
+              onChange={e => setAddQuery(e.target.value)}
+              placeholder="Search users to add…"
+              className="flex-1 bg-transparent py-2.5 text-sm outline-none text-foreground placeholder:text-muted-foreground"
+            />
+            {addQuery && <button onClick={() => setAddQuery("")} className="text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></button>}
+          </div>
+          {searchResults.length > 0 && (
+            <div className="rounded-xl border border-border bg-background shadow-lg overflow-hidden">
+              {searchResults.map((u: any) => (
+                <button
+                  key={u.id}
+                  onClick={() => handleAdd(u.username)}
+                  disabled={adding}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-muted/60 transition-colors border-b border-border/50 last:border-0 text-left"
+                >
+                  <Avatar className="w-8 h-8 border border-border shrink-0">
+                    <AvatarImage src={u.avatarUrl || ""} />
+                    <AvatarFallback className="bg-primary/20 text-primary text-xs">{u.displayName?.charAt(0)}</AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-semibold text-sm text-foreground truncate">{u.displayName}</div>
+                    <div className="text-xs text-muted-foreground">@{u.username}</div>
+                  </div>
+                  <UserPlus className="w-4 h-4 text-primary shrink-0" />
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Leave group */}
+      <div className="p-4 border-t border-border shrink-0">
+        <button
+          onClick={handleLeave}
+          disabled={leaving}
+          className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl text-red-400 border border-red-500/30 bg-red-500/5 hover:bg-red-500/10 transition-colors font-semibold text-sm disabled:opacity-50"
+        >
+          {leaving ? <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" /> : <LogOut className="w-4 h-4" />}
+          Leave Group
+        </button>
+      </div>
+    </motion.div>
+  );
+}
+
 // ─── Chat View ─────────────────────────────────────────────────────────────────
-function ChatView({ conversationId, onBack, me, conversation }: any) {
+function ChatView({ conversationId, onBack, me, conversation, onConversationLeft }: any) {
   const { data: msgData, isLoading, refetch } = useGetMessages(conversationId, {
     query: { enabled: !!conversationId },
   });
@@ -652,11 +830,13 @@ function ChatView({ conversationId, onBack, me, conversation }: any) {
   const [viewingPost, setViewingPost] = useState<any | null>(null);
   const [typingUsers, setTypingUsers] = useState<string[]>([]);
   const [readMessageIds, setReadMessageIds] = useState<Set<number>>(new Set());
+  const [showGroupInfo, setShowGroupInfo] = useState(false);
   const sendMutation = useSendMessage();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { socket, isUserOnline } = useSocket();
   const { startCall, activeCall } = useCall();
+  const queryClient = useQueryClient();
 
   const isGroup = conversation?.isGroup;
   const otherUser = !isGroup
@@ -774,22 +954,41 @@ function ChatView({ conversationId, onBack, me, conversation }: any) {
   let lastDayStr = "";
 
   return (
-    <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+    <div className="flex-1 flex flex-col min-h-0 overflow-hidden relative">
+      {/* Group Info Panel */}
+      <AnimatePresence>
+        {isGroup && showGroupInfo && conversation && (
+          <GroupInfoPanel
+            conversation={conversation}
+            me={me}
+            onClose={() => setShowGroupInfo(false)}
+            onUpdated={() => {
+              queryClient.invalidateQueries({ queryKey: ["getConversations"] });
+              if (onConversationLeft) onConversationLeft();
+            }}
+          />
+        )}
+      </AnimatePresence>
+
       {/* Header */}
       <div className="h-16 border-b border-border bg-background flex items-center px-4 shrink-0 shadow-sm z-10 relative">
         <button onClick={onBack} className="md:hidden mr-3 p-2 -ml-2 text-muted-foreground hover:text-foreground">
           <ArrowLeft className="w-5 h-5" />
         </button>
         {isGroup ? (
-          <div className="flex items-center gap-3">
+          <button
+            className="flex items-center gap-3 group text-left hover:opacity-80 transition-opacity flex-1 min-w-0"
+            onClick={() => setShowGroupInfo(true)}
+          >
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/20 to-[#c084fc]/20 border border-primary/30 flex items-center justify-center shrink-0">
               <Users className="w-4 h-4 text-primary" />
             </div>
-            <div>
-              <div className="font-semibold text-foreground">{displayName}</div>
-              <div className="text-xs text-muted-foreground">{memberCount} members</div>
+            <div className="min-w-0">
+              <div className="font-semibold text-foreground truncate group-hover:text-primary transition-colors">{displayName}</div>
+              <div className="text-xs text-muted-foreground">{memberCount} members · tap for info</div>
             </div>
-          </div>
+            <ChevronRight className="w-4 h-4 text-muted-foreground ml-auto shrink-0" />
+          </button>
         ) : otherUser ? (
           <>
             <Link href={`/profile/${otherUser.username}`} className="flex items-center gap-3 group flex-1 min-w-0">
@@ -1031,20 +1230,7 @@ function ChatView({ conversationId, onBack, me, conversation }: any) {
             className="flex-1 border-0 bg-transparent focus-visible:ring-0 shadow-none px-2 h-10"
           />
 
-          <button
-            type="button"
-            onClick={() => setShowGifPicker(v => !v)}
-            className={`shrink-0 w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold transition-colors border ${
-              showGifPicker
-                ? "bg-primary text-white border-primary"
-                : "text-muted-foreground hover:text-foreground border-border hover:bg-muted"
-            }`}
-            title="GIF"
-          >
-            GIF
-          </button>
-
-          <Button
+            <Button
             size="icon"
             className="rounded-full shrink-0 w-10 h-10 bg-primary hover:bg-primary/90 text-white"
             onClick={() => handleSend()}

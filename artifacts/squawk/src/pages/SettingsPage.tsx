@@ -1,11 +1,14 @@
 import { useGetMe } from "@workspace/api-client-react";
 import { useClerk } from "@clerk/react";
 import { useLocation } from "wouter";
-import { LogOut, Moon, Sun, Info, Mail, Shield, ChevronRight, UserCircle, ExternalLink, Star } from "lucide-react";
+import { LogOut, Moon, Sun, Info, Mail, Shield, ChevronRight, UserCircle, ExternalLink, Star, UserX, UserCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useAboutModal } from "@/components/AboutModal";
+import { useState, useEffect } from "react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Link } from "wouter";
 
 export default function SettingsPage() {
   const { data: me } = useGetMe();
@@ -13,6 +16,29 @@ export default function SettingsPage() {
   const { theme, toggle: toggleTheme } = useTheme();
   const [, setLocation] = useLocation();
   const about = useAboutModal();
+  const [blockedUsers, setBlockedUsers] = useState<any[]>([]);
+  const [isLoadingBlocked, setIsLoadingBlocked] = useState(false);
+  const [showBlocked, setShowBlocked] = useState(false);
+  const [unblockingId, setUnblockingId] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!showBlocked) return;
+    setIsLoadingBlocked(true);
+    fetch("/api/blocks", { credentials: "include" })
+      .then(r => r.ok ? r.json() : [])
+      .then(data => setBlockedUsers(Array.isArray(data) ? data : []))
+      .catch(() => setBlockedUsers([]))
+      .finally(() => setIsLoadingBlocked(false));
+  }, [showBlocked]);
+
+  const handleUnblock = async (username: string, userId: number) => {
+    setUnblockingId(userId);
+    try {
+      const res = await fetch(`/api/blocks/${username}`, { method: "DELETE", credentials: "include" });
+      if (res.ok) setBlockedUsers(prev => prev.filter((u: any) => u.id !== userId));
+    } catch {}
+    finally { setUnblockingId(null); }
+  };
 
   const handleSendReport = () => {
     const subject = encodeURIComponent("Squawk Report / Feedback");
@@ -172,6 +198,76 @@ export default function SettingsPage() {
             </button>
             <p className="text-center text-xs text-muted-foreground/50 mt-3">Made with love for the 10K Squad community on Monad</p>
           </div>
+        </div>
+
+        {/* Blocked Users */}
+        <div className="bg-card border border-border rounded-3xl p-5 mb-6">
+          <button
+            onClick={() => setShowBlocked(v => !v)}
+            className="w-full flex items-center justify-between"
+          >
+            <h3 className="text-base font-bold text-foreground flex items-center gap-2">
+              <UserX className="w-4 h-4 text-red-400" />
+              Blocked Users
+            </h3>
+            <ChevronRight className={`w-4 h-4 text-muted-foreground transition-transform ${showBlocked ? "rotate-90" : ""}`} />
+          </button>
+          <AnimatePresence>
+            {showBlocked && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                className="overflow-hidden"
+              >
+                <div className="mt-4 space-y-1">
+                  {isLoadingBlocked ? (
+                    [...Array(3)].map((_, i) => (
+                      <div key={i} className="flex items-center gap-3 p-3 animate-pulse">
+                        <div className="w-10 h-10 rounded-full bg-muted shrink-0" />
+                        <div className="flex-1 space-y-1.5">
+                          <div className="h-3.5 bg-muted rounded w-1/2" />
+                          <div className="h-3 bg-muted rounded w-1/3" />
+                        </div>
+                      </div>
+                    ))
+                  ) : blockedUsers.length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-6">You haven't blocked anyone.</p>
+                  ) : (
+                    blockedUsers.map((u: any) => (
+                      <div key={u.id} className="flex items-center gap-3 p-3 rounded-2xl hover:bg-muted/40 transition-colors">
+                        <Link href={`/profile/${u.username}`} className="flex items-center gap-3 flex-1 min-w-0">
+                          <Avatar className="w-10 h-10 border border-border shrink-0">
+                            <AvatarImage src={u.avatarUrl || ""} />
+                            <AvatarFallback className="bg-primary/20 text-primary font-bold text-sm">
+                              {u.displayName?.charAt(0)?.toUpperCase() || "?"}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="min-w-0">
+                            <p className="font-semibold text-sm text-foreground truncate">{u.displayName}</p>
+                            <p className="text-xs text-muted-foreground">@{u.username}</p>
+                          </div>
+                        </Link>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={unblockingId === u.id}
+                          onClick={() => handleUnblock(u.username, u.id)}
+                          className="shrink-0 rounded-full text-xs border-border gap-1.5 text-muted-foreground hover:text-foreground"
+                        >
+                          {unblockingId === u.id
+                            ? <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                            : <UserCheck className="w-3.5 h-3.5" />
+                          }
+                          Unblock
+                        </Button>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         {/* Danger Zone */}

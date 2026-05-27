@@ -343,4 +343,77 @@ router.post("/conversations/:id/messages", requireUser, async (req, res): Promis
   res.status(201).json(msgResponse);
 });
 
+// GET /conversations/:id/members — list group members
+router.get("/conversations/:id/members", requireUser, async (req, res): Promise<void> => {
+  const currentUser = (req as any).currentUser as typeof usersTable.$inferSelect;
+  const convId = parseInt(req.params.id);
+  if (isNaN(convId)) { res.status(400).json({ error: "Invalid id" }); return; }
+
+  const [membership] = await db.select()
+    .from(conversationParticipantsTable)
+    .where(and(eq(conversationParticipantsTable.conversationId, convId), eq(conversationParticipantsTable.userId, currentUser.id)));
+  if (!membership) { res.status(403).json({ error: "Forbidden" }); return; }
+
+  const participants = await db.select({ user: usersTable })
+    .from(conversationParticipantsTable)
+    .innerJoin(usersTable, eq(conversationParticipantsTable.userId, usersTable.id))
+    .where(eq(conversationParticipantsTable.conversationId, convId));
+
+  res.json(participants.map(p => buildUserSummary(p.user)));
+});
+
+// POST /conversations/:id/members — add member(s) to group
+router.post("/conversations/:id/members", requireUser, async (req, res): Promise<void> => {
+  const currentUser = (req as any).currentUser as typeof usersTable.$inferSelect;
+  const convId = parseInt(req.params.id);
+  if (isNaN(convId)) { res.status(400).json({ error: "Invalid id" }); return; }
+
+  const [membership] = await db.select()
+    .from(conversationParticipantsTable)
+    .where(and(eq(conversationParticipantsTable.conversationId, convId), eq(conversationParticipantsTable.userId, currentUser.id)));
+  if (!membership) { res.status(403).json({ error: "Forbidden" }); return; }
+
+  const [conv] = await db.select().from(conversationsTable).where(eq(conversationsTable.id, convId));
+  if (!conv?.isGroup) { res.status(400).json({ error: "Not a group conversation" }); return; }
+
+  const parsed = z.object({ usernames: z.array(z.string()).min(1) }).safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: "usernames required" }); return; }
+
+  const users = await db.select().from(usersTable).where(inArray(usersTable.username, parsed.data.usernames));
+  if (users.length === 0) { res.status(400).json({ error: "No valid users" }); return; }
+
+  const existingParticipants = await db.select({ userId: conversationParticipantsTable.userId })
+    .from(conversationParticipantsTable)
+    .where(eq(conversationParticipantsTable.conversationId, convId));
+  const existingIds = new Set(existingParticipants.map(p => p.userId));
+
+  const toAdd = users.filter(u => !existingIds.has(u.id));
+  if (toAdd.length > 0) {
+    await db.insert(conversationParticipantsTable).values(
+      toAdd.map(u => ({ conversationId: convId, userId: u.id }))
+    );
+  }
+
+  const result = await buildConversationResponse(convId, currentUser.id);
+  res.json(result);
+});
+
+// DELETE /conversations/:id/leave — leave a group conversation
+router.delete("/conversations/:id/leave", requireUser, async (req, res): Promise<void> => {
+  const currentUser = (req as any).currentUser as typeof usersTable.$inferSelect;
+  const convId = parseInt(req.params.id);
+  if (isNaN(convId)) { res.status(400).json({ error: "Invalid id" }); return; }
+
+  const [membership] = await db.select()
+    .from(conversationParticipantsTable)
+    .where(and(eq(conversationParticipantsTable.conversationId, convId), eq(conversationParticipantsTable.userId, currentUser.id)));
+  if (!membership) { res.status(403).json({ error: "Not a member" }); return; }
+
+  await db.delete(conversationParticipantsTable).where(
+    and(eq(conversationParticipantsTable.conversationId, convId), eq(conversationParticipantsTable.userId, currentUser.id))
+  );
+
+  res.json({ success: true });
+});
+
 export default router;

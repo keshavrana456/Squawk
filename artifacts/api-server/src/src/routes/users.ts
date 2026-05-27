@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
-import { eq, and, notInArray, sql, desc } from "drizzle-orm";
-import { db, usersTable, followsTable, postsTable, notificationsTable } from "@workspace/db";
+import { eq, and, notInArray, sql, desc, inArray } from "drizzle-orm";
+import { db, usersTable, followsTable, postsTable, notificationsTable, blocksTable } from "@workspace/db";
 import { requireAuth, requireUser, resolveUser } from "../lib/auth";
 import { emitToUser } from "../lib/socket";
 import { clerkClient, getAuth } from "@clerk/express";
@@ -14,6 +14,14 @@ import {
   GetUserFollowingParams,
   GetSuggestedUsersQueryParams,
 } from "@workspace/api-zod";
+
+// Run migrations for new columns
+(async () => {
+  try {
+    await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS is_founder_verified BOOLEAN NOT NULL DEFAULT FALSE`);
+    await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS is_banned BOOLEAN NOT NULL DEFAULT FALSE`);
+  } catch {}
+})();
 
 const FOUNDER_EMAILS = ["globalfreefire33@gmail.com"];
 const router: IRouter = Router();
@@ -317,6 +325,137 @@ router.put("/users/:username/set-founder", requireUser, async (req, res): Promis
   await db.update(usersTable).set({ isFounder: newValue }).where(eq(usersTable.id, target.id));
 
   res.json({ isFounder: newValue });
+});
+
+// PUT /users/:username/set-founder-verified — founder only (isFounder=true), grants purple badge
+router.put("/users/:username/set-founder-verified", requireUser, async (req, res): Promise<void> => {
+  const currentUser = (req as any).currentUser as typeof usersTable.$inferSelect;
+
+  if (!(currentUser as any).isFounder) {
+    res.status(403).json({ error: "Only founders can grant the purple badge" });
+    return;
+  }
+
+  const params = GetUserByUsernameParams.safeParse(req.params);
+  if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
+
+  const [target] = await db.select().from(usersTable).where(eq(usersTable.username, params.data.username));
+  if (!target) { res.status(404).json({ error: "User not found" }); return; }
+
+  const newValue = !(target as any).isFounderVerified;
+  await db.execute(sql`UPDATE users SET is_founder_verified = ${newValue} WHERE id = ${target.id}`);
+
+  res.json({ isFounderVerified: newValue });
+});
+
+// PUT /users/:username/ban — founder moderation
+router.put("/users/:username/ban", requireUser, async (req, res): Promise<void> => {
+  const currentUser = (req as any).currentUser as typeof usersTable.$inferSelect;
+
+  if (!(currentUser as any).isFounder && currentUser.id !== 1) {
+    res.status(403).json({ error: "Insufficient permissions" });
+    return;
+  }
+
+  const params = GetUserByUsernameParams.safeParse(req.params);
+  if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
+
+  const [target] = await db.select().from(usersTable).where(eq(usersTable.username, params.data.username));
+  if (!target) { res.status(404).json({ error: "User not found" }); return; }
+  if (target.id === currentUser.id) { res.status(400).json({ error: "Cannot ban yourself" }); return; }
+  if (target.id === 1) { res.status(403).json({ error: "Cannot ban the app owner" }); return; }
+
+  const newValue = !(target as any).isBanned;
+  await db.execute(sql`UPDATE users SET is_banned = ${newValue} WHERE id = ${target.id}`);
+
+  res.json({ isBanned: newValue });
+});
+
+// DELETE /admin/posts/:id — founder/admin can delete any post
+router.delete("/admin/posts/:id", requireUser, async (req, res): Promise<void> => {
+  const currentUser = (req as any).currentUser as typeof usersTable.$inferSelect;
+
+  if (!(currentUser as any).isFounder && currentUser.id !== 1) {
+    res.status(403).json({ error: "Insufficient permissions" });
+    return;
+  }
+
+  const postId = parseInt(req.params.id);
+  if (isNaN(postId)) { res.status(400).json({ error: "Invalid post id" }); return; }
+
+  await db.delete(postsTable).where(eq(postsTable.id, postId));
+  res.json({ success: true });
+});
+
+// DELETE /admin/chirps/:id — founder/admin can delete any chirp
+router.delete("/admin/chirps/:id", requireUser, async (req, res): Promise<void> => {
+  const currentUser = (req as any).currentUser as typeof usersTable.$inferSelect;
+
+  if (!(currentUser as any).isFounder && currentUser.id !== 1) {
+    res.status(403).json({ error: "Insufficient permissions" });
+    return;
+  }
+
+  const chirpId = parseInt(req.params.id);
+  if (isNaN(chirpId)) { res.status(400).json({ error: "Invalid chirp id" }); return; }
+
+  await db.execute(sql`DELETE FROM chirps WHERE id = ${chirpId}`);
+  res.json({ success: true });
+});
+
+// ─── Block routes ──────────────────────────────────────────────────────────────
+
+// GET /blocks — get my blocked users list
+router.get("/blocks", requireUser, async (req, res): Promise<void> => {
+  const currentUser = (req as any).currentUser as typeof usersTable.$inferSelect;
+
+  const blocked = await db.select({ user: usersTable })
+    .from(blocksTable)
+    .innerJoin(usersTable, eq(blocksTable.blockedId, usersTable.id))
+    .where(eq(blocksTable.blockerId, currentUser.id));
+
+  res.json(blocked.map(b => buildUserSummary(b.user)));
+});
+
+// POST /blocks/:username — block a user
+router.post("/blocks/:username", requireUser, async (req, res): Promise<void> => {
+  const currentUser = (req as any).currentUser as typeof usersTable.$inferSelect;
+  const username = req.params.username;
+
+  const [target] = await db.select().from(usersTable).where(eq(usersTable.username, username));
+  if (!target) { res.status(404).json({ error: "User not found" }); return; }
+  if (target.id === currentUser.id) { res.status(400).json({ error: "Cannot block yourself" }); return; }
+
+  const [existing] = await db.select().from(blocksTable).where(
+    and(eq(blocksTable.blockerId, currentUser.id), eq(blocksTable.blockedId, target.id))
+  );
+  if (!existing) {
+    await db.insert(blocksTable).values({ blockerId: currentUser.id, blockedId: target.id });
+    // Also remove follows in both directions
+    await db.delete(followsTable).where(
+      and(eq(followsTable.followerId, currentUser.id), eq(followsTable.followingId, target.id))
+    );
+    await db.delete(followsTable).where(
+      and(eq(followsTable.followerId, target.id), eq(followsTable.followingId, currentUser.id))
+    );
+  }
+
+  res.json({ isBlocked: true });
+});
+
+// DELETE /blocks/:username — unblock a user
+router.delete("/blocks/:username", requireUser, async (req, res): Promise<void> => {
+  const currentUser = (req as any).currentUser as typeof usersTable.$inferSelect;
+  const username = req.params.username;
+
+  const [target] = await db.select().from(usersTable).where(eq(usersTable.username, username));
+  if (!target) { res.status(404).json({ error: "User not found" }); return; }
+
+  await db.delete(blocksTable).where(
+    and(eq(blocksTable.blockerId, currentUser.id), eq(blocksTable.blockedId, target.id))
+  );
+
+  res.json({ isBlocked: false });
 });
 
 export default router;
