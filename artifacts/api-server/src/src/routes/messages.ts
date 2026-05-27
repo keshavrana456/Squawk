@@ -330,12 +330,15 @@ router.post("/conversations/:id/messages", requireUser, async (req, res): Promis
   // Real-time: broadcast to everyone in the conversation room
   emitToConversation(String(params.data.id), "new_message", msgResponse);
 
-  // Notify all other participants' user rooms
+  // Also notify each non-sender participant via their personal user room
+  // (covers users who are NOT currently on the Messages page and therefore
+  //  not subscribed to the conversation room)
   const participants = await db.select({ userId: conversationParticipantsTable.userId })
     .from(conversationParticipantsTable)
     .where(eq(conversationParticipantsTable.conversationId, params.data.id));
   for (const p of participants) {
     if (p.userId !== currentUser.id) {
+      emitToUser(String(p.userId), "new_message", msgResponse);
       emitToUser(String(p.userId), "conversation_updated", { conversationId: params.data.id });
     }
   }

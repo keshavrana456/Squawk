@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence, type PanInfo } from "framer-motion";
 import { X, Heart, MessageCircle, UserPlus, Repeat2, Bell } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -37,6 +37,9 @@ export default function LiveNotificationToast() {
   const { socket } = useSocket();
   const { data: me } = useGetMe();
   const { activeConversationId } = useActiveChat();
+  // Deduplicate message IDs — the server now emits new_message to BOTH the
+  // conversation room and the recipient's user room so we may see it twice
+  const seenMsgIds = useRef<Set<number>>(new Set());
 
   const addToast = useCallback((item: Omit<ToastItem, "id">) => {
     const id = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -51,10 +54,18 @@ export default function LiveNotificationToast() {
     setToasts(prev => prev.filter(t => t.id !== id));
   }, []);
 
+  // Keep a stable ref to `me.id` so the socket handler always sees the current value
+  const meIdRef = useRef<number | undefined>(undefined);
+  useEffect(() => { meIdRef.current = me?.id; }, [me?.id]);
+
+  const activeConvIdRef = useRef<number | null>(null);
+  useEffect(() => { activeConvIdRef.current = activeConversationId; }, [activeConversationId]);
+
   useEffect(() => {
     if (!socket) return;
 
     const onNotification = (notif: any) => {
+      console.log("[Notif] received:", notif.type, notif.actorUsername);
       const name = notif.actorDisplayName || notif.actorUsername || "Someone";
       const label = NOTIF_LABELS[notif.type] ?? "interacted with you";
       addToast({
@@ -69,10 +80,24 @@ export default function LiveNotificationToast() {
 
     const onNewMessage = (msg: any) => {
       if (msg.messageType === "missed_call") return;
-      // Don't show popup for messages the current user sent
-      if (me && (msg.senderId === me.id || msg.sender?.id === me.id)) return;
-      // Suppress toast when user is actively viewing this conversation
-      if (activeConversationId && msg.conversationId === activeConversationId) return;
+      // Deduplicate — user may receive this from both conversation room and user room
+      if (msg.id && seenMsgIds.current.has(msg.id)) return;
+      if (msg.id) {
+        seenMsgIds.current.add(msg.id);
+        // Prune old IDs so the set doesn't grow unbounded
+        if (seenMsgIds.current.size > 200) {
+          const arr = [...seenMsgIds.current];
+          seenMsgIds.current = new Set(arr.slice(arr.length - 100));
+        }
+      }
+      // Don't show for own messages (use stable ref to avoid stale closure)
+      const myId = meIdRef.current;
+      if (myId && (msg.senderId === myId || msg.sender?.id === myId)) return;
+      // Suppress when actively viewing that conversation
+      const activeCid = activeConvIdRef.current;
+      if (activeCid && msg.conversationId === activeCid) return;
+
+      console.log("[Notif] new_message from:", msg.sender?.displayName || msg.senderId);
       const name = msg.sender?.displayName || msg.sender?.username || "Someone";
       const body = msg.messageType === "gif" ? "Sent a GIF" : (msg.content?.slice(0, 90) || "Sent a message");
       addToast({
@@ -92,7 +117,7 @@ export default function LiveNotificationToast() {
       socket.off("notification", onNotification);
       socket.off("new_message", onNewMessage);
     };
-  }, [socket, addToast, activeConversationId]);
+  }, [socket, addToast]);
 
   return (
     <div
