@@ -151,13 +151,13 @@ export default function ProfilePage() {
   const [showEarnModal, setShowEarnModal] = useState(false);
   const [earnNoClicked, setEarnNoClicked] = useState(false);
   const [showMobileYesMsg, setShowMobileYesMsg] = useState(false);
-  const [yesAbsPos, setYesAbsPos] = useState<{ x: number; y: number } | null>(null);
+  const [yesAbsPos, setYesAbsPos] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
   const yesFleesLeftRef = useRef(5);
   const yesCooldownRef = useRef(false);
   const yesBtnRef = useRef<HTMLButtonElement>(null);
   const earnModalRef = useRef<HTMLDivElement>(null);
 
-  // Detach Yes button from the flex row into absolute position (same visual spot)
+  // Detach Yes button: read its exact position + size from the inline render, then go absolute
   useEffect(() => {
     if (showEarnModal) {
       const t = setTimeout(() => {
@@ -166,11 +166,15 @@ export default function ProfilePage() {
         if (!modal || !btn) return;
         const modalRect = modal.getBoundingClientRect();
         const btnRect = btn.getBoundingClientRect();
+        // Only detach if the button is actually visible in the DOM
+        if (btnRect.width === 0 || btnRect.height === 0) return;
         setYesAbsPos({
           x: btnRect.left - modalRect.left,
           y: btnRect.top - modalRect.top,
+          w: btnRect.width,
+          h: btnRect.height,
         });
-      }, 60);
+      }, 350);
       return () => clearTimeout(t);
     } else {
       setYesAbsPos(null);
@@ -1238,7 +1242,7 @@ export default function ProfilePage() {
               className="relative bg-card border border-border rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl"
               onClick={e => e.stopPropagation()}
             >
-              {/* Yes button — starts inline next to No, detaches to absolute after 60ms and flees */}
+              {/* Yes button — absolute clone, appears once position is known */}
               {!earnNoClicked && yesAbsPos && (
                 <button
                   ref={yesBtnRef}
@@ -1247,8 +1251,8 @@ export default function ProfilePage() {
                   style={{
                     left: yesAbsPos.x,
                     top: yesAbsPos.y,
-                    width: (earnModalRef.current?.querySelector(".yes-ghost") as HTMLElement)?.offsetWidth || undefined,
-                    height: (earnModalRef.current?.querySelector(".yes-ghost") as HTMLElement)?.offsetHeight || undefined,
+                    width: yesAbsPos.w,
+                    height: yesAbsPos.h,
                     background: "linear-gradient(135deg,#10b981,#059669)",
                     boxShadow: "0 0 16px 4px rgba(16,185,129,0.45)",
                     transition: "left 0.18s cubic-bezier(.22,.68,0,1.2), top 0.18s cubic-bezier(.22,.68,0,1.2)",
@@ -1276,8 +1280,8 @@ export default function ProfilePage() {
                 </div>
               </div>
 
-              {/* Body */}
-              <div className="px-6 py-5 space-y-4 max-h-[55vh] overflow-y-auto">
+              {/* Body — scrollable info only */}
+              <div className="px-6 py-5 space-y-4 max-h-[45vh] overflow-y-auto">
                 <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-4 space-y-1">
                   <p className="text-sm font-bold text-emerald-400 flex items-center gap-2">📸 Post Flows</p>
                   <p className="text-sm text-muted-foreground">Every post you share earns flow points based on engagement — likes, comments, and reshares all count. Top creators get a monthly cash payout from the community pool.</p>
@@ -1299,45 +1303,36 @@ export default function ProfilePage() {
                   <p className="text-sm text-muted-foreground">Invite friends using your unique link. Earn 10% of their flow points for 90 days — automatically, with zero extra effort required from you.</p>
                 </div>
 
-                {!earnNoClicked && (
-                  <div className="pt-2">
-                    <p className="text-center text-sm font-bold text-foreground mb-4">Ready to start earning? 🚀</p>
-                    <div className="flex items-center gap-4">
-                      <button
-                        onClick={() => { setEarnNoClicked(true); toast("BEST DECISION OF LIFE", { icon: "🏆", duration: 5000 }); }}
-                        className="flex-1 py-3 rounded-full font-black text-sm border-2 border-red-500/60 text-red-400 hover:bg-red-500/10 transition-all"
-                      >
-                        No
-                      </button>
-                      {/* Before detach: Yes sits inline here. After detach: ghost holds the space. */}
-                      {!yesAbsPos ? (
-                        <button
-                          ref={yesBtnRef}
-                          onClick={() => setShowMobileYesMsg(true)}
-                          className="yes-ghost flex-1 py-3 rounded-full font-black text-sm text-white"
-                          style={{ background: "linear-gradient(135deg,#10b981,#059669)", boxShadow: "0 0 16px 4px rgba(16,185,129,0.45)" }}
-                        >
-                          Yes
-                        </button>
-                      ) : (
-                        <div className="yes-ghost flex-1 py-3" aria-hidden />
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {earnNoClicked && (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.85 }} animate={{ opacity: 1, scale: 1 }}
-                    className="text-center py-6"
-                  >
-                    <div className="text-5xl mb-3">🏆</div>
-                    <p className="text-2xl font-black text-foreground uppercase tracking-wide">BEST DECISION</p>
-                    <p className="text-2xl font-black text-emerald-400 uppercase tracking-wide">OF LIFE</p>
-                    <p className="text-muted-foreground text-sm mt-2">You're already winning. 😎</p>
-                  </motion.div>
-                )}
               </div>
+
+              {/* Footer — always visible, never scrolled away */}
+              {!earnNoClicked && (
+                <div className="px-6 pb-5 pt-4 border-t border-border">
+                  <p className="text-center text-sm font-bold text-foreground mb-4">Ready to start earning? 🚀</p>
+                  <div className="flex items-center gap-4">
+                    <button
+                      onClick={() => { setEarnNoClicked(true); toast("BEST DECISION OF LIFE", { icon: "🏆", duration: 5000 }); }}
+                      className="flex-1 py-3 rounded-full font-black text-sm border-2 border-red-500/60 text-red-400 hover:bg-red-500/10 transition-all"
+                    >
+                      No
+                    </button>
+                    {/* Always in DOM — visible before detach, invisible (holds space) after */}
+                    <button
+                      ref={!yesAbsPos ? yesBtnRef : undefined}
+                      onClick={!yesAbsPos ? () => setShowMobileYesMsg(true) : undefined}
+                      className="flex-1 py-3 rounded-full font-black text-sm text-white"
+                      style={{
+                        background: "linear-gradient(135deg,#10b981,#059669)",
+                        boxShadow: "0 0 16px 4px rgba(16,185,129,0.45)",
+                        visibility: yesAbsPos ? "hidden" : "visible",
+                        pointerEvents: yesAbsPos ? "none" : "auto",
+                      }}
+                    >
+                      Yes
+                    </button>
+                  </div>
+                </div>
+              )}
             </motion.div>
           </motion.div>
         )}

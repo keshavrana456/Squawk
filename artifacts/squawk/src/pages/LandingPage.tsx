@@ -1116,7 +1116,7 @@ export default function LandingPage() {
       </nav>
 
       {/* ── Hero ─────────────────────────────────────────────────────── */}
-      <section className="relative flex flex-col items-center justify-center text-center px-4 pb-20 z-10 min-h-screen overflow-x-hidden pt-16">
+      <section className="relative flex flex-col items-center text-center px-4 z-10 min-h-screen overflow-x-hidden pt-16">
 
         <div className="absolute inset-0 z-0">
           <img
@@ -1134,11 +1134,12 @@ export default function LandingPage() {
           <div className="absolute bottom-[-5%] right-[-10%] w-[50%] h-[50%] rounded-full bg-pink-700/20 blur-[120px]" />
         </div>
 
+        {/* Main centered content */}
         <motion.div
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.85, ease: "easeOut" }}
-          className="max-w-4xl mx-auto relative z-10 mt-8"
+          className="flex-1 flex flex-col items-center justify-center max-w-4xl mx-auto relative z-10 w-full py-8"
         >
           <h1 className="font-bold tracking-tighter mb-6 leading-tight text-white drop-shadow-xl px-1">
             <span className="block text-[1.35rem] sm:text-2xl md:text-3xl lg:text-4xl font-semibold text-white/70 tracking-widest uppercase mb-1">Connect. Trade. Create.</span>
@@ -1161,36 +1162,31 @@ export default function LandingPage() {
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="ml-2 transition-transform group-hover:translate-x-1"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
             </button>
           </Link>
+        </motion.div>
 
-          <div className="mt-5 flex justify-center">
+        {/* Stats pinned to bottom — always visible */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.7, delay: 0.4 }}
+          className="relative z-10 w-full max-w-2xl mx-auto pb-8"
+        >
+          <div className="flex justify-center mb-4">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/8 border border-white/15 text-sm font-medium text-white/60 backdrop-blur-sm">
               <LiveDot live={hasLiveData} />
               {hasLiveData ? "Live stats · updates every 10s" : "The new social grid is live on Monad"}
             </div>
           </div>
-
-          {/* Live NFT Stats Grid */}
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.4 }}
-            className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-16 max-w-2xl mx-auto"
-          >
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {statCards.map(s => (
               <StatCard key={s.label} label={s.label} value={s.value} sub={s.sub} updating={updating} />
             ))}
-          </motion.div>
-
-          {/* Source attribution */}
+          </div>
           {hasLiveData && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="mt-4 text-[11px] text-white/25 flex items-center justify-center gap-1.5"
-            >
+            <div className="mt-3 text-[11px] text-white/25 flex items-center justify-center gap-1.5">
               <span className="w-1 h-1 rounded-full bg-green-400/60" />
               Live data from OpenSea · Monad chain
-            </motion.div>
+            </div>
           )}
         </motion.div>
       </section>
