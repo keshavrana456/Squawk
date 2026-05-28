@@ -132,7 +132,7 @@ type OAuthProviderId = typeof OAUTH_PROVIDERS[number]["id"];
 function OAuthSection({ mode }: { mode: "sign-in" | "sign-up" }) {
   const { isLoaded: signInLoaded, signIn } = useSignIn();
   const { isLoaded: signUpLoaded, signUp } = useSignUp();
-  const clerkReady = signInLoaded && signUpLoaded;
+  const clerkReady = mode === "sign-in" ? signInLoaded : signUpLoaded;
   const [loadingProvider, setLoadingProvider] = useState<OAuthProviderId | null>(null);
   const [oauthError, setOAuthError] = useState("");
 
