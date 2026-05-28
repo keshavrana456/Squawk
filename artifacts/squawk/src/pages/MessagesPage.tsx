@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { useMentions } from "@/hooks/useMentions";
+import MentionSuggestions from "@/components/MentionSuggestions";
 import { Link, useSearch as useRouteSearch } from "wouter";
 import {
   Send, Plus, ArrowLeft, MessageCircle, Search, X, Users, UserPlus,
@@ -946,6 +948,8 @@ function ChatView({ conversationId, onBack, me, conversation, onConversationLeft
   const sendMutation = useSendMessage();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const msgInputRef = useRef<HTMLInputElement>(null);
+  const { suggestions: mentionSuggestions, loading: mentionsLoading, isOpen: mentionsOpen, handleChange: handleMentionChange, insertMention } = useMentions(content, setContent, msgInputRef);
   const { socket, isUserOnline } = useSocket();
   const { startCall, activeCall } = useCall();
   const queryClient = useQueryClient();
@@ -1356,11 +1360,21 @@ function ChatView({ conversationId, onBack, me, conversation, onConversationLeft
           </div>
         )}
 
+        <div className="relative">
+          <MentionSuggestions
+            suggestions={mentionSuggestions}
+            loading={mentionsLoading}
+            isOpen={mentionsOpen}
+            onSelect={insertMention}
+            className="absolute bottom-full left-0 right-0 mb-1 max-h-48 overflow-y-auto"
+          />
+        </div>
         <div className="flex items-end gap-2 bg-muted border border-border rounded-3xl p-1.5 focus-within:ring-1 focus-within:ring-primary">
           <Input
+            ref={msgInputRef}
             value={content}
             onChange={(e) => {
-              setContent(e.target.value);
+              handleMentionChange(e.target.value);
               handleTypingEmit();
             }}
             onKeyDown={(e) =>

@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link, useSearch } from "wouter";
+import { useMentions } from "@/hooks/useMentions";
+import MentionSuggestions from "@/components/MentionSuggestions";
 import { motion, AnimatePresence } from "framer-motion";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -446,6 +448,7 @@ function ChirpComposer({ me, replyTo, onClose, onPosted }: {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
   const createMut = useCreateChirp();
+  const { suggestions: mentionSuggestions, loading: mentionsLoading, isOpen: mentionsOpen, handleChange: handleMentionChange, insertMention } = useMentions(content, setContent, textareaRef);
 
   useEffect(() => { textareaRef.current?.focus(); }, []);
 
@@ -560,14 +563,23 @@ function ChirpComposer({ me, replyTo, onClose, onPosted }: {
             Replying to <span className="text-primary">@{replyTo.author.username}</span>
           </div>
         )}
-        <Textarea
-          ref={textareaRef}
-          value={content}
-          onChange={e => setContent(e.target.value)}
-          placeholder={replyTo ? "Post your reply..." : "What's chirping?"}
-          className="bg-transparent border-0 shadow-none focus-visible:ring-0 p-0 text-lg resize-none min-h-[80px] placeholder:text-muted-foreground/60"
-          onKeyDown={e => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) handlePost(); }}
-        />
+        <div className="relative">
+          <MentionSuggestions
+            suggestions={mentionSuggestions}
+            loading={mentionsLoading}
+            isOpen={mentionsOpen}
+            onSelect={insertMention}
+            className="absolute bottom-full left-0 right-0 mb-1 max-h-52 overflow-y-auto"
+          />
+          <Textarea
+            ref={textareaRef}
+            value={content}
+            onChange={e => handleMentionChange(e.target.value)}
+            placeholder={replyTo ? "Post your reply..." : "What's chirping?"}
+            className="bg-transparent border-0 shadow-none focus-visible:ring-0 p-0 text-lg resize-none min-h-[80px] placeholder:text-muted-foreground/60"
+            onKeyDown={e => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) handlePost(); }}
+          />
+        </div>
 
         {/* Media preview */}
         {mediaPreview && (

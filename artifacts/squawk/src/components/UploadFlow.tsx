@@ -3,6 +3,8 @@ import { UploadCloud, X, AlertCircle } from "lucide-react";
 import { useCreatePost } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { useMentions } from "@/hooks/useMentions";
+import MentionSuggestions from "@/components/MentionSuggestions";
 
 export default function UploadFlow({ onSuccess }: { onSuccess?: () => void }) {
   const [file, setFile] = useState<File | null>(null);
@@ -14,6 +16,8 @@ export default function UploadFlow({ onSuccess }: { onSuccess?: () => void }) {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const captionRef = useRef<HTMLTextAreaElement>(null);
+  const { suggestions: mentionSuggestions, loading: mentionsLoading, isOpen: mentionsOpen, handleChange: handleMentionChange, insertMention } = useMentions(caption, setCaption, captionRef);
 
   const createPostMutation = useCreatePost();
 
@@ -159,11 +163,19 @@ export default function UploadFlow({ onSuccess }: { onSuccess?: () => void }) {
             </button>
           </div>
 
-          <div>
+          <div className="relative">
+            <MentionSuggestions
+              suggestions={mentionSuggestions}
+              loading={mentionsLoading}
+              isOpen={mentionsOpen}
+              onSelect={insertMention}
+              className="absolute bottom-full left-0 right-0 mb-1 max-h-52 overflow-y-auto"
+            />
             <Textarea
+              ref={captionRef}
               placeholder="Write a caption..."
               value={caption}
-              onChange={(e) => setCaption(e.target.value)}
+              onChange={(e) => handleMentionChange(e.target.value)}
               className="resize-none h-24 bg-input border-border"
               maxLength={2200}
               data-testid="input-caption"

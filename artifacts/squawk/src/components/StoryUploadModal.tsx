@@ -4,6 +4,8 @@ import { useGetMe } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { motion, AnimatePresence } from "framer-motion";
+import { useMentions } from "@/hooks/useMentions";
+import MentionSuggestions from "@/components/MentionSuggestions";
 
 interface StoryUploadModalProps {
   open: boolean;
@@ -64,6 +66,8 @@ export default function StoryUploadModal({ open, onClose, onSuccess }: StoryUplo
   const lastPinchRotation = useRef<number>(0);
   const textDragging = useRef<{ id: string; startX: number; startY: number } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const storyTextRef = useRef<HTMLTextAreaElement>(null);
+  const { suggestions: mentionSuggestions, loading: mentionsLoading, isOpen: mentionsOpen, handleChange: handleMentionChange, insertMention } = useMentions(editingText, setEditingText, storyTextRef);
 
   const reset = () => {
     setFile(null); setPreview(null); setError(null); setUploading(false);
@@ -517,10 +521,19 @@ export default function StoryUploadModal({ open, onClose, onSuccess }: StoryUplo
                             </button>
                           ))}
                         </div>
+                        <div className="relative w-full">
+                          <MentionSuggestions
+                            suggestions={mentionSuggestions}
+                            loading={mentionsLoading}
+                            isOpen={mentionsOpen}
+                            onSelect={insertMention}
+                            className="absolute bottom-full left-0 right-0 mb-1 max-h-40 overflow-y-auto"
+                          />
                         <textarea
+                          ref={storyTextRef}
                           autoFocus
                           value={editingText}
-                          onChange={e => setEditingText(e.target.value)}
+                          onChange={e => handleMentionChange(e.target.value)}
                           placeholder="Add text or @mention…"
                           className="w-full bg-black/60 backdrop-blur-md text-center text-sm rounded-xl px-4 py-3 border border-white/20 resize-none outline-none placeholder:text-white/40 min-h-[72px]"
                           style={{ color: editColor, fontSize: "18px" }}
@@ -530,6 +543,7 @@ export default function StoryUploadModal({ open, onClose, onSuccess }: StoryUplo
                             if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); commitEdit(); }
                           }}
                         />
+                        </div>
                         <div className="flex gap-2">
                           <button
                             onClick={() => { setEditingId(null); setEditingText(""); }}

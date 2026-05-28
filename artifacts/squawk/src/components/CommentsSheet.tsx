@@ -5,6 +5,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useGetPostComments, useGetMe } from "@workspace/api-client-react";
 import { formatDistanceToNow } from "date-fns";
 import { Link } from "wouter";
+import { useMentions } from "@/hooks/useMentions";
+import MentionSuggestions from "@/components/MentionSuggestions";
 
 interface CommentsSheetProps {
   postId: number;
@@ -44,19 +46,20 @@ export default function CommentsSheet({ postId, commentsCount, isOpen, onClose }
   const [text, setText] = useState("");
   const [replyTo, setReplyTo] = useState<{ username: string; commentId: number } | null>(null);
   const [likeStates, setLikeStates] = useState<Record<number, LikeState>>({});
-  const [mentionQuery, setMentionQuery] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const { suggestions: mentionSuggestions, loading: mentionsLoading, isOpen: mentionsOpen, handleChange: handleMentionChange, insertMention, dismiss: dismissMention } = useMentions(text, setText, inputRef);
 
   // Reset state when closed
   useEffect(() => {
     if (!isOpen) {
       setText("");
       setReplyTo(null);
-      setMentionQuery(null);
+      dismissMention();
     }
-  }, [isOpen]);
+  }, [isOpen, dismissMention]);
 
   const getLikeState = (comment: any): LikeState => {
     if (likeStates[comment.id] !== undefined) return likeStates[comment.id];
@@ -97,11 +100,6 @@ export default function CommentsSheet({ postId, commentsCount, isOpen, onClose }
     setDeletingId(null);
   }, [refetch]);
 
-  const handleTextChange = (val: string) => {
-    setText(val);
-    const match = val.match(/@(\w*)$/);
-    setMentionQuery(match ? match[1] : null);
-  };
 
   const handlePaste = async (e: React.ClipboardEvent<HTMLInputElement>) => {
     const item = Array.from(e.clipboardData.items).find(
@@ -121,12 +119,6 @@ export default function CommentsSheet({ postId, commentsCount, isOpen, onClose }
     } catch {}
   };
 
-  const insertMention = (username: string) => {
-    const newText = text.replace(/@\w*$/, `@${username} `);
-    setText(newText);
-    setMentionQuery(null);
-    inputRef.current?.focus();
-  };
 
   const handleSubmit = async () => {
     if (!text.trim() || postId <= 0 || isSubmitting) return;
@@ -145,7 +137,7 @@ export default function CommentsSheet({ postId, commentsCount, isOpen, onClose }
       if (res.ok) {
         setText("");
         setReplyTo(null);
-        setMentionQuery(null);
+        dismissMention();
         refetch();
       }
     } catch {
@@ -160,11 +152,6 @@ export default function CommentsSheet({ postId, commentsCount, isOpen, onClose }
     try { return formatDistanceToNow(new Date(d), { addSuffix: true }); } catch { return ""; }
   };
 
-  // Build commenter usernames for @mention suggestions
-  const allUsernames = [...new Set(rawComments.map((c: any) => c.author?.username).filter(Boolean))];
-  const mentionSuggestions = mentionQuery !== null
-    ? allUsernames.filter(u => u.toLowerCase().startsWith(mentionQuery.toLowerCase())).slice(0, 5)
-    : [];
 
   // Separate top-level and replies using parentCommentId (preferred) or text-matching fallback
   const topLevelComments = rawComments.filter((c: any) => !c.parentCommentId);
@@ -410,26 +397,13 @@ export default function CommentsSheet({ postId, commentsCount, isOpen, onClose }
             {/* Input bar */}
             <div className="px-4 py-3 border-t border-border flex flex-col gap-2 shrink-0 bg-card relative">
               {/* @mention suggestions */}
-              <AnimatePresence>
-                {mentionSuggestions.length > 0 && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 4 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 4 }}
-                    className="absolute bottom-full left-4 right-4 mb-1 bg-card border border-border rounded-xl shadow-lg overflow-hidden z-10"
-                  >
-                    {mentionSuggestions.map(username => (
-                      <button
-                        key={username}
-                        onMouseDown={(e) => { e.preventDefault(); insertMention(username); }}
-                        className="w-full flex items-center gap-2 px-3 py-2 hover:bg-muted text-sm text-left transition-colors"
-                      >
-                        <span className="text-primary font-semibold">@{username}</span>
-                      </button>
-                    ))}
-                  </motion.div>
-                )}
-              </AnimatePresence>
+              <MentionSuggestions
+                suggestions={mentionSuggestions}
+                loading={mentionsLoading}
+                isOpen={mentionsOpen}
+                onSelect={insertMention}
+                className="absolute bottom-full left-0 right-0 mb-1 max-h-52 overflow-y-auto"
+              />
 
               {replyTo && (
                 <div className="flex items-center gap-1 text-xs text-primary bg-primary/10 rounded-full px-3 py-1.5 w-fit">
@@ -444,7 +418,7 @@ export default function CommentsSheet({ postId, commentsCount, isOpen, onClose }
                 <input
                   ref={inputRef}
                   value={text}
-                  onChange={(e) => handleTextChange(e.target.value)}
+                  onChange={(e) => handleMentionChange(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
                   onPaste={handlePaste}
                   placeholder={replyTo ? `Reply to @${replyTo.username}…` : "Add a comment…"}
