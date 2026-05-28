@@ -1,0 +1,162 @@
+Replace the current voice call and video call system in my website with Stream Video SDK and fully integrate Instagram-style DM calling experience.
+
+Current Stack:
+
+* Frontend: React + Vite
+* Backend: Node.js
+* Existing DM system already implemented
+* Existing authentication system already implemented
+* Existing call provider should be completely removed and replaced
+
+Goal:
+Implement real-time 1-to-1 voice and video calling directly inside DMs similar to Instagram, Telegram, and Discord.
+
+Requirements:
+
+1. Replace Existing Call System
+
+* Remove previous voice/video SDK completely
+* Remove old call UI, old socket events, and old provider dependencies
+* Clean unused files and packages
+* Migrate everything to Stream Video SDK
+
+2. Stream Video SDK Integration
+   Use:
+
+* @stream-io/video-react-sdk
+* @stream-io/video-client
+
+Implement:
+
+* secure token generation backend
+* authenticated user connection
+* realtime call creation
+* joining/leaving calls
+* incoming call handling
+
+3. DM Voice & Video Calling
+   Inside every DM chat add:
+
+* voice call button
+* video call button
+
+Behavior:
+
+* clicking voice call starts audio-only call
+* clicking video call starts camera call
+* create unique call room per conversation
+
+4. Incoming Call Experience
+   Create Instagram-style incoming call popup:
+
+* caller profile picture
+* username
+* Accept button
+* Decline button
+* ringing animation
+* play ringtone sound
+
+Popup should appear globally even if user is on another page.
+
+5. Call UI
+   Create modern fullscreen call UI similar to Instagram/Discord.
+
+Voice Call UI:
+
+* profile avatar
+* animated speaking indicator
+* mute/unmute
+* speaker toggle
+* end call button
+* call timer
+
+Video Call UI:
+
+* local camera preview
+* remote video
+* mute mic
+* camera on/off
+* switch camera
+* fullscreen responsive layout
+* end call button
+* connection status
+
+6. Realtime Features
+   Implement:
+
+* realtime ringing
+* call status sync
+* missed call handling
+* busy state handling
+* call ended events
+* reconnect handling
+
+7. Notifications
+   Add:
+
+* incoming call notification
+* missed call notification
+* active call state management
+
+8. UI/UX
+   Design should match my current website theme and feel premium/social-media style.
+
+Use:
+
+* smooth animations
+* glassmorphism
+* rounded modern buttons
+* responsive mobile layout
+* dark mode support
+
+9. Backend Requirements
+   Create backend endpoints for:
+
+* Stream token generation
+* authenticated user session
+* call initialization
+* secure call permissions
+
+10. State Management
+    Use:
+
+* Context API or Zustand
+* persistent call state
+* global incoming call handling
+
+11. Performance
+    Optimize:
+
+* lazy loading
+* cleanup listeners properly
+* prevent duplicate connections
+* mobile-friendly performance
+
+12. Deliverables
+    Provide:
+
+* complete frontend implementation
+* backend implementation
+* reusable components
+* proper folder structure
+* environment variables required
+* setup instructions
+* production-ready code
+
+13. Additional Features
+    Add:
+
+* call duration timer
+* typing-safe call overlay
+* animated speaking border
+* call reconnect loader
+* online/offline status integration
+
+14. Final Result
+    The final experience should feel like:
+
+* Instagram DM calls
+* Telegram calls
+* Discord private calls
+
+with smooth realtime behavior and polished modern UI.
