@@ -122,13 +122,15 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
   const startCall = useCallback(async (otherUser: CallUser, callType: "voice" | "video", fromUser: CallUser) => {
     if (!streamClient || !socket) return;
     const callId = buildCallId(fromUser.id, otherUser.id);
-    const callTypeStr = callType === "video" ? "default" : "audio_room";
-    const call = streamClient.call(callTypeStr, callId);
+    const call = streamClient.call("default", callId);
     try {
       await call.getOrCreate({ ring: true, data: { members: [{ user_id: String(fromUser.id) }, { user_id: String(otherUser.id) }] } });
       await call.join({ create: false });
     } catch {
       try { await call.join({ create: true }); } catch {}
+    }
+    if (callType === "voice") {
+      try { await call.camera.disable(); } catch {}
     }
     setStreamCall(call as any);
     setActiveCallMeta({ otherUser, callType });
@@ -137,12 +139,14 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
 
   const acceptCall = useCallback(async () => {
     if (!streamClient || !incomingCall || !socket) return;
-    const callTypeStr = incomingCall.callType === "video" ? "default" : "audio_room";
-    const call = streamClient.call(callTypeStr, incomingCall.callId);
+    const call = streamClient.call("default", incomingCall.callId);
     try {
       await call.join({ create: false });
     } catch {
       try { await call.join({ create: true }); } catch {}
+    }
+    if (incomingCall.callType === "voice") {
+      try { await call.camera.disable(); } catch {}
     }
     setStreamCall(call as any);
     setActiveCallMeta({ otherUser: incomingCall.fromUser, callType: incomingCall.callType });
