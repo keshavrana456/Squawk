@@ -290,15 +290,6 @@ export default function PostCard({ post, onLike, onSave, onComment }: PostCardPr
                       <DropdownMenuSeparator />
                     </>
                   )}
-                  <DropdownMenuItem className="cursor-pointer">
-                    <Flag className="w-4 h-4 mr-2" />
-                    Report
-                  </DropdownMenuItem>
-                  <DropdownMenuItem className="cursor-pointer">
-                    <EyeOff className="w-4 h-4 mr-2" />
-                    Not interested
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleCopyLink} className="cursor-pointer">
                     <Copy className="w-4 h-4 mr-2" />
                     Copy link
