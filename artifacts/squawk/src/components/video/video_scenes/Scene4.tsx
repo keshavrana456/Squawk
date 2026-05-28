@@ -1,10 +1,6 @@
 import { motion } from 'framer-motion';
 import { useState, useEffect } from 'react';
-
-const CHIRPS = [
-  { user: "@voidwalker", text: "gm squad, floor is moving 🚀", time: "2m" },
-  { user: "@monadmax", text: "just copped my 3rd 10k nft, no looking back 💎", time: "5m" }
-];
+import partyVideo from "@assets/party_1780004743615.mp4";
 
 export function Scene4() {
   const [phase, setPhase] = useState(0);
@@ -13,87 +9,65 @@ export function Scene4() {
     const timers = [
       setTimeout(() => setPhase(1), 500),
       setTimeout(() => setPhase(2), 1500),
-      setTimeout(() => setPhase(3), 3000),
+      setTimeout(() => setPhase(3), 6000),
     ];
     return () => timers.forEach(t => clearTimeout(t));
   }, []);
 
   return (
     <motion.div 
-      className="absolute inset-0 flex items-center justify-center z-10 w-full h-full overflow-hidden"
-      initial={{ opacity: 0, y: '100vh', scale: 1.2 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, x: '100vw', filter: 'blur(10px)' }}
-      transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
+      className="absolute inset-0 flex items-center justify-center z-10 w-full h-full overflow-hidden bg-black"
+      initial={{ opacity: 0, clipPath: 'polygon(50% 50%, 50% 50%, 50% 50%, 50% 50%)' }}
+      animate={{ opacity: 1, clipPath: 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)' }}
+      exit={{ opacity: 0, scale: 1.2 }}
+      transition={{ duration: 1.5, ease: [0.16, 1, 0.3, 1] }}
     >
-      <div className="flex w-[85vw] h-[80vh] gap-[5vw]">
-        {/* Left: Feed Flow */}
-        <div className="w-[45%] h-full flex flex-col gap-[3vh] relative z-20 justify-center">
-          <motion.div
-            className="w-full h-[50vh] bg-[#1a0b38] rounded-3xl border border-[#8b5cf6]/30 overflow-hidden shadow-[0_0_40px_rgba(139,92,246,0.2)]"
-            initial={{ opacity: 0, x: -100 }}
-            animate={phase >= 1 ? { opacity: 1, x: 0 } : { opacity: 0, x: -100 }}
-            transition={{ type: 'spring', stiffness: 100, damping: 20 }}
-          >
-            <div className="p-[2vw] flex items-center gap-[1vw] border-b border-white/10">
-              <div className="w-[3vw] h-[3vw] rounded-full bg-[#f472b6]/20" />
-              <div>
-                <div className="w-[10vw] h-[1vw] bg-white/20 rounded-full mb-[0.5vh]" />
-                <div className="w-[5vw] h-[0.8vw] bg-white/10 rounded-full" />
-              </div>
-            </div>
-            <div className="w-full h-full relative">
-              <img src={`${import.meta.env.BASE_URL}nft-banner.png`} className="w-full h-full object-cover" alt="Post" />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
-              <div className="absolute bottom-[2vw] left-[2vw] right-[2vw] flex justify-between items-end">
-                 <div className="w-[60%]">
-                    <div className="w-full h-[1.5vw] bg-white/30 rounded-full mb-[1vh]" />
-                    <div className="w-3/4 h-[1vw] bg-white/20 rounded-full" />
-                 </div>
-                 <div className="flex gap-[1vw]">
-                    <div className="w-[3vw] h-[3vw] rounded-full bg-white/20 backdrop-blur-md" />
-                    <div className="w-[3vw] h-[3vw] rounded-full bg-[#f472b6]/80 backdrop-blur-md" />
-                 </div>
-              </div>
-            </div>
-          </motion.div>
-        </div>
-
-        {/* Right: Chirps & Text */}
-        <div className="w-[55%] flex flex-col justify-center gap-[4vh] z-20">
-          <motion.div className="flex flex-col gap-[2vh]">
-            {CHIRPS.map((chirp, i) => (
-              <motion.div
-                key={i}
-                className="bg-black/60 backdrop-blur-xl border border-[#f472b6]/30 p-[2vw] rounded-2xl shadow-[0_0_30px_rgba(244,114,182,0.15)]"
-                initial={{ opacity: 0, x: 100, scale: 0.9 }}
-                animate={phase >= 2 ? { opacity: 1, x: 0, scale: 1 } : { opacity: 0, x: 100, scale: 0.9 }}
-                transition={{ type: 'spring', stiffness: 120, damping: 15, delay: i * 0.2 }}
-              >
-                <div className="flex justify-between items-center mb-[1.5vh]">
-                  <span className="text-[#f472b6] font-bold text-[1.2vw]">{chirp.user}</span>
-                  <span className="text-white/40 text-[1vw]">{chirp.time}</span>
-                </div>
-                <p className="text-white text-[1.8vw] font-medium leading-tight">
-                  {chirp.text}
-                </p>
-              </motion.div>
-            ))}
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 50 }}
-            animate={phase >= 3 ? { opacity: 1, y: 0 } : { opacity: 0, y: 50 }}
-            transition={{ duration: 1, ease: "easeOut" }}
-            className="mt-[4vh]"
-          >
-            <h2 className="text-[5vw] font-bold text-white uppercase leading-none tracking-wider" style={{ fontFamily: "'Syncopate', sans-serif" }}>
-              Your community.<br/>
-              <span className="text-[#8b5cf6]">Your feed.</span>
-            </h2>
-          </motion.div>
-        </div>
+      <div className="absolute inset-0 z-0">
+        <video src={partyVideo} autoPlay muted loop playsInline className="w-full h-full object-cover opacity-70" />
+        <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/40 to-transparent" />
       </div>
+
+      <div className="absolute left-[8vw] z-20 flex flex-col justify-center h-full">
+        <motion.div className="overflow-hidden">
+          <motion.h2 
+            className="text-[12vw] font-bold text-white uppercase leading-none tracking-tighter"
+            style={{ fontFamily: "'Bebas Neue', sans-serif" }}
+            initial={{ y: '100%' }}
+            animate={phase >= 1 ? { y: '0%' } : { y: '100%' }}
+            transition={{ duration: 0.8, ease: "easeOut" }}
+          >
+            FLOWS
+          </motion.h2>
+        </motion.div>
+        
+        <motion.div
+          className="mt-[2vh] max-w-[40vw]"
+          initial={{ opacity: 0, x: -50 }}
+          animate={phase >= 2 ? { opacity: 1, x: 0 } : { opacity: 0, x: -50 }}
+          transition={{ duration: 1, ease: "easeOut" }}
+        >
+          <p className="text-[2.5vw] text-white/80 font-medium">Infinite scroll.</p>
+          <p className="text-[2.5vw] text-[#ff2d92] font-bold">Infinite vibes.</p>
+        </motion.div>
+      </div>
+
+      {/* Mock Reel UI Overlay on right */}
+      <motion.div 
+        className="absolute right-[8vw] bottom-[10vh] flex flex-col gap-[3vh] items-center z-20"
+        initial={{ opacity: 0, x: 50 }}
+        animate={phase >= 2 ? { opacity: 1, x: 0 } : { opacity: 0, x: 50 }}
+        transition={{ duration: 1, delay: 0.5 }}
+      >
+        <div className="w-[5vw] h-[5vw] rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center border border-white/20">
+          <span className="text-white text-[2vw]">❤️</span>
+        </div>
+        <div className="w-[5vw] h-[5vw] rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center border border-white/20">
+          <span className="text-white text-[2vw]">💬</span>
+        </div>
+        <div className="w-[5vw] h-[5vw] rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center border border-white/20">
+          <span className="text-white text-[2vw]">↗️</span>
+        </div>
+      </motion.div>
     </motion.div>
   );
 }
