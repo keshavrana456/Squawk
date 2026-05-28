@@ -6,84 +6,110 @@ export function Scene1() {
 
   useEffect(() => {
     const timers = [
-      setTimeout(() => setPhase(1), 800),
-      setTimeout(() => setPhase(2), 2500),
-      setTimeout(() => setPhase(3), 5000),
-      setTimeout(() => setPhase(4), 8500),
+      setTimeout(() => setPhase(1), 600),
+      setTimeout(() => setPhase(2), 1800),
+      setTimeout(() => setPhase(3), 3500),
     ];
     return () => timers.forEach(t => clearTimeout(t));
   }, []);
 
   return (
-    <motion.div 
+    <motion.div
       className="absolute inset-0 flex items-center justify-center z-10 w-full h-full overflow-hidden"
       initial={{ opacity: 0, filter: 'blur(10px) brightness(2)' }}
       animate={{ opacity: 1, filter: 'blur(0px) brightness(1)' }}
       exit={{ opacity: 0, scale: 1.5, filter: 'blur(20px) brightness(0.5)' }}
       transition={{ duration: 1.5, ease: [0.16, 1, 0.3, 1] }}
     >
-      {/* Glitch lines */}
-      <motion.div 
-        className="absolute inset-0 z-0 pointer-events-none opacity-20 mix-blend-overlay"
-        animate={{ 
-          backgroundPosition: ['0% 0%', '0% 100%', '100% 0%', '100% 100%']
-        }}
-        transition={{ duration: 0.2, repeat: Infinity, repeatType: 'reverse' }}
+      {/* Scanline overlay */}
+      <motion.div
+        className="absolute inset-0 z-0 pointer-events-none opacity-10 mix-blend-overlay"
+        animate={{ backgroundPosition: ['0% 0%', '0% 100%'] }}
+        transition={{ duration: 0.15, repeat: Infinity, repeatType: 'reverse' }}
         style={{
-          backgroundImage: 'linear-gradient(transparent 50%, rgba(255,255,255,0.5) 50%)',
+          backgroundImage: 'linear-gradient(transparent 50%, rgba(255,255,255,0.6) 50%)',
           backgroundSize: '100% 4px',
         }}
       />
 
+      {/* Center content */}
       <div className="relative z-20 flex flex-col items-center">
-        <motion.div 
-          className="w-[12vw] h-[12vw] mb-[4vh] relative"
-          initial={{ opacity: 0, scale: 0, rotate: -45 }}
-          animate={phase >= 1 ? { opacity: 1, scale: 1, rotate: 0 } : { opacity: 0, scale: 0, rotate: -45 }}
-          transition={{ type: 'spring', stiffness: 200, damping: 20 }}
-        >
-          <img src={`${import.meta.env.BASE_URL}logo.png`} alt="Squawk Logo" className="w-full h-full object-contain" />
-          <motion.div 
-            className="absolute inset-0 bg-[#f472b6] mix-blend-screen blur-[20px] -z-10"
-            animate={{ scale: [1, 1.2, 1], opacity: [0.5, 0.8, 0.5] }}
-            transition={{ duration: 2, repeat: Infinity }}
-          />
-        </motion.div>
-        
+        {/* SQUAWK — baby pink gradient, no logo */}
         <div className="relative">
-          <motion.h1 
-            className="text-[10vw] font-bold text-white uppercase tracking-[0.2em] leading-none"
-            style={{ fontFamily: "'Syncopate', sans-serif" }}
-            initial={{ opacity: 0, y: 50, filter: 'blur(10px)' }}
-            animate={phase >= 2 ? { opacity: 1, y: 0, filter: 'blur(0px)' } : { opacity: 0, y: 50, filter: 'blur(10px)' }}
+          <motion.h1
+            className="text-[13vw] font-bold uppercase tracking-[0.15em] leading-none"
+            style={{
+              fontFamily: "'Bebas Neue', sans-serif",
+              background: 'linear-gradient(135deg, #ffb3d4 0%, #ff6ab2 35%, #ff2d92 60%, #ff8ec7 85%, #ffd6ea 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text',
+            }}
+            initial={{ opacity: 0, y: 60, filter: 'blur(12px)' }}
+            animate={phase >= 1 ? { opacity: 1, y: 0, filter: 'blur(0px)' } : { opacity: 0, y: 60, filter: 'blur(12px)' }}
             transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
           >
             SQUAWK
           </motion.h1>
-          
-          {/* Chromatic aberration layers */}
-          {phase >= 2 && phase < 4 && (
+
+          {/* Chromatic aberration glitch layers */}
+          {phase >= 1 && phase < 3 && (
             <>
-              <motion.h1 
-                className="absolute top-0 left-[4px] text-[10vw] font-bold text-red-500 uppercase tracking-[0.2em] leading-none mix-blend-screen pointer-events-none"
-                style={{ fontFamily: "'Syncopate', sans-serif" }}
-                animate={{ x: [0, -5, 5, -2, 0], opacity: [0, 0.8, 0.2, 0.9, 0] }}
-                transition={{ duration: 0.4, repeat: Infinity, repeatType: 'mirror', repeatDelay: 2 }}
+              <motion.h1
+                className="absolute top-0 left-[4px] text-[13vw] font-bold text-red-400 uppercase tracking-[0.15em] leading-none mix-blend-screen pointer-events-none"
+                style={{ fontFamily: "'Bebas Neue', sans-serif" }}
+                animate={{ x: [0, -6, 4, -2, 0], opacity: [0, 0.7, 0.1, 0.8, 0] }}
+                transition={{ duration: 0.35, repeat: Infinity, repeatType: 'mirror', repeatDelay: 1.8 }}
               >
                 SQUAWK
               </motion.h1>
-              <motion.h1 
-                className="absolute top-0 -left-[4px] text-[10vw] font-bold text-cyan-500 uppercase tracking-[0.2em] leading-none mix-blend-screen pointer-events-none"
-                style={{ fontFamily: "'Syncopate', sans-serif" }}
-                animate={{ x: [0, 5, -5, 2, 0], opacity: [0, 0.8, 0.2, 0.9, 0] }}
-                transition={{ duration: 0.4, repeat: Infinity, repeatType: 'mirror', repeatDelay: 2, delay: 0.1 }}
+              <motion.h1
+                className="absolute top-0 -left-[4px] text-[13vw] font-bold text-cyan-400 uppercase tracking-[0.15em] leading-none mix-blend-screen pointer-events-none"
+                style={{ fontFamily: "'Bebas Neue', sans-serif" }}
+                animate={{ x: [0, 6, -4, 2, 0], opacity: [0, 0.7, 0.1, 0.8, 0] }}
+                transition={{ duration: 0.35, repeat: Infinity, repeatType: 'mirror', repeatDelay: 1.8, delay: 0.08 }}
               >
                 SQUAWK
               </motion.h1>
             </>
           )}
         </div>
+
+        {/* Tagline text */}
+        <motion.p
+          className="text-[2.2vw] text-white/60 mt-[2vh] tracking-[0.4em] uppercase font-light text-center"
+          style={{ fontFamily: "'Space Grotesk', sans-serif" }}
+          initial={{ opacity: 0, filter: 'blur(8px)' }}
+          animate={phase >= 2 ? { opacity: 1, filter: 'blur(0px)' } : { opacity: 0, filter: 'blur(8px)' }}
+          transition={{ duration: 1, ease: 'easeOut' }}
+        >
+          THE INTERNET MOVES FAST
+        </motion.p>
+        <motion.p
+          className="text-[2.2vw] text-[#ff2d92] mt-[0.5vh] tracking-[0.4em] uppercase font-bold text-center"
+          style={{ fontFamily: "'Space Grotesk', sans-serif" }}
+          initial={{ opacity: 0, filter: 'blur(8px)' }}
+          animate={phase >= 2 ? { opacity: 1, filter: 'blur(0px)' } : { opacity: 0, filter: 'blur(8px)' }}
+          transition={{ duration: 1, ease: 'easeOut', delay: 0.2 }}
+        >
+          CULTURE MOVES FASTER
+        </motion.p>
       </div>
+
+      {/* Bottom subheading */}
+      <motion.div
+        className="absolute bottom-[6vh] left-0 right-0 flex justify-center z-20"
+        initial={{ opacity: 0, y: 20 }}
+        animate={phase >= 3 ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
+        transition={{ duration: 1, ease: 'easeOut' }}
+      >
+        <p
+          className="text-[1.6vw] tracking-[0.35em] uppercase text-white/45 font-medium text-center"
+          style={{ fontFamily: "'Space Grotesk', sans-serif" }}
+        >
+          SOCIAL HOME FOR 10K SQUAD COMMUNITY
+        </p>
+      </motion.div>
     </motion.div>
   );
 }
