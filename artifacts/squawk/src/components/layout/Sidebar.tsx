@@ -28,7 +28,7 @@ export default function Sidebar() {
   const navItems = [
     { href: "/home", label: "Home", icon: Home },
     { href: "/explore", label: "Explore", icon: Compass },
-    { href: "/reels", label: "Flow", icon: PlaySquare },
+    { href: "/flows", label: "Flow", icon: PlaySquare },
     { href: "/chirps", label: "Chirps", icon: Bird },
     { href: "/messages", label: "Messages", icon: MessageCircle, badge: unreadMsgCount },
     { href: "/notifications", label: "Notifications", icon: Bell, badge: unreadCount },

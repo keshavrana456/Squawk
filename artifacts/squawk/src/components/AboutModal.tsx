@@ -8,7 +8,7 @@ import {
 
 const FEATURES = [
   { Icon: Camera,         label: "Posts & Stories",   desc: "Share photos, videos, and 24-hour stories with the community." },
-  { Icon: Zap,            label: "Flow — Reels",       desc: "Full-screen short video feed. Swipe, like, discover." },
+  { Icon: Zap,            label: "Flows",              desc: "Full-screen short video feed. Swipe, like, discover." },
   { Icon: MessageCircle,  label: "Chirps",             desc: "Short text posts (280 chars). Quick thoughts, instant reactions." },
   { Icon: Compass,        label: "Explore",            desc: "Discover trending posts, creators, and Monad events." },
   { Icon: Heart,          label: "Feed & Follow",      desc: "Personalised home feed from people you follow." },
@@ -90,10 +90,10 @@ export function AboutModal({ onClose }: AboutModalProps) {
             <section>
               <h3 className="text-xs font-bold text-purple-400 uppercase tracking-widest mb-3">About</h3>
               <p className="text-sm text-white/70 leading-relaxed">
-                Squawk is a Twitter/Instagram-style social platform built exclusively for the <span className="text-white font-semibold">10K Squad</span> NFT community and the broader <span className="text-white font-semibold">Monad</span> ecosystem. Post, share reels, send chirps, DM, explore trending content, and stay on top of every contest and Monad drop — all in one place.
+                Squawk is a Twitter/Instagram-style social platform built exclusively for the <span className="text-white font-semibold">10K Squad</span> NFT community and the broader <span className="text-white font-semibold">Monad</span> ecosystem. Post, share flows, send chirps, DM, explore trending content, and stay on top of every contest and Monad drop — all in one place.
               </p>
               <div className="mt-4 flex flex-wrap gap-2">
-                {["Posts", "Stories", "Reels", "Chirps", "DMs", "Explore", "Notifications", "Profiles", "Contests", "NFT Activity"].map(t => (
+                {["Posts", "Stories", "Flows", "Chirps", "DMs", "Explore", "Notifications", "Profiles", "Contests", "NFT Activity"].map(t => (
                   <span key={t} className="px-2.5 py-1 rounded-full text-[11px] font-semibold text-purple-300 border border-purple-500/30" style={{ background: "rgba(147,51,234,0.1)" }}>{t}</span>
                 ))}
               </div>
@@ -117,7 +117,7 @@ export function AboutModal({ onClose }: AboutModalProps) {
                 </div>
               </div>
               <p className="mt-3 text-xs text-white/50 leading-relaxed">
-                10K Squad is a 10,000-piece NFT collection on <span className="text-white/70">Monad</span> — one of the most active communities in the ecosystem. Holders unlock boosts, perks, and exclusive access across Monad partner protocols.
+                10K Squad is a 3,333-piece NFT collection on <span className="text-white/70">Monad</span> — one of the most active communities in the ecosystem. Holders unlock boosts, perks, and exclusive access across Monad partner protocols.
               </p>
             </section>
 
@@ -160,7 +160,7 @@ export function AboutModal({ onClose }: AboutModalProps) {
                 {[
                   { n: "1", title: "Sign up", desc: "Create your Squawk account in seconds — email or social login via Clerk." },
                   { n: "2", title: "Set up your profile", desc: "Add a photo, banner, bio, and links. Showcase your NFT." },
-                  { n: "3", title: "Post & Connect", desc: "Share posts, stories, reels, and chirps. Follow the people you care about." },
+                  { n: "3", title: "Post & Connect", desc: "Share posts, stories, flows, and chirps. Follow the people you care about." },
                   { n: "4", title: "Stay in the loop", desc: "Contest alerts, NFT sales, and Monad drops — all live on your feed." },
                 ].map(s => (
                   <div key={s.n} className="flex gap-3 items-start">

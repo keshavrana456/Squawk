@@ -14,7 +14,7 @@ export default function BottomNav() {
     { href: "/home", icon: Home, label: "Home" },
     { href: "/explore", icon: Compass, label: "Explore" },
     { href: "/chirps", icon: Bird, label: "Chirps" },
-    { href: "/reels", icon: PlaySquare, label: "Flow" },
+    { href: "/flows", icon: PlaySquare, label: "Flow" },
     { href: profileHref, icon: User, label: "Profile" },
   ];
 

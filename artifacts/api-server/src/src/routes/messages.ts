@@ -202,15 +202,16 @@ router.post("/conversations/group", requireUser, async (req, res): Promise<void>
   const parsed = z.object({
     name: z.string().min(1).max(80),
     usernames: z.array(z.string()).min(1).max(49),
+    avatarUrl: z.string().url().nullish(),
   }).safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
 
-  const { name, usernames } = parsed.data;
+  const { name, usernames, avatarUrl } = parsed.data;
 
   const members = await db.select().from(usersTable).where(inArray(usersTable.username, usernames));
   if (members.length === 0) { res.status(400).json({ error: "No valid users found" }); return; }
 
-  const [conv] = await db.insert(conversationsTable).values({ isGroup: true, name }).returning();
+  const [conv] = await db.insert(conversationsTable).values({ isGroup: true, name, avatarUrl: avatarUrl ?? null } as any).returning();
 
   const participantValues = [
     { conversationId: conv.id, userId: currentUser.id },
@@ -363,6 +364,25 @@ router.get("/conversations/:id/members", requireUser, async (req, res): Promise<
     .where(eq(conversationParticipantsTable.conversationId, convId));
 
   res.json(participants.map(p => buildUserSummary(p.user)));
+});
+
+// PATCH /conversations/:id/avatar — update group avatar
+router.patch("/conversations/:id/avatar", requireUser, async (req, res): Promise<void> => {
+  const currentUser = (req as any).currentUser as typeof usersTable.$inferSelect;
+  const convId = parseInt(req.params.id);
+  if (isNaN(convId)) { res.status(400).json({ error: "Invalid id" }); return; }
+
+  const [membership] = await db.select()
+    .from(conversationParticipantsTable)
+    .where(and(eq(conversationParticipantsTable.conversationId, convId), eq(conversationParticipantsTable.userId, currentUser.id)));
+  if (!membership) { res.status(403).json({ error: "Forbidden" }); return; }
+
+  const parsed = z.object({ avatarUrl: z.string().url().nullable() }).safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: "avatarUrl required" }); return; }
+
+  await db.execute(sql`UPDATE conversations SET avatar_url = ${parsed.data.avatarUrl} WHERE id = ${convId}`);
+  const result = await buildConversationResponse(convId, currentUser.id);
+  res.json(result);
 });
 
 // POST /conversations/:id/members — add member(s) to group

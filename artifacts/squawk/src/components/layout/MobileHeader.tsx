@@ -21,7 +21,7 @@ export default function MobileHeader() {
   });
   const unreadMsgCount = location === "/messages" ? 0 : (unreadMsgData?.count || 0);
 
-  const hiddenPaths = ["/reels", "/messages"];
+  const hiddenPaths = ["/flows", "/messages"];
   if (hiddenPaths.some((p) => location.startsWith(p))) return null;
 
   return (

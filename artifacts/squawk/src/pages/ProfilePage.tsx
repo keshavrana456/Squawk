@@ -592,7 +592,7 @@ export default function ProfilePage() {
                 {(profile as any).isFounderVerified ? "Remove Purple Badge" : "Grant Purple Badge"}
               </Button>
             )}
-            {(isFounder || isAppOwner) && !isMe && (
+            {isAppOwner && !isMe && (
               <Button
                 onClick={handleToggleBan}
                 disabled={isBanToggling}

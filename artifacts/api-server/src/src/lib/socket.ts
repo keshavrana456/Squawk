@@ -58,23 +58,23 @@ export function initSocket(httpServer: HttpServer): SocketIOServer {
     });
 
     // ── WebRTC Call Signaling ──────────────────────────────────────────────────
-    // call_invite: caller → callee  (includes offer SDP + caller info)
+    // call_invite: caller → callee  (includes Jitsi room ID + caller info)
     socket.on("call_invite", (data: {
       targetUserId: number;
       callType: "voice" | "video";
-      offer: RTCSessionDescriptionInit;
+      roomId: string;
       fromUser: { id: number; displayName: string; username: string; avatarUrl: string | null };
     }) => {
       io!.to(`user:${data.targetUserId}`).emit("call_invite", {
         fromUser: data.fromUser,
         callType: data.callType,
-        offer: data.offer,
+        roomId: data.roomId,
       });
     });
 
-    // call_accepted: callee → caller  (includes answer SDP)
-    socket.on("call_accepted", (data: { targetUserId: number; answer: RTCSessionDescriptionInit }) => {
-      io!.to(`user:${data.targetUserId}`).emit("call_accepted", { answer: data.answer });
+    // call_accepted: callee → caller
+    socket.on("call_accepted", (data: { targetUserId: number }) => {
+      io!.to(`user:${data.targetUserId}`).emit("call_accepted", {});
     });
 
     // call_declined: callee → caller

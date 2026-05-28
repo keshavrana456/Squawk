@@ -28,7 +28,7 @@ import OnboardingPage from "./pages/OnboardingPage";
 // Lazily loaded — only fetched after auth, reducing initial bundle size
 const HomePage = lazy(() => import("./pages/HomePage"));
 const ExplorePage = lazy(() => import("./pages/ExplorePage"));
-const ReelsPage = lazy(() => import("./pages/ReelsPage"));
+const FlowsPage = lazy(() => import("./pages/ReelsPage"));
 const MessagesPage = lazy(() => import("./pages/MessagesPage"));
 const NotificationsPage = lazy(() => import("./pages/NotificationsPage"));
 const UploadPage = lazy(() => import("./pages/UploadPage"));
@@ -545,7 +545,7 @@ function Router() {
       <ProtectedRoute path="/home" component={HomePage} />
       <ProtectedRoute path="/explore" component={ExplorePage} />
       <ProtectedRoute path="/explore/hashtags/:tag" component={ExplorePage} />
-      <ProtectedRoute path="/reels" component={ReelsPage} />
+      <ProtectedRoute path="/flows" component={FlowsPage} />
       <ProtectedRoute path="/chirps" component={ChirpsPage} />
       <ProtectedRoute path="/messages" component={MessagesPage} />
       <ProtectedRoute path="/notifications" component={NotificationsPage} />

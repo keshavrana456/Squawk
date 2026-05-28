@@ -40,7 +40,7 @@ function SharedPostCard({ postId, postUrl, onOpenPost }: { postId?: number | nul
     if (!post) { window.open(postUrl, "_blank"); return; }
     const isVideo = post.mediaType === "video";
     if (isVideo) {
-      window.location.href = `/reels?id=${post.id}`;
+      window.location.href = `/flows?id=${post.id}`;
     } else if (onOpenPost) {
       onOpenPost(post);
     } else {
@@ -216,6 +216,9 @@ export default function MessagesPage() {
   const [groupDebounced, setGroupDebounced] = useState("");
   const [selectedMembers, setSelectedMembers] = useState<any[]>([]);
   const [isCreatingGroup, setIsCreatingGroup] = useState(false);
+  const [groupAvatarFile, setGroupAvatarFile] = useState<File | null>(null);
+  const [groupAvatarPreview, setGroupAvatarPreview] = useState<string | null>(null);
+  const groupAvatarInputRef = useRef<HTMLInputElement>(null);
   useEffect(() => {
     const t = setTimeout(() => setGroupDebounced(groupQuery), 300);
     return () => clearTimeout(t);
@@ -275,14 +278,28 @@ export default function MessagesPage() {
     } catch (e) { console.error(e); }
   };
 
+  const handleGroupAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setGroupAvatarFile(file);
+    setGroupAvatarPreview(URL.createObjectURL(file));
+  };
+
   const handleCreateGroup = async () => {
     if (!groupName.trim() || selectedMembers.length === 0) return;
     setIsCreatingGroup(true);
     try {
+      let avatarUrl: string | null = null;
+      if (groupAvatarFile) {
+        const fd = new FormData();
+        fd.append("file", groupAvatarFile);
+        const up = await fetch("/api/storage/upload", { method: "POST", body: fd });
+        if (up.ok) ({ mediaUrl: avatarUrl } = await up.json());
+      }
       const res = await fetch("/api/conversations/group", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: groupName.trim(), usernames: selectedMembers.map((m) => m.username) }),
+        body: JSON.stringify({ name: groupName.trim(), usernames: selectedMembers.map((m) => m.username), avatarUrl }),
       });
       if (!res.ok) throw new Error("Failed");
       const conv = await res.json();
@@ -303,6 +320,8 @@ export default function MessagesPage() {
     setGroupName("");
     setSelectedMembers([]);
     setShowModeMenu(false);
+    setGroupAvatarFile(null);
+    setGroupAvatarPreview(null);
   };
 
   const toggleMember = (user: any) => {
@@ -443,12 +462,32 @@ export default function MessagesPage() {
             >
               <div className="p-3 space-y-3">
                 <p className="text-xs font-semibold text-primary px-1">New Group Chat</p>
-                <Input
-                  placeholder="Group name..."
-                  value={groupName}
-                  onChange={(e) => setGroupName(e.target.value)}
-                  className="bg-background border-border rounded-2xl h-10"
-                />
+                {/* Group avatar picker */}
+                <div className="flex items-center gap-3 px-1">
+                  <button
+                    type="button"
+                    onClick={() => groupAvatarInputRef.current?.click()}
+                    className="w-14 h-14 rounded-full border-2 border-dashed border-border hover:border-primary transition-colors flex items-center justify-center shrink-0 overflow-hidden relative group"
+                  >
+                    {groupAvatarPreview ? (
+                      <img src={groupAvatarPreview} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      <ImageIcon className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
+                    )}
+                    {groupAvatarPreview && (
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <ImageIcon className="w-4 h-4 text-white" />
+                      </div>
+                    )}
+                  </button>
+                  <input ref={groupAvatarInputRef} type="file" accept="image/*" className="hidden" onChange={handleGroupAvatarChange} />
+                  <Input
+                    placeholder="Group name..."
+                    value={groupName}
+                    onChange={(e) => setGroupName(e.target.value)}
+                    className="bg-background border-border rounded-2xl h-10 flex-1"
+                  />
+                </div>
                 {selectedMembers.length > 0 && (
                   <div className="flex flex-wrap gap-1.5">
                     {selectedMembers.map((m) => (
@@ -543,7 +582,7 @@ export default function MessagesPage() {
                 ? conv.participants.find((p: any) => p.id !== me?.id) || conv.participants[0]
                 : null;
               const displayName = isGroup ? conv.name : otherUser?.displayName;
-              const displayAvatar = otherUser?.avatarUrl;
+              const displayAvatar = isGroup ? conv.avatarUrl : otherUser?.avatarUrl;
               const isSelected = selectedConvId === conv.id;
               const lastMsgPreview = conv.lastMessage
                 ? conv.lastMessage.senderId === me?.id
@@ -565,9 +604,18 @@ export default function MessagesPage() {
                 >
                   <div className="relative shrink-0">
                     {isGroup ? (
-                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary/20 to-[#c084fc]/20 border border-primary/30 flex items-center justify-center">
-                        <Users className="w-5 h-5 text-primary" />
-                      </div>
+                      displayAvatar ? (
+                        <Avatar className="w-12 h-12 border border-border">
+                          <AvatarImage src={displayAvatar} />
+                          <AvatarFallback className="bg-gradient-to-br from-primary/20 to-[#c084fc]/20 text-primary font-bold">
+                            {getInitials(displayName || "?")}
+                          </AvatarFallback>
+                        </Avatar>
+                      ) : (
+                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary/20 to-[#c084fc]/20 border border-primary/30 flex items-center justify-center">
+                          <Users className="w-5 h-5 text-primary" />
+                        </div>
+                      )
                     ) : (
                       <Avatar className="w-12 h-12 border border-border">
                         <AvatarImage src={displayAvatar || ""} />
@@ -661,7 +709,34 @@ function GroupInfoPanel({ conversation, me, onClose, onUpdated }: { conversation
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [adding, setAdding] = useState(false);
   const [leaving, setLeaving] = useState(false);
+  const [groupAvatarUrl, setGroupAvatarUrl] = useState<string | null>(conversation.avatarUrl ?? null);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setAvatarUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const up = await fetch("/api/storage/upload", { method: "POST", body: fd });
+      if (!up.ok) throw new Error("Upload failed");
+      const { mediaUrl } = await up.json();
+      const res = await fetch(`/api/conversations/${conversation.id}/avatar`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ avatarUrl: mediaUrl }),
+        credentials: "include",
+      });
+      if (res.ok) {
+        setGroupAvatarUrl(mediaUrl);
+        onUpdated();
+      }
+    } catch (e) { console.error(e); }
+    finally { setAvatarUploading(false); }
+  };
 
   useEffect(() => {
     setLoading(true);
@@ -739,6 +814,32 @@ function GroupInfoPanel({ conversation, me, onClose, onUpdated }: { conversation
       </div>
 
       <div className="flex-1 overflow-y-auto no-scrollbar p-4 space-y-4">
+        {/* Group avatar */}
+        <div className="flex flex-col items-center gap-2 pb-2">
+          <button
+            type="button"
+            onClick={() => avatarInputRef.current?.click()}
+            disabled={avatarUploading}
+            className="relative w-20 h-20 rounded-full border-2 border-dashed border-border hover:border-primary transition-colors overflow-hidden group disabled:opacity-70"
+          >
+            {groupAvatarUrl ? (
+              <img src={groupAvatarUrl} alt="" className="w-full h-full object-cover" />
+            ) : (
+              <div className="w-full h-full bg-gradient-to-br from-primary/20 to-[#c084fc]/20 flex items-center justify-center">
+                <Users className="w-7 h-7 text-primary" />
+              </div>
+            )}
+            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1">
+              {avatarUploading
+                ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                : <><ImageIcon className="w-4 h-4 text-white" /><span className="text-white text-[10px] font-semibold">Change</span></>
+              }
+            </div>
+          </button>
+          <input ref={avatarInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
+          <p className="text-xs text-muted-foreground">Tap to change group photo</p>
+        </div>
+
         {/* Members */}
         <div>
           <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">Members</h3>
@@ -1010,9 +1111,16 @@ function ChatView({ conversationId, onBack, me, conversation, onConversationLeft
             className="flex items-center gap-3 group text-left hover:opacity-80 transition-opacity flex-1 min-w-0"
             onClick={() => setShowGroupInfo(true)}
           >
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/20 to-[#c084fc]/20 border border-primary/30 flex items-center justify-center shrink-0">
-              <Users className="w-4 h-4 text-primary" />
-            </div>
+            {conversation?.avatarUrl ? (
+              <Avatar className="w-10 h-10 border border-border shrink-0">
+                <AvatarImage src={conversation.avatarUrl} />
+                <AvatarFallback className="bg-gradient-to-br from-primary/20 to-[#c084fc]/20 text-primary font-bold">{displayName?.charAt(0)}</AvatarFallback>
+              </Avatar>
+            ) : (
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/20 to-[#c084fc]/20 border border-primary/30 flex items-center justify-center shrink-0">
+                <Users className="w-4 h-4 text-primary" />
+              </div>
+            )}
             <div className="min-w-0">
               <div className="font-semibold text-foreground truncate group-hover:text-primary transition-colors">{displayName}</div>
               <div className="text-xs text-muted-foreground">{memberCount} members · tap for info</div>
