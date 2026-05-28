@@ -37,11 +37,20 @@ export async function saveSubscription(userId: number, subscription: { endpoint:
   `);
 }
 
+interface PushOptions {
+  tag?: string;
+  requireInteraction?: boolean;
+  renotify?: boolean;
+  actions?: Array<{ action: string; title: string }>;
+  isCall?: boolean;
+}
+
 export async function sendPushToUser(
   userId: number,
   title: string,
   body: string,
-  url = "/"
+  url = "/",
+  opts: PushOptions = {}
 ) {
   ensureInit();
   if (!initialized) return;
@@ -49,14 +58,24 @@ export async function sendPushToUser(
     const result = await db.execute(sql`
       SELECT endpoint, p256dh, auth FROM push_subscriptions WHERE user_id = ${userId}
     `);
-    const payload = JSON.stringify({ title, body, url, icon: "/logo.png", badge: "/logo.png" });
+    const payload = JSON.stringify({
+      title,
+      body,
+      url,
+      icon: "/logo.png",
+      badge: "/logo.png",
+      tag: opts.tag,
+      requireInteraction: opts.requireInteraction ?? false,
+      renotify: opts.renotify ?? true,
+      actions: opts.actions,
+      isCall: opts.isCall ?? false,
+    });
     for (const row of result.rows as any[]) {
       const sub = {
         endpoint: row.endpoint as string,
         keys: { p256dh: row.p256dh as string, auth: row.auth as string },
       };
       await webpush.sendNotification(sub, payload).catch(async (err) => {
-        // Remove invalid subscriptions (410 Gone)
         if (err.statusCode === 410 || err.statusCode === 404) {
           await db.execute(sql`DELETE FROM push_subscriptions WHERE endpoint = ${row.endpoint}`).catch(() => {});
         }

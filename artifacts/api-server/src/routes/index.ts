@@ -13,6 +13,7 @@ import nftRouter from "../src/routes/nft";
 import chirpsRouter from "../src/routes/chirps";
 import contestsRouter from "../src/routes/contests";
 import pushRouter from "../src/routes/push";
+import streamRouter from "../src/routes/stream";
 
 const router: IRouter = Router();
 
@@ -30,5 +31,6 @@ router.use(nftRouter);
 router.use(chirpsRouter);
 router.use(contestsRouter);
 router.use(pushRouter);
+router.use(streamRouter);
 
 export default router;

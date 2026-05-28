@@ -190,6 +190,17 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     };
   }, [socket, activeCallMeta, endCall]);
 
+  // Listen for actions posted from the service worker (e.g. "Decline" tapped on push notification)
+  useEffect(() => {
+    const handleSwMessage = (event: MessageEvent) => {
+      if (event.data?.type === "call_action" && event.data?.action === "decline") {
+        declineCall();
+      }
+    };
+    navigator.serviceWorker?.addEventListener("message", handleSwMessage);
+    return () => navigator.serviceWorker?.removeEventListener("message", handleSwMessage);
+  }, [declineCall]);
+
   return (
     <CallContext.Provider value={{ incomingCall, activeCall: activeCallMeta, startCall, acceptCall, declineCall, endCall, toggleMute, toggleCamera, toggleSpeaker }}>
       {children}

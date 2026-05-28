@@ -58,8 +58,8 @@ export function initSocket(httpServer: HttpServer): SocketIOServer {
     });
 
     // ── WebRTC Call Signaling ──────────────────────────────────────────────────
-    // call_invite: caller → callee  (includes Jitsi room ID + caller info)
-    socket.on("call_invite", (data: {
+    // call_invite: caller → callee  (includes room ID + caller info)
+    socket.on("call_invite", async (data: {
       targetUserId: number;
       callType: "voice" | "video";
       roomId: string;
@@ -70,6 +70,20 @@ export function initSocket(httpServer: HttpServer): SocketIOServer {
         callType: data.callType,
         roomId: data.roomId,
       });
+      // Push notification so recipient is alerted even if app is in background
+      try {
+        const { sendPushToUser } = await import("./push.js");
+        const callLabel = data.callType === "video" ? "video call" : "voice call";
+        await sendPushToUser(
+          data.targetUserId,
+          `Incoming ${callLabel}`,
+          `${data.fromUser.displayName} is calling you`,
+          "/messages",
+          { tag: `call-${data.roomId}`, requireInteraction: true, renotify: true }
+        );
+      } catch (e) {
+        console.warn("[call_invite] push failed:", e);
+      }
     });
 
     // call_accepted: callee → caller
