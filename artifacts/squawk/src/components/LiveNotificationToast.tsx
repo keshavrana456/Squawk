@@ -26,8 +26,8 @@ const NOTIF_ICONS: Record<string, React.ReactNode> = {
 };
 
 const NOTIF_LABELS: Record<string, string> = {
-  like: "liked your chirp",
-  comment: "replied to your chirp",
+  like: "liked your post",
+  comment: "replied to your post",
   follow: "started following you",
   repost: "reposted your chirp",
 };

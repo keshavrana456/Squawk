@@ -16,15 +16,26 @@ import {
   GetSuggestedUsersQueryParams,
 } from "@workspace/api-zod";
 
-// Run migrations for new columns
+const FOUNDER_EMAILS = ["globalfreefire33@gmail.com"];
+
+// Run migrations for new columns + auto-grant founder badge
 (async () => {
   try {
     await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS is_founder_verified BOOLEAN NOT NULL DEFAULT FALSE`);
     await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS is_banned BOOLEAN NOT NULL DEFAULT FALSE`);
   } catch {}
+
+  // Auto-grant isFounder to accounts registered with FOUNDER_EMAILS
+  try {
+    const clerkUsers = await clerkClient.users.getUserList({ emailAddress: FOUNDER_EMAILS, limit: 10 });
+    for (const cu of clerkUsers.data) {
+      await db.execute(sql`UPDATE users SET is_founder = true WHERE clerk_id = ${cu.id} AND is_founder = false`);
+    }
+  } catch (e) {
+    console.warn("[startup] Could not sync founder flags:", e);
+  }
 })();
 
-const FOUNDER_EMAILS = ["globalfreefire33@gmail.com"];
 const router: IRouter = Router();
 
 // GET /me
@@ -403,11 +414,11 @@ router.put("/users/:username/set-founder-verified", requireUser, async (req, res
   res.json({ isFounderVerified: newValue });
 });
 
-// PUT /users/:username/ban — founder moderation
+// PUT /users/:username/ban — app owner only (id === 1)
 router.put("/users/:username/ban", requireUser, async (req, res): Promise<void> => {
   const currentUser = (req as any).currentUser as typeof usersTable.$inferSelect;
 
-  if (!(currentUser as any).isFounder && currentUser.id !== 1) {
+  if (currentUser.id !== 1 && !(currentUser as any).isFounder) {
     res.status(403).json({ error: "Insufficient permissions" });
     return;
   }

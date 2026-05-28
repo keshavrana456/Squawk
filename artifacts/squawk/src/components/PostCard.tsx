@@ -315,7 +315,7 @@ export default function PostCard({ post, onLike, onSave, onComment }: PostCardPr
           className="relative w-full overflow-hidden"
           style={{
             aspectRatio: post.mediaType === "video" ? videoAspectRatio : undefined,
-            maxHeight: post.mediaType === "video" ? "80vh" : "600px",
+            maxHeight: post.mediaType === "video" ? "calc(70vh - 4rem)" : "600px",
             backgroundColor: post.mediaType === "video" ? "#000" : undefined,
           }}
           onDoubleClick={handleDoubleTap}
@@ -324,7 +324,7 @@ export default function PostCard({ post, onLike, onSave, onComment }: PostCardPr
           {post.mediaType === "video" ? (
             <div
               className="absolute inset-0 cursor-pointer"
-              onClick={() => setLocation(`/reels?id=${post.id}`)}
+              onClick={() => setLocation(`/flows?id=${post.id}`)}
             >
               <video
                 ref={videoRef}
