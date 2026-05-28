@@ -1,8 +1,20 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from "react";
+import {
+  StreamVideo,
+  StreamVideoClient,
+  StreamCall,
+  CallControls,
+  SpeakerLayout,
+  CallingState,
+  useCallStateHooks,
+  User,
+} from "@stream-io/video-react-sdk";
+import "@stream-io/video-react-sdk/dist/css/styles.css";
 import { useSocket } from "./SocketContext";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { motion, AnimatePresence } from "framer-motion";
-import { Phone, PhoneOff, Video, X, Maximize2, Minimize2 } from "lucide-react";
+import { Phone, PhoneOff, Video, X, Minimize2, Maximize2 } from "lucide-react";
+import { useGetMe } from "@workspace/api-client-react";
 
 export interface CallUser {
   id: number;
@@ -14,23 +26,12 @@ export interface CallUser {
 interface IncomingCall {
   fromUser: CallUser;
   callType: "voice" | "video";
-  roomId: string;
-}
-
-interface ActiveCall {
-  otherUser: CallUser;
-  callType: "voice" | "video";
-  roomId: string;
-  isMuted: boolean;
-  isCameraOff: boolean;
-  isSpeakerOff: boolean;
-  status: "connecting" | "connected" | "ended";
-  startedAt: number | null;
+  callId: string;
 }
 
 interface CallContextValue {
   incomingCall: IncomingCall | null;
-  activeCall: ActiveCall | null;
+  activeCall: { otherUser: CallUser; callType: "voice" | "video" } | null;
   startCall: (otherUser: CallUser, callType: "voice" | "video", fromUser: CallUser) => Promise<void>;
   acceptCall: () => Promise<void>;
   declineCall: () => void;
@@ -56,70 +57,98 @@ export function useCall() {
   return useContext(CallContext);
 }
 
-function buildRoomId(userId1: number, userId2: number): string {
+function buildCallId(userId1: number, userId2: number): string {
   const a = Math.min(userId1, userId2);
   const b = Math.max(userId1, userId2);
-  return `squawk-${a}-${b}`;
+  return `squawk-${a}-${b}-${Date.now()}`;
+}
+
+async function fetchStreamToken(): Promise<{ token: string; apiKey: string; userId: string } | null> {
+  try {
+    const res = await fetch("/api/stream/token", { credentials: "include" });
+    if (!res.ok) return null;
+    return res.json();
+  } catch {
+    return null;
+  }
 }
 
 export function CallProvider({ children }: { children: React.ReactNode }) {
   const { socket } = useSocket();
-  const [incomingCall, setIncomingCall] = useState<IncomingCall | null>(null);
-  const [activeCall, setActiveCall] = useState<ActiveCall | null>(null);
-  const [isMinimized, setIsMinimized] = useState(false);
-  const connectionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const { data: me } = useGetMe();
 
-  const endCall = useCallback(() => {
-    if (socket && activeCall) {
-      socket.emit("call_ended", { targetUserId: activeCall.otherUser.id });
+  const [streamClient, setStreamClient] = useState<StreamVideoClient | null>(null);
+  const [streamCall, setStreamCall] = useState<ReturnType<StreamVideoClient["call"]> | null>(null);
+  const [incomingCall, setIncomingCall] = useState<IncomingCall | null>(null);
+  const [activeCallMeta, setActiveCallMeta] = useState<{ otherUser: CallUser; callType: "voice" | "video" } | null>(null);
+  const [isMinimized, setIsMinimized] = useState(false);
+  const clientRef = useRef<StreamVideoClient | null>(null);
+
+  useEffect(() => {
+    if (!me) return;
+    let cancelled = false;
+    (async () => {
+      const creds = await fetchStreamToken();
+      if (!creds || cancelled) return;
+      const user: User = {
+        id: creds.userId,
+        name: (me as any).displayName || (me as any).username || creds.userId,
+        image: (me as any).avatarUrl || undefined,
+      };
+      const client = StreamVideoClient.getOrCreateInstance({
+        apiKey: creds.apiKey,
+        user,
+        token: creds.token,
+      });
+      clientRef.current = client;
+      if (!cancelled) setStreamClient(client);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [me?.id]);
+
+  const endCall = useCallback(async () => {
+    if (streamCall) {
+      try { await streamCall.leave(); } catch {}
+      try { await streamCall.endCall(); } catch {}
     }
-    if (connectionTimerRef.current) clearTimeout(connectionTimerRef.current);
-    setActiveCall(null);
+    setStreamCall(null);
+    setActiveCallMeta(null);
     setIncomingCall(null);
     setIsMinimized(false);
-  }, [socket, activeCall]);
+  }, [streamCall]);
 
   const startCall = useCallback(async (otherUser: CallUser, callType: "voice" | "video", fromUser: CallUser) => {
-    if (!socket) return;
-    const roomId = buildRoomId(fromUser.id, otherUser.id);
-    socket.emit("call_invite", { targetUserId: otherUser.id, callType, roomId, fromUser });
-    setActiveCall({
-      otherUser,
-      callType,
-      roomId,
-      isMuted: false,
-      isCameraOff: false,
-      isSpeakerOff: false,
-      status: "connecting",
-      startedAt: null,
-    });
-    connectionTimerRef.current = setTimeout(() => {
-      setActiveCall(prev => {
-        if (prev?.status === "connecting") {
-          socket.emit("call_missed", { otherUserId: otherUser.id, isCaller: true, callType });
-          return null;
-        }
-        return prev;
-      });
-    }, 30_000);
-  }, [socket]);
+    if (!streamClient || !socket) return;
+    const callId = buildCallId(fromUser.id, otherUser.id);
+    const callTypeStr = callType === "video" ? "default" : "audio_room";
+    const call = streamClient.call(callTypeStr, callId);
+    try {
+      await call.getOrCreate({ ring: true, data: { members: [{ user_id: String(fromUser.id) }, { user_id: String(otherUser.id) }] } });
+      await call.join({ create: false });
+    } catch {
+      try { await call.join({ create: true }); } catch {}
+    }
+    setStreamCall(call as any);
+    setActiveCallMeta({ otherUser, callType });
+    socket.emit("call_invite", { targetUserId: otherUser.id, callType, roomId: callId, fromUser });
+  }, [streamClient, socket]);
 
   const acceptCall = useCallback(async () => {
-    if (!socket || !incomingCall) return;
-    const { fromUser, callType, roomId } = incomingCall;
+    if (!streamClient || !incomingCall || !socket) return;
+    const callTypeStr = incomingCall.callType === "video" ? "default" : "audio_room";
+    const call = streamClient.call(callTypeStr, incomingCall.callId);
+    try {
+      await call.join({ create: false });
+    } catch {
+      try { await call.join({ create: true }); } catch {}
+    }
+    setStreamCall(call as any);
+    setActiveCallMeta({ otherUser: incomingCall.fromUser, callType: incomingCall.callType });
+    socket.emit("call_accepted", { targetUserId: incomingCall.fromUser.id });
     setIncomingCall(null);
-    socket.emit("call_accepted", { targetUserId: fromUser.id });
-    setActiveCall({
-      otherUser: fromUser,
-      callType,
-      roomId,
-      isMuted: false,
-      isCameraOff: false,
-      isSpeakerOff: false,
-      status: "connected",
-      startedAt: Date.now(),
-    });
-  }, [socket, incomingCall]);
+  }, [streamClient, incomingCall, socket]);
 
   const declineCall = useCallback(() => {
     if (!socket || !incomingCall) return;
@@ -128,50 +157,46 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     setIncomingCall(null);
   }, [socket, incomingCall]);
 
-  const toggleMute = useCallback(() => setActiveCall(p => p ? { ...p, isMuted: !p.isMuted } : p), []);
-  const toggleCamera = useCallback(() => setActiveCall(p => p ? { ...p, isCameraOff: !p.isCameraOff } : p), []);
-  const toggleSpeaker = useCallback(() => setActiveCall(p => p ? { ...p, isSpeakerOff: !p.isSpeakerOff } : p), []);
+  const toggleMute = useCallback(() => {
+    if (!streamCall) return;
+    const mic = (streamCall as any).microphone;
+    if (mic) { mic.enabled ? mic.disable() : mic.enable(); }
+  }, [streamCall]);
+
+  const toggleCamera = useCallback(() => {
+    if (!streamCall) return;
+    const cam = (streamCall as any).camera;
+    if (cam) { cam.enabled ? cam.disable() : cam.enable(); }
+  }, [streamCall]);
+
+  const toggleSpeaker = useCallback(() => {}, []);
 
   useEffect(() => {
     if (!socket) return;
-
     const handleCallInvite = (data: { fromUser: CallUser; callType: "voice" | "video"; roomId: string }) => {
-      if (activeCall) { socket.emit("call_declined", { targetUserId: data.fromUser.id }); return; }
-      setIncomingCall({ fromUser: data.fromUser, callType: data.callType, roomId: data.roomId });
+      if (activeCallMeta) { socket.emit("call_declined", { targetUserId: data.fromUser.id }); return; }
+      setIncomingCall({ fromUser: data.fromUser, callType: data.callType, callId: data.roomId });
     };
-
-    const handleCallAccepted = () => {
-      if (connectionTimerRef.current) clearTimeout(connectionTimerRef.current);
-      setActiveCall(prev => prev ? { ...prev, status: "connected", startedAt: Date.now() } : prev);
-    };
-
-    const handleCallDeclined = () => { setActiveCall(null); };
-    const handleCallEnded = () => { setActiveCall(null); setIncomingCall(null); };
+    const handleCallDeclined = () => { endCall(); };
+    const handleCallEnded = () => { endCall(); };
 
     socket.on("call_invite", handleCallInvite);
-    socket.on("call_accepted", handleCallAccepted);
     socket.on("call_declined", handleCallDeclined);
     socket.on("call_ended", handleCallEnded);
-
     return () => {
       socket.off("call_invite", handleCallInvite);
-      socket.off("call_accepted", handleCallAccepted);
       socket.off("call_declined", handleCallDeclined);
       socket.off("call_ended", handleCallEnded);
     };
-  }, [socket, activeCall]);
-
-  const jitsiUrl = activeCall
-    ? `https://meet.jit.si/${activeCall.roomId}#userInfo.displayName="${encodeURIComponent(activeCall.otherUser.displayName)}"&config.startWithAudioMuted=${activeCall.isMuted}&config.startWithVideoMuted=${activeCall.callType === "voice" || activeCall.isCameraOff}`
-    : null;
+  }, [socket, activeCallMeta, endCall]);
 
   return (
-    <CallContext.Provider value={{ incomingCall, activeCall, startCall, acceptCall, declineCall, endCall, toggleMute, toggleCamera, toggleSpeaker }}>
+    <CallContext.Provider value={{ incomingCall, activeCall: activeCallMeta, startCall, acceptCall, declineCall, endCall, toggleMute, toggleCamera, toggleSpeaker }}>
       {children}
 
       {/* ── Incoming Call Banner ─────────────────────────────────────────────── */}
       <AnimatePresence>
-        {incomingCall && !activeCall && (
+        {incomingCall && !activeCallMeta && (
           <motion.div
             initial={{ opacity: 0, y: -80 }}
             animate={{ opacity: 1, y: 0 }}
@@ -233,35 +258,29 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
         )}
       </AnimatePresence>
 
-      {/* ── Active Call — Jitsi iframe ───────────────────────────────────────── */}
+      {/* ── Active Call — Stream Video ───────────────────────────────────────── */}
       <AnimatePresence>
-        {activeCall && jitsiUrl && (
+        {activeCallMeta && streamCall && streamClient && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className={`fixed z-[190] flex flex-col bg-black ${isMinimized
-              ? "bottom-4 right-4 w-72 h-48 rounded-2xl overflow-hidden shadow-2xl border border-white/10"
-              : "inset-0"
+            className={`fixed z-[190] flex flex-col bg-black ${
+              isMinimized
+                ? "bottom-4 right-4 w-72 h-48 rounded-2xl overflow-hidden shadow-2xl border border-white/10"
+                : "inset-0"
             }`}
           >
             {/* Top bar */}
             <div className="flex items-center justify-between px-4 py-2 bg-black/80 shrink-0 z-10">
               <div className="flex items-center gap-2">
                 <Avatar className="w-8 h-8 border border-white/20">
-                  <AvatarImage src={activeCall.otherUser.avatarUrl || ""} />
-                  <AvatarFallback className="bg-primary/20 text-primary text-xs">{activeCall.otherUser.displayName.charAt(0)}</AvatarFallback>
+                  <AvatarImage src={activeCallMeta.otherUser.avatarUrl || ""} />
+                  <AvatarFallback className="bg-primary/20 text-primary text-xs">
+                    {activeCallMeta.otherUser.displayName.charAt(0)}
+                  </AvatarFallback>
                 </Avatar>
-                <div className="text-white text-sm font-semibold">{activeCall.otherUser.displayName}</div>
-                {activeCall.status === "connecting" && (
-                  <div className="flex gap-1">
-                    {[0, 1, 2].map(i => (
-                      <motion.div key={i} className="w-1.5 h-1.5 rounded-full bg-white/60"
-                        animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 1.2, repeat: Infinity, delay: i * 0.4 }}
-                      />
-                    ))}
-                  </div>
-                )}
+                <div className="text-white text-sm font-semibold">{activeCallMeta.otherUser.displayName}</div>
               </div>
               <div className="flex items-center gap-2">
                 <button
@@ -280,16 +299,45 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
               </div>
             </div>
 
-            {/* Jitsi iframe */}
-            <iframe
-              src={jitsiUrl}
-              allow="camera; microphone; fullscreen; display-capture; autoplay"
-              className="flex-1 w-full border-0"
-              title="Call"
-            />
+            {/* Stream Video UI */}
+            <div className="flex-1 min-h-0 overflow-hidden">
+              <StreamVideo client={streamClient}>
+                <StreamCall call={streamCall as any}>
+                  <StreamCallUI isMinimized={isMinimized} onEnd={endCall} />
+                </StreamCall>
+              </StreamVideo>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
     </CallContext.Provider>
+  );
+}
+
+function StreamCallUI({ isMinimized, onEnd }: { isMinimized: boolean; onEnd: () => void }) {
+  const { useCallCallingState } = useCallStateHooks();
+  const callingState = useCallCallingState();
+
+  useEffect(() => {
+    if (callingState === CallingState.LEFT || callingState === CallingState.IDLE) {
+      onEnd();
+    }
+  }, [callingState, onEnd]);
+
+  if (isMinimized) {
+    return (
+      <div className="w-full h-full flex items-center justify-center bg-gray-900">
+        <SpeakerLayout />
+      </div>
+    );
+  }
+
+  return (
+    <div className="str-video w-full h-full flex flex-col">
+      <div className="flex-1 min-h-0">
+        <SpeakerLayout />
+      </div>
+      <CallControls onLeave={onEnd} />
+    </div>
   );
 }
