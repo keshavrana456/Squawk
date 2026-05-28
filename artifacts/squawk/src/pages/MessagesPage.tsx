@@ -949,6 +949,8 @@ function ChatView({ conversationId, onBack, me, conversation, onConversationLeft
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const msgInputRef = useRef<HTMLInputElement>(null);
+  const meIdRef = useRef<number | undefined>(undefined);
+  useEffect(() => { meIdRef.current = me?.id; }, [me?.id]);
   const { suggestions: mentionSuggestions, loading: mentionsLoading, isOpen: mentionsOpen, handleChange: handleMentionChange, insertMention } = useMentions(content, setContent, msgInputRef);
   const { socket, isUserOnline } = useSocket();
   const { startCall, activeCall } = useCall();
@@ -978,6 +980,8 @@ function ChatView({ conversationId, onBack, me, conversation, onConversationLeft
     socket.emit("join_conversation", String(conversationId));
 
     const handleNewMessage = (msg: any) => {
+      // Skip own messages — already shown via optimistic update; refetch handles final state
+      if (meIdRef.current && msg.senderId === meIdRef.current) return;
       setLocalMessages((prev) => {
         if (prev.find((m) => m.id === msg.id)) return prev;
         return [...prev, msg];
