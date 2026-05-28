@@ -151,26 +151,54 @@ export default function ProfilePage() {
   const [showEarnModal, setShowEarnModal] = useState(false);
   const [earnNoClicked, setEarnNoClicked] = useState(false);
   const [showMobileYesMsg, setShowMobileYesMsg] = useState(false);
-  const [yesOffset, setYesOffset] = useState({ x: 0, y: 0 });
+  const [yesAbsPos, setYesAbsPos] = useState<{ x: number; y: number } | null>(null);
   const yesBtnRef = useRef<HTMLButtonElement>(null);
   const earnModalRef = useRef<HTMLDivElement>(null);
 
+  // Initialise yes button position once modal renders
+  useEffect(() => {
+    if (showEarnModal) {
+      const t = setTimeout(() => {
+        const modal = earnModalRef.current;
+        const btn = yesBtnRef.current;
+        if (!modal || !btn) return;
+        const mw = modal.offsetWidth;
+        const mh = modal.offsetHeight;
+        const bw = btn.offsetWidth || 120;
+        const bh = btn.offsetHeight || 44;
+        setYesAbsPos({ x: mw - bw - 24, y: mh - bh - 24 });
+      }, 80);
+      return () => clearTimeout(t);
+    }
+  }, [showEarnModal]);
+
   const handleYesMouseMove = (e: React.MouseEvent) => {
     const btn = yesBtnRef.current;
-    if (!btn) return;
-    const rect = btn.getBoundingClientRect();
-    const cx = rect.left + rect.width / 2;
-    const cy = rect.top + rect.height / 2;
-    const dx = e.clientX - cx;
-    const dy = e.clientY - cy;
-    const dist = Math.sqrt(dx * dx + dy * dy);
-    if (dist < 90) {
-      const angle = Math.atan2(dy, dx);
-      const flee = 130;
-      setYesOffset(prev => ({
-        x: prev.x - Math.cos(angle) * flee,
-        y: prev.y - Math.sin(angle) * flee,
-      }));
+    const modal = earnModalRef.current;
+    if (!btn || !modal) return;
+    const btnRect = btn.getBoundingClientRect();
+    const cx = btnRect.left + btnRect.width / 2;
+    const cy = btnRect.top + btnRect.height / 2;
+    const dist = Math.sqrt((e.clientX - cx) ** 2 + (e.clientY - cy) ** 2);
+    if (dist < 100) {
+      const modalRect = modal.getBoundingClientRect();
+      const bw = btnRect.width || 120;
+      const bh = btnRect.height || 44;
+      const pad = 16;
+      const maxX = modalRect.width - bw - pad;
+      const maxY = modalRect.height - bh - pad;
+      // Pick a position far from cursor
+      let best = { x: pad, y: pad };
+      let bestDist = 0;
+      for (let i = 0; i < 8; i++) {
+        const nx = pad + Math.random() * (maxX - pad);
+        const ny = pad + Math.random() * (maxY - pad);
+        const vx = (modalRect.left + nx + bw / 2) - e.clientX;
+        const vy = (modalRect.top + ny + bh / 2) - e.clientY;
+        const d = Math.sqrt(vx * vx + vy * vy);
+        if (d > bestDist) { bestDist = d; best = { x: nx, y: ny }; }
+      }
+      setYesAbsPos(best);
     }
   };
 
@@ -553,7 +581,7 @@ export default function ProfilePage() {
                   </Button>
                 </Link>
                 <Button
-                  onClick={() => { setShowEarnModal(true); setEarnNoClicked(false); setYesOffset({ x: 0, y: 0 }); setShowMobileYesMsg(false); }}
+                  onClick={() => { setShowEarnModal(true); setEarnNoClicked(false); setYesAbsPos(null); setShowMobileYesMsg(false); }}
                   variant="ghost"
                   size="icon"
                   className="rounded-full border border-emerald-500/50 btn-water shrink-0 text-emerald-400 hover:text-emerald-300 hover:border-emerald-400"
@@ -1201,6 +1229,32 @@ export default function ProfilePage() {
               className="relative bg-card border border-border rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl"
               onClick={e => e.stopPropagation()}
             >
+              {/* Yes button — floats freely inside the modal, flees from cursor */}
+              {!earnNoClicked && yesAbsPos && (
+                <button
+                  ref={yesBtnRef}
+                  onClick={() => setShowMobileYesMsg(true)}
+                  className="absolute z-20 px-8 py-3 rounded-full font-black text-sm text-white select-none pointer-events-auto"
+                  style={{
+                    left: yesAbsPos.x,
+                    top: yesAbsPos.y,
+                    background: "linear-gradient(135deg,#10b981,#059669)",
+                    boxShadow: "0 0 16px 4px rgba(16,185,129,0.45)",
+                    transition: "left 0.18s cubic-bezier(.22,.68,0,1.2), top 0.18s cubic-bezier(.22,.68,0,1.2)",
+                  }}
+                >
+                  Yes
+                </button>
+              )}
+              {/* invisible placeholder so ref is available before position is set */}
+              {!earnNoClicked && !yesAbsPos && (
+                <button
+                  ref={yesBtnRef}
+                  className="absolute opacity-0 pointer-events-none px-8 py-3 rounded-full text-sm"
+                  style={{ right: 24, bottom: 24 }}
+                  aria-hidden
+                >Yes</button>
+              )}
               {/* Header */}
               <div className="relative px-6 pt-6 pb-4 border-b border-border">
                 <button
@@ -1246,37 +1300,12 @@ export default function ProfilePage() {
                 {!earnNoClicked && (
                   <div className="pt-2">
                     <p className="text-center text-sm font-bold text-foreground mb-4">Ready to start earning? 🚀</p>
-                    <div className="relative flex items-center justify-between gap-4 min-h-[52px]" onMouseMove={handleYesMouseMove}>
-                      {/* No button */}
-                      <button
-                        onClick={() => { setEarnNoClicked(true); toast("BEST DECISION OF LIFE", { icon: "🏆", duration: 5000 }); }}
-                        className="flex-1 py-3 rounded-full font-black text-sm border-2 border-red-500/60 text-red-400 hover:bg-red-500/10 transition-all"
-                      >
-                        No
-                      </button>
-                      {/* Yes button — flees from cursor */}
-                      <button
-                        ref={yesBtnRef}
-                        onClick={() => setShowMobileYesMsg(true)}
-                        className="flex-1 py-3 rounded-full font-black text-sm text-white transition-none select-none"
-                        style={{
-                          background: "linear-gradient(135deg,#10b981,#059669)",
-                          transform: `translate(${yesOffset.x}px, ${yesOffset.y}px)`,
-                          transition: "transform 0.15s ease-out",
-                          boxShadow: "0 0 16px 4px rgba(16,185,129,0.35)",
-                        }}
-                        onMouseEnter={() => {
-                          const flee = 160;
-                          const angle = Math.random() * Math.PI * 2;
-                          setYesOffset(prev => ({
-                            x: prev.x + Math.cos(angle) * flee,
-                            y: prev.y + Math.sin(angle) * flee,
-                          }));
-                        }}
-                      >
-                        Yes
-                      </button>
-                    </div>
+                    <button
+                      onClick={() => { setEarnNoClicked(true); toast("BEST DECISION OF LIFE", { icon: "🏆", duration: 5000 }); }}
+                      className="w-full py-3 rounded-full font-black text-sm border-2 border-red-500/60 text-red-400 hover:bg-red-500/10 transition-all"
+                    >
+                      No
+                    </button>
                   </div>
                 )}
 
