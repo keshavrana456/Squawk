@@ -1116,7 +1116,7 @@ export default function LandingPage() {
       </nav>
 
       {/* ── Hero ─────────────────────────────────────────────────────── */}
-      <section className="relative flex flex-col items-center justify-center text-center px-4 pb-20 z-10 min-h-screen overflow-hidden pt-16">
+      <section className="relative flex flex-col items-center justify-center text-center px-4 pb-20 z-10 min-h-screen overflow-x-hidden pt-16">
 
         <div className="absolute inset-0 z-0">
           <img

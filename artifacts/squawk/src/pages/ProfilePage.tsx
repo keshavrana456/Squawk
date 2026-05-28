@@ -152,24 +152,26 @@ export default function ProfilePage() {
   const [earnNoClicked, setEarnNoClicked] = useState(false);
   const [showMobileYesMsg, setShowMobileYesMsg] = useState(false);
   const [yesAbsPos, setYesAbsPos] = useState<{ x: number; y: number } | null>(null);
-  const [yesFleesLeft, setYesFleesLeft] = useState(5);
+  const yesFleesLeftRef = useRef(5);
+  const yesCooldownRef = useRef(false);
   const yesBtnRef = useRef<HTMLButtonElement>(null);
   const earnModalRef = useRef<HTMLDivElement>(null);
 
-  // Initialise yes button position once modal renders
+  // Initialise Yes button position over the ghost spacer when modal opens
   useEffect(() => {
     if (showEarnModal) {
       const t = setTimeout(() => {
         const modal = earnModalRef.current;
-        const btn = yesBtnRef.current;
-        if (!modal || !btn) return;
+        if (!modal) return;
         const mw = modal.offsetWidth;
         const mh = modal.offsetHeight;
-        const bw = btn.offsetWidth || 120;
-        const bh = btn.offsetHeight || 44;
-        setYesAbsPos({ x: mw - bw - 24, y: mh - bh - 24 });
+        const bw = 96; const bh = 44;
+        // Start in the right-half, aligned with the No button row
+        setYesAbsPos({ x: mw / 2 + 16, y: mh - bh - 32 });
       }, 80);
       return () => clearTimeout(t);
+    } else {
+      setYesAbsPos(null);
     }
   }, [showEarnModal]);
 
@@ -177,32 +179,33 @@ export default function ProfilePage() {
     const btn = yesBtnRef.current;
     const modal = earnModalRef.current;
     if (!btn || !modal) return;
+    if (yesFleesLeftRef.current <= 0) return; // exhausted — stay put
+    if (yesCooldownRef.current) return;        // throttle rapid mousemove
     const btnRect = btn.getBoundingClientRect();
     const cx = btnRect.left + btnRect.width / 2;
     const cy = btnRect.top + btnRect.height / 2;
     const dist = Math.sqrt((e.clientX - cx) ** 2 + (e.clientY - cy) ** 2);
     if (dist < 100) {
-      setYesFleesLeft(prev => {
-        if (prev <= 0) return 0; // exhausted — stop fleeing
-        const modalRect = modal.getBoundingClientRect();
-        const bw = btnRect.width || 120;
-        const bh = btnRect.height || 44;
-        const pad = 16;
-        const maxX = modalRect.width - bw - pad;
-        const maxY = modalRect.height - bh - pad;
-        let best = { x: pad, y: pad };
-        let bestDist = 0;
-        for (let i = 0; i < 8; i++) {
-          const nx = pad + Math.random() * (maxX - pad);
-          const ny = pad + Math.random() * (maxY - pad);
-          const vx = (modalRect.left + nx + bw / 2) - e.clientX;
-          const vy = (modalRect.top + ny + bh / 2) - e.clientY;
-          const d = Math.sqrt(vx * vx + vy * vy);
-          if (d > bestDist) { bestDist = d; best = { x: nx, y: ny }; }
-        }
-        setYesAbsPos(best);
-        return prev - 1;
-      });
+      yesFleesLeftRef.current -= 1;
+      yesCooldownRef.current = true;
+      setTimeout(() => { yesCooldownRef.current = false; }, 600);
+      const modalRect = modal.getBoundingClientRect();
+      const bw = btnRect.width || 120;
+      const bh = btnRect.height || 44;
+      const pad = 16;
+      const maxX = modalRect.width - bw - pad;
+      const maxY = modalRect.height - bh - pad;
+      let best = { x: pad, y: pad };
+      let bestDist = 0;
+      for (let i = 0; i < 8; i++) {
+        const nx = pad + Math.random() * (maxX - pad);
+        const ny = pad + Math.random() * (maxY - pad);
+        const vx = (modalRect.left + nx + bw / 2) - e.clientX;
+        const vy = (modalRect.top + ny + bh / 2) - e.clientY;
+        const d = Math.sqrt(vx * vx + vy * vy);
+        if (d > bestDist) { bestDist = d; best = { x: nx, y: ny }; }
+      }
+      setYesAbsPos(best);
     }
   };
 
@@ -585,7 +588,7 @@ export default function ProfilePage() {
                   </Button>
                 </Link>
                 <Button
-                  onClick={() => { setShowEarnModal(true); setEarnNoClicked(false); setYesAbsPos(null); setYesFleesLeft(5); setShowMobileYesMsg(false); }}
+                  onClick={() => { setShowEarnModal(true); setEarnNoClicked(false); setYesAbsPos(null); yesFleesLeftRef.current = 5; yesCooldownRef.current = false; setShowMobileYesMsg(false); }}
                   variant="ghost"
                   size="icon"
                   className="rounded-full border border-emerald-500/50 btn-water shrink-0 text-emerald-400 hover:text-emerald-300 hover:border-emerald-400"
@@ -1304,12 +1307,16 @@ export default function ProfilePage() {
                 {!earnNoClicked && (
                   <div className="pt-2">
                     <p className="text-center text-sm font-bold text-foreground mb-4">Ready to start earning? 🚀</p>
-                    <button
-                      onClick={() => { setEarnNoClicked(true); toast("BEST DECISION OF LIFE", { icon: "🏆", duration: 5000 }); }}
-                      className="w-full py-3 rounded-full font-black text-sm border-2 border-red-500/60 text-red-400 hover:bg-red-500/10 transition-all"
-                    >
-                      No
-                    </button>
+                    <div className="flex items-center gap-4">
+                      <button
+                        onClick={() => { setEarnNoClicked(true); toast("BEST DECISION OF LIFE", { icon: "🏆", duration: 5000 }); }}
+                        className="flex-1 py-3 rounded-full font-black text-sm border-2 border-red-500/60 text-red-400 hover:bg-red-500/10 transition-all"
+                      >
+                        No
+                      </button>
+                      {/* Ghost spacer — keeps No at half-width while Yes floats absolutely */}
+                      <div className="flex-1" aria-hidden />
+                    </div>
                   </div>
                 )}
 
