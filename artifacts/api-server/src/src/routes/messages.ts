@@ -135,7 +135,7 @@ router.get("/conversations/unread-count", requireUser, async (req, res): Promise
   const convoIds = myConvos.map(c => c.conversationId);
   if (convoIds.length === 0) { res.json({ count: 0 }); return; }
 
-  const [result] = await db.select({ count: sql<number>`count(*)::int` })
+  const [result] = await db.select({ count: sql<number>`count(distinct ${messagesTable.conversationId})::int` })
     .from(messagesTable)
     .where(and(
       inArray(messagesTable.conversationId, convoIds),
