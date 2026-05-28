@@ -75,12 +75,23 @@ const clerkAppearance = {
   variables: {
     colorPrimary: "hsl(330, 100%, 71%)",
     colorForeground: "hsl(280, 20%, 97%)",
-    colorBackground: "hsl(268, 40%, 14%)",
-    colorInputBackground: "hsl(268, 35%, 18%)",
+    colorBackground: "transparent",
+    colorInputBackground: "rgba(139,92,246,0.15)",
     colorInputText: "hsl(280, 20%, 97%)",
     colorNeutral: "hsl(268, 30%, 20%)",
     fontFamily: "'Outfit', sans-serif",
     borderRadius: "1rem",
+  },
+  elements: {
+    card: {
+      background: "linear-gradient(135deg, rgba(139,92,246,0.18) 0%, rgba(168,85,247,0.12) 50%, rgba(236,72,153,0.10) 100%)",
+      backdropFilter: "blur(20px)",
+      WebkitBackdropFilter: "blur(20px)",
+      border: "1px solid rgba(168,85,247,0.30)",
+      boxShadow: "0 0 40px rgba(168,85,247,0.18), 0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.08)",
+    },
+    spinner: { color: "#ec4899" },
+    dividerLine: { background: "rgba(168,85,247,0.25)" },
   },
 };
 
@@ -154,7 +165,7 @@ function OAuthSection({ mode }: { mode: "sign-in" | "sign-up" }) {
             className="flex items-center justify-center w-12 h-12 rounded-xl border border-border bg-muted/30 hover:bg-muted/60 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loadingProvider === p.id ? (
-              <span className="w-4 h-4 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
+              <span className="w-4 h-4 rounded-full border-2 border-pink-400/30 border-t-pink-400 animate-spin" />
             ) : (
               p.icon
             )}
@@ -174,7 +185,7 @@ function OAuthSection({ mode }: { mode: "sign-in" | "sign-up" }) {
 function SsoCallbackPage() {
   return (
     <div className="min-h-[100dvh] bg-background flex items-center justify-center dark">
-      <div className="w-10 h-10 rounded-full border-4 border-primary/30 border-t-primary animate-spin" />
+      <div className="w-10 h-10 rounded-full border-4 border-pink-400/30 border-t-pink-400 animate-spin" />
       <AuthenticateWithRedirectCallback />
     </div>
   );
@@ -186,7 +197,15 @@ const gradientBg = { background: "linear-gradient(135deg, #ec4899, #9333ea)" };
 
 function AuthCard({ children, title, subtitle }: { children: React.ReactNode; title: string; subtitle?: string }) {
   return (
-    <div className="w-full max-w-[440px] rounded-2xl border border-border bg-card shadow-2xl p-8">
+    <div
+      className="w-full max-w-[440px] rounded-2xl border border-purple-500/30 shadow-2xl p-8"
+      style={{
+        background: "linear-gradient(135deg, rgba(139,92,246,0.18) 0%, rgba(168,85,247,0.12) 50%, rgba(236,72,153,0.10) 100%)",
+        backdropFilter: "blur(20px)",
+        WebkitBackdropFilter: "blur(20px)",
+        boxShadow: "0 0 40px rgba(168,85,247,0.18), 0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.08)",
+      }}
+    >
       <div className="flex justify-center mb-5">
         <img src={`${basePath || ""}/logo.png`} alt="Squawk" className="h-14 w-auto" />
       </div>
@@ -391,12 +410,7 @@ function AuthPageShell({ children }: { children: React.ReactNode }) {
 function SignInPage() {
   return (
     <AuthPageShell>
-      <SignIn
-        routing={"virtual" as any}
-        appearance={clerkAppearance}
-        signUpUrl={`${basePath}/sign-up`}
-        fallbackRedirectUrl={`${basePath}/home`}
-      />
+      <EmailSignInForm />
     </AuthPageShell>
   );
 }
@@ -404,12 +418,7 @@ function SignInPage() {
 function SignUpPage() {
   return (
     <AuthPageShell>
-      <SignUp
-        routing={"virtual" as any}
-        appearance={clerkAppearance}
-        signInUrl={`${basePath}/sign-in`}
-        fallbackRedirectUrl={`${basePath}/home`}
-      />
+      <EmailSignUpForm />
     </AuthPageShell>
   );
 }
@@ -456,7 +465,7 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   if (!isLoaded || (isSignedIn && isLoading)) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="w-12 h-12 rounded-full border-4 border-primary/30 border-t-primary animate-spin" />
+        <div className="w-12 h-12 rounded-full border-4 border-pink-400/30 border-t-pink-400 animate-spin" />
       </div>
     );
   }
