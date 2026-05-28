@@ -26,10 +26,13 @@ function saveDismissedSuggestions(clerkId: string, ids: Set<number>) {
 }
 
 const POLL_INTERVAL = 30 * 1000;
-const PROMO_DISMISSED_KEY = "squawk_promo_dismissed_v1";
+const PROMO_SESSION_KEY = "squawk_promo_dismissed_v1";
+const getPromoPermanentKey = (clerkId: string) => `squawk_promo_never_show_${clerkId}`;
 
 // ── Promo Popup — centered modal overlay ────────────────────────────────────
-function PromoModal({ onDismiss }: { onDismiss: () => void }) {
+function PromoModal({ onDismiss }: { onDismiss: (permanent: boolean) => void }) {
+  const [dontShow, setDontShow] = useState(false);
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -38,7 +41,7 @@ function PromoModal({ onDismiss }: { onDismiss: () => void }) {
       transition={{ duration: 0.2 }}
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
       style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(6px)" }}
-      onClick={onDismiss}
+      onClick={() => onDismiss(dontShow)}
     >
       <motion.div
         initial={{ scale: 0.92, opacity: 0, y: 20 }}
@@ -51,7 +54,7 @@ function PromoModal({ onDismiss }: { onDismiss: () => void }) {
       >
         {/* Dismiss button */}
         <button
-          onClick={onDismiss}
+          onClick={() => onDismiss(dontShow)}
           className="absolute top-3 right-3 z-20 w-8 h-8 rounded-full bg-black/60 backdrop-blur-sm text-white flex items-center justify-center hover:bg-black/80 transition-colors"
           aria-label="Close"
         >
@@ -64,7 +67,7 @@ function PromoModal({ onDismiss }: { onDismiss: () => void }) {
           target="_blank"
           rel="noopener noreferrer"
           className="block"
-          onClick={onDismiss}
+          onClick={() => onDismiss(dontShow)}
         >
           <img
             src="/promo-bestie.png"
@@ -75,21 +78,46 @@ function PromoModal({ onDismiss }: { onDismiss: () => void }) {
         </a>
 
         {/* Bottom CTA bar */}
-        <div className="px-4 py-4 flex items-center justify-between bg-[#0d0d1a] border-t border-white/10">
-          <div>
-            <p className="text-white/50 text-[10px] font-semibold uppercase tracking-widest mb-0.5">Sponsored</p>
-            <p className="text-white font-bold text-sm leading-none">my-talking-squad.vercel.app</p>
+        <div className="px-4 py-4 bg-[#0d0d1a] border-t border-white/10 space-y-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-white/50 text-[10px] font-semibold uppercase tracking-widest mb-0.5">Sponsored</p>
+              <p className="text-white font-bold text-sm leading-none">my-talking-squad.vercel.app</p>
+            </div>
+            <a
+              href="https://my-talking-squad.vercel.app/"
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => onDismiss(dontShow)}
+              className="flex items-center gap-1.5 bg-gradient-to-r from-primary to-[#c084fc] text-white text-sm font-bold px-4 py-2 rounded-full shadow-lg hover:opacity-90 transition-opacity"
+            >
+              <ExternalLink className="w-3.5 h-3.5" />
+              Play Now
+            </a>
           </div>
-          <a
-            href="https://my-talking-squad.vercel.app/"
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={onDismiss}
-            className="flex items-center gap-1.5 bg-gradient-to-r from-primary to-[#c084fc] text-white text-sm font-bold px-4 py-2 rounded-full shadow-lg hover:opacity-90 transition-opacity"
-          >
-            <ExternalLink className="w-3.5 h-3.5" />
-            Play Now
-          </a>
+          {/* Don't show again checkbox */}
+          <label className="flex items-center gap-2.5 cursor-pointer select-none group" onClick={e => e.stopPropagation()}>
+            <div
+              onClick={() => setDontShow(v => !v)}
+              className={`w-4 h-4 rounded border flex items-center justify-center transition-colors shrink-0 ${
+                dontShow
+                  ? "bg-primary border-primary"
+                  : "border-white/30 bg-white/5 group-hover:border-white/50"
+              }`}
+            >
+              {dontShow && (
+                <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 10 10">
+                  <path d="M1.5 5l2.5 2.5 4.5-4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              )}
+            </div>
+            <span
+              onClick={() => setDontShow(v => !v)}
+              className="text-white/50 text-xs group-hover:text-white/70 transition-colors"
+            >
+              Don't show again
+            </span>
+          </label>
         </div>
       </motion.div>
     </motion.div>
@@ -171,16 +199,18 @@ export default function HomePage() {
     });
   };
 
-  // Show promo modal after a short delay on first visit this session
+  // Show promo modal after a short delay — skip if permanently dismissed
   useEffect(() => {
     try {
-      if (!sessionStorage.getItem(PROMO_DISMISSED_KEY)) {
+      const permanentKey = clerkId ? getPromoPermanentKey(clerkId) : null;
+      const permanentlyDismissed = permanentKey ? !!localStorage.getItem(permanentKey) : false;
+      if (!permanentlyDismissed && !sessionStorage.getItem(PROMO_SESSION_KEY)) {
         const t = setTimeout(() => setShowPromo(true), 1200);
         return () => clearTimeout(t);
       }
     } catch {}
     return undefined;
-  }, []);
+  }, [clerkId]);
 
   const { data: feedData, isLoading, refetch } = useGetFeed(undefined, {
     query: {
@@ -215,9 +245,14 @@ export default function HomePage() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [refetch]);
 
-  const handleDismissPromo = () => {
+  const handleDismissPromo = (permanent: boolean) => {
     setShowPromo(false);
-    try { sessionStorage.setItem(PROMO_DISMISSED_KEY, "1"); } catch {}
+    try {
+      sessionStorage.setItem(PROMO_SESSION_KEY, "1");
+      if (permanent && clerkId) {
+        localStorage.setItem(getPromoPermanentKey(clerkId), "1");
+      }
+    } catch {}
   };
 
   return (
