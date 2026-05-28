@@ -58,6 +58,7 @@ export default function PostCard({ post, onLike, onSave, onComment }: PostCardPr
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const mediaContainerRef = useRef<HTMLDivElement>(null);
+  const [videoAspectRatio, setVideoAspectRatio] = useState<string>("16/9");
 
   // Auto-pause video when scrolled out of view
   useEffect(() => {
@@ -313,8 +314,8 @@ export default function PostCard({ post, onLike, onSave, onComment }: PostCardPr
           ref={mediaContainerRef}
           className="relative w-full overflow-hidden"
           style={{
-            aspectRatio: post.mediaType === "video" ? "16/9" : undefined,
-            maxHeight: post.mediaType === "video" ? "560px" : "600px",
+            aspectRatio: post.mediaType === "video" ? videoAspectRatio : undefined,
+            maxHeight: post.mediaType === "video" ? "80vh" : "600px",
             backgroundColor: post.mediaType === "video" ? "#000" : undefined,
           }}
           onDoubleClick={handleDoubleTap}
@@ -333,6 +334,12 @@ export default function PostCard({ post, onLike, onSave, onComment }: PostCardPr
                 muted={isMuted}
                 loop
                 playsInline
+                onLoadedMetadata={(e) => {
+                  const v = e.currentTarget;
+                  if (v.videoWidth && v.videoHeight) {
+                    setVideoAspectRatio(`${v.videoWidth}/${v.videoHeight}`);
+                  }
+                }}
               />
               <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/40 pointer-events-none" />
               <button

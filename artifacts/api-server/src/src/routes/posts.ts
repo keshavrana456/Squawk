@@ -84,6 +84,33 @@ router.post("/posts", requireUser, async (req, res): Promise<void> => {
     hashtags: parsed.data.hashtags ?? [],
   }).returning();
 
+  // Mention notifications (fire-and-forget)
+  ;(async () => {
+    const caption = parsed.data.caption ?? "";
+    const mentionedUsernames = [...new Set((caption.match(/@(\w+)/g) ?? []).map((m: string) => m.slice(1).toLowerCase()))];
+    if (mentionedUsernames.length === 0) return;
+    const mentionedUsers = await db.select().from(usersTable).where(inArray(usersTable.username, mentionedUsernames));
+    for (const mentioned of mentionedUsers) {
+      if (mentioned.id === currentUser.id) continue;
+      await db.insert(notificationsTable).values({
+        recipientId: mentioned.id,
+        actorId: currentUser.id,
+        type: "mention" as const,
+        postId: post.id,
+        message: caption.slice(0, 100),
+      }).onConflictDoNothing();
+      emitToUser(mentioned.id, "notification", {
+        type: "mention",
+        actorUsername: currentUser.username,
+        actorDisplayName: currentUser.displayName,
+        actorAvatarUrl: currentUser.avatarUrl,
+        message: `${currentUser.displayName} mentioned you in a post`,
+        createdAt: new Date().toISOString(),
+      });
+      sendPushToUser(mentioned.id, `${currentUser.displayName} mentioned you`, caption.slice(0, 80), "/notifications");
+    }
+  })().catch(() => {});
+
   const withMeta = await buildPostWithMeta(post, currentUser, currentUser.id);
   res.status(201).json(withMeta);
 });
@@ -307,6 +334,34 @@ router.post("/posts/:id/comments", requireUser, async (req, res): Promise<void> 
     });
     sendPushToUser(post.authorId, `${currentUser.displayName} commented on your post`, body.data.content.slice(0, 80), "/notifications");
   }
+
+  // Mention notifications in comment (fire-and-forget)
+  ;(async () => {
+    const commentText = body.data.content ?? "";
+    const mentionedUsernames = [...new Set((commentText.match(/@(\w+)/g) ?? []).map((m: string) => m.slice(1).toLowerCase()))];
+    if (mentionedUsernames.length === 0) return;
+    const mentionedUsers = await db.select().from(usersTable).where(inArray(usersTable.username, mentionedUsernames));
+    for (const mentioned of mentionedUsers) {
+      if (mentioned.id === currentUser.id) continue;
+      if (post && mentioned.id === post.authorId) continue;
+      await db.insert(notificationsTable).values({
+        recipientId: mentioned.id,
+        actorId: currentUser.id,
+        type: "mention" as const,
+        postId: params.data.id,
+        message: commentText.slice(0, 100),
+      }).onConflictDoNothing();
+      emitToUser(mentioned.id, "notification", {
+        type: "mention",
+        actorUsername: currentUser.username,
+        actorDisplayName: currentUser.displayName,
+        actorAvatarUrl: currentUser.avatarUrl,
+        message: `${currentUser.displayName} mentioned you in a comment`,
+        createdAt: new Date().toISOString(),
+      });
+      sendPushToUser(mentioned.id, `${currentUser.displayName} mentioned you`, commentText.slice(0, 80), "/notifications");
+    }
+  })().catch(() => {});
 
   res.status(201).json({
     id: comment.id,

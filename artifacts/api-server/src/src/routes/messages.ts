@@ -416,6 +416,34 @@ router.delete("/conversations/:id/leave", requireUser, async (req, res): Promise
     and(eq(conversationParticipantsTable.conversationId, convId), eq(conversationParticipantsTable.userId, currentUser.id))
   );
 
+  // Post "X left the group" system message
+  try {
+    const leaveText = `${currentUser.displayName || currentUser.username} left the group`;
+    const [systemMsg] = await db.insert(messagesTable).values({
+      conversationId: convId,
+      senderId: currentUser.id,
+      content: leaveText,
+      mediaUrl: null,
+    } as any).returning();
+
+    await db.execute(sql`UPDATE messages SET message_type = 'system' WHERE id = ${systemMsg.id}`);
+
+    emitToConversation(convId, "new_message", {
+      id: systemMsg.id,
+      conversationId: convId,
+      senderId: currentUser.id,
+      sender: buildUserSummary(currentUser),
+      content: leaveText,
+      messageType: "system",
+      gifUrl: null,
+      sharedPostId: null,
+      replyToMessageId: null,
+      replyTo: null,
+      mediaUrl: null,
+      createdAt: systemMsg.createdAt.toISOString(),
+    });
+  } catch { /* non-critical */ }
+
   res.json({ success: true });
 });
 

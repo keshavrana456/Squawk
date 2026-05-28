@@ -191,6 +191,33 @@ router.post("/chirps", requireUser, async (req, res): Promise<void> => {
     }
   }
 
+  // Mention notifications (fire-and-forget)
+  ;(async () => {
+    const allMentions = Array.isArray(mentions) && mentions.length > 0
+      ? mentions as string[]
+      : (content.match(/@(\w+)/g) ?? []).map((m: string) => m.slice(1));
+    const uniqueHandles = [...new Set(allMentions.map((h: string) => h.toLowerCase()))];
+    if (uniqueHandles.length === 0) return;
+    const mentionedUsers = await db.select().from(usersTable).where(inArray(usersTable.username, uniqueHandles));
+    for (const mentioned of mentionedUsers) {
+      if (mentioned.id === currentUser.id) continue;
+      await db.insert(notificationsTable).values({
+        recipientId: mentioned.id,
+        actorId: currentUser.id,
+        type: "mention" as const,
+        message: content.trim().slice(0, 100),
+      }).onConflictDoNothing();
+      emitToUser(mentioned.id, "notification", {
+        type: "mention",
+        actorUsername: currentUser.username,
+        actorDisplayName: currentUser.displayName,
+        actorAvatarUrl: currentUser.avatarUrl,
+        message: `${currentUser.displayName} mentioned you in a chirp`,
+        createdAt: new Date().toISOString(),
+      });
+    }
+  })().catch(() => {});
+
   const result = await buildChirpWithMeta(chirp, currentUser, currentUser.id);
   res.status(201).json(result);
 });

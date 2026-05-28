@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
+import { useLocation } from "wouter";
 import { Plus, X, ChevronLeft, ChevronRight, Eye, Users, Trash2, MoreVertical, Pause } from "lucide-react";
 import {
   useGetActiveStories,
@@ -82,6 +83,20 @@ export function StoryViewer({ groups: initialGroups, startIndex, onClose, onStor
   const TICK = 50;
 
   const { layers: textLayers, transform: mediaTransform } = parseTextLayers((currentStory as any)?.textLayers);
+  const [, navigate] = useLocation();
+
+  const renderMentions = (text: string) =>
+    text.split(/(@\w+)/g).map((part, i) =>
+      /^@\w+$/.test(part) ? (
+        <span
+          key={i}
+          className="font-bold underline cursor-pointer pointer-events-auto"
+          onClick={(e) => { e.stopPropagation(); navigate(`/profile/${part.slice(1)}`); }}
+        >
+          {part}
+        </span>
+      ) : part
+    );
 
   // Sync ref with state
   useEffect(() => { isPausedRef.current = isPaused; }, [isPaused]);
@@ -354,7 +369,7 @@ export function StoryViewer({ groups: initialGroups, startIndex, onClose, onStor
                 }`}
                 style={{ fontSize: `${layer.fontSize ?? 22}px`, color: layer.color ?? "#fff", lineHeight: 1.3 }}
               >
-                {layer.text}
+                {renderMentions(layer.text)}
               </div>
             </div>
           ))}
@@ -363,7 +378,7 @@ export function StoryViewer({ groups: initialGroups, startIndex, onClose, onStor
           {caption && textLayers.length === 0 && (
             <div className="absolute bottom-16 left-0 right-0 flex justify-center px-4 z-10 pointer-events-none">
               <div className="bg-black/50 backdrop-blur-md rounded-xl px-4 py-2 max-w-[85%] text-center">
-                <p className="text-white text-sm font-medium leading-snug break-words">{caption}</p>
+                <p className="text-white text-sm font-medium leading-snug break-words">{renderMentions(caption)}</p>
               </div>
             </div>
           )}

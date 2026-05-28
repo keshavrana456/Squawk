@@ -1,6 +1,8 @@
 import { Router, type IRouter } from "express";
 import { eq, and, desc, gt, sql, inArray } from "drizzle-orm";
 import { db, usersTable, storiesTable, storyViewsTable, followsTable, notificationsTable } from "@workspace/db";
+import { emitToUser } from "../lib/socket";
+import { sendPushToUser } from "../lib/push";
 import { requireUser } from "../lib/auth";
 import { buildUserSummary } from "../lib/userHelpers";
 import { ViewStoryParams } from "@workspace/api-zod";
@@ -85,6 +87,12 @@ const CreateStoryBodyExtended = z.object({
   textLayers: z.string().optional().nullable(),
 });
 
+function extractMentions(text: string | null | undefined): string[] {
+  if (!text) return [];
+  const matches = text.match(/@(\w+)/g) ?? [];
+  return [...new Set(matches.map(m => m.slice(1).toLowerCase()))];
+}
+
 // POST /stories
 router.post("/stories", requireUser, async (req, res): Promise<void> => {
   const currentUser = (req as any).currentUser as typeof usersTable.$inferSelect;
@@ -117,12 +125,46 @@ router.post("/stories", requireUser, async (req, res): Promise<void> => {
         type: "story" as const,
         message: parsed.data.caption?.slice(0, 100) ?? null,
       }));
-      // Batch insert in chunks to avoid huge queries
       for (let i = 0; i < notifs.length; i += 50) {
         await db.insert(notificationsTable).values(notifs.slice(i, i + 50)).onConflictDoNothing();
       }
     })
     .catch(() => {});
+
+  // Notify mentioned users (fire-and-forget)
+  ;(async () => {
+    const mentionedUsernames = [
+      ...extractMentions(parsed.data.caption),
+      ...(() => {
+        try {
+          const layers = JSON.parse(parsed.data.textLayers ?? "[]") as any[];
+          return layers.flatMap(l => extractMentions(l.text));
+        } catch { return []; }
+      })(),
+    ];
+    const uniqueUsernames = [...new Set(mentionedUsernames)];
+    if (uniqueUsernames.length === 0) return;
+    const mentionedUsers = await db.select().from(usersTable)
+      .where(inArray(usersTable.username, uniqueUsernames));
+    for (const mentioned of mentionedUsers) {
+      if (mentioned.id === currentUser.id) continue;
+      await db.insert(notificationsTable).values({
+        recipientId: mentioned.id,
+        actorId: currentUser.id,
+        type: "mention" as const,
+        message: parsed.data.caption?.slice(0, 100) ?? "mentioned you in a story",
+      }).onConflictDoNothing();
+      emitToUser(mentioned.id, "notification", {
+        type: "mention",
+        actorUsername: currentUser.username,
+        actorDisplayName: currentUser.displayName,
+        actorAvatarUrl: currentUser.avatarUrl,
+        message: `${currentUser.displayName} mentioned you in a story`,
+        createdAt: new Date().toISOString(),
+      });
+      sendPushToUser(mentioned.id, `${currentUser.displayName} mentioned you`, "You were mentioned in a story", "/notifications");
+    }
+  })().catch(() => {});
 
   res.status(201).json({
     id: story.id,

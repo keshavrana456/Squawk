@@ -288,7 +288,7 @@ function ChirpCard({ chirp, onReply, isNested = false, onOpen }: { chirp: ChirpD
       {(chirp.rechirpOfId !== null || localRechirped) && (
         <div className="flex items-center gap-2 px-4 pt-3 text-xs font-semibold text-green-500">
           <Repeat2 className="w-3.5 h-3.5" />
-          <span>{localRechirped ? "You reposted" : `${chirp.author.displayName || chirp.author.username} reposted`}</span>
+          <span>{chirp.rechirpOfId !== null ? `${chirp.author.displayName || chirp.author.username} reposted` : "You reposted"}</span>
         </div>
       )}
       <div className="flex gap-3 px-4 py-4">

@@ -1103,7 +1103,13 @@ function ChatView({ conversationId, onBack, me, conversation, onConversationLeft
                       </span>
                     </div>
                   )}
-                  {msg.messageType === "missed_call" ? (
+                  {msg.messageType === "system" ? (
+                    <div className="self-center flex items-center justify-center px-4 py-1 my-1">
+                      <span className="text-xs text-muted-foreground italic bg-muted/50 px-3 py-1 rounded-full">
+                        {msg.content}
+                      </span>
+                    </div>
+                  ) : msg.messageType === "missed_call" ? (
                     <div className="self-center flex items-center gap-2 px-4 py-2 rounded-full bg-muted/70 border border-border/50 text-sm text-muted-foreground my-1 max-w-[80%]">
                       <Phone className="w-3.5 h-3.5 text-destructive shrink-0" />
                       <span className="text-xs font-medium">{msg.content}</span>

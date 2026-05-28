@@ -15,7 +15,8 @@ self.addEventListener("push", (event) => {
     badge: data.badge || "/logo.png",
     data: { url: data.url || "/" },
     vibrate: [100, 50, 100],
-    tag: "squawk-notification",
+    tag: data.tag || `squawk-${Date.now()}`,
+    requireInteraction: false,
     renotify: true,
   };
 

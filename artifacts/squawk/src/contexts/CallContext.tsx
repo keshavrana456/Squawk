@@ -111,6 +111,8 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     setRemoteStream(null);
     setCallDuration(0);
     pendingCandidatesRef.current = [];
+    if (remoteAudioRef.current) remoteAudioRef.current.srcObject = null;
+    if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
   }, []);
 
   const createPeerConnection = useCallback((otherUserId: number) => {
@@ -375,8 +377,25 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const toggleSpeaker = useCallback(() => {
-    setActiveCall(prev => prev ? { ...prev, isSpeakerOff: !prev.isSpeakerOff } : prev);
+    setActiveCall(prev => {
+      if (!prev) return prev;
+      const next = { ...prev, isSpeakerOff: !prev.isSpeakerOff };
+      if (remoteAudioRef.current) remoteAudioRef.current.muted = next.isSpeakerOff;
+      return next;
+    });
   }, []);
+
+  // Sync remoteStream to media elements whenever it changes (timing fix: refs may not be mounted when ontrack fires)
+  useEffect(() => {
+    if (!remoteStream) return;
+    if (remoteVideoRef.current && remoteVideoRef.current.srcObject !== remoteStream) {
+      remoteVideoRef.current.srcObject = remoteStream;
+    }
+    if (remoteAudioRef.current && remoteAudioRef.current.srcObject !== remoteStream) {
+      remoteAudioRef.current.srcObject = remoteStream;
+      remoteAudioRef.current.play().catch(() => {});
+    }
+  }, [remoteStream]);
 
   // Socket event listeners
   useEffect(() => {
