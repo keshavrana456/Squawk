@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useGetNotifications, useMarkAllNotificationsRead, getGetUnreadNotificationCountQueryKey, type Notification } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Heart, MessageCircle, UserPlus, AtSign, CheckCheck, Repeat2, Sparkles, BadgeCheck, Users, X } from "lucide-react";
@@ -153,9 +153,35 @@ function SuggestedUsers() {
   );
 }
 
+function getNotificationHref(n: Notification & { actor?: any }): string | undefined {
+  switch (n.type) {
+    case "follow":
+      return n.actor?.username ? `/profile/${n.actor.username}` : undefined;
+    case "like":
+      return n.postId ? `/post/${n.postId}` : undefined;
+    case "comment":
+      return n.postId ? `/post/${n.postId}` : undefined;
+    case "mention":
+      if (n.postId) return `/post/${n.postId}`;
+      // Chirp or story mention — no postId on record
+      return `/chirps`;
+    case "repost":
+      return `/chirps`;
+    case "story":
+      return n.actor?.username ? `/profile/${n.actor.username}` : `/`;
+    case "message":
+      return `/messages`;
+    default:
+      if (n.postId) return `/post/${n.postId}`;
+      if ((n as any).actor?.username) return `/profile/${(n as any).actor.username}`;
+      return undefined;
+  }
+}
+
 export default function NotificationsPage() {
   const [activeTab, setActiveTab] = useState<Tab>("All");
   const queryClient = useQueryClient();
+  const [, navigate] = useLocation();
 
   const { data: notifData, isLoading } = useGetNotifications({ query: { refetchInterval: 15_000, refetchOnWindowFocus: true } });
   const notifications = Array.isArray(notifData) ? notifData : [];
@@ -290,24 +316,26 @@ export default function NotificationsPage() {
                 ? "bg-primary/5 border-primary/20"
                 : "bg-background border-border/40";
 
-              const href = n.postId ? `/post/${n.postId}` : n.actor ? `/profile/${n.actor.username}` : undefined;
-              const Wrapper = href ? Link : "div";
-              const wrapperProps = href ? { href } : {};
+              const href = getNotificationHref(n as any);
 
               return (
-                <Wrapper
+                <div
                   key={n.id}
-                  {...(wrapperProps as any)}
+                  onClick={() => href && navigate(href)}
                   className={`flex gap-4 p-4 rounded-2xl border transition-colors hover:bg-muted/50 cursor-pointer relative overflow-hidden group ${unreadStyle}`}
                 >
                   {!n.isRead && <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-primary to-pink-500 rounded-l-2xl" />}
 
-                  {n.actor ? (
-                    <Link href={`/profile/${n.actor.username}`} onClick={e => e.stopPropagation()} className="shrink-0 relative">
+                  {(n as any).actor ? (
+                    <Link
+                      href={`/profile/${(n as any).actor.username}`}
+                      onClick={e => e.stopPropagation()}
+                      className="shrink-0 relative"
+                    >
                       <Avatar className="w-12 h-12 border border-border group-hover:border-primary/50 transition-colors">
-                        <AvatarImage src={n.actor.avatarUrl || ""} />
+                        <AvatarImage src={(n as any).actor.avatarUrl || ""} />
                         <AvatarFallback className="bg-muted text-foreground font-bold">
-                          {getInitials(n.actor.displayName)}
+                          {getInitials((n as any).actor.displayName)}
                         </AvatarFallback>
                       </Avatar>
                       <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-card rounded-full flex items-center justify-center border border-border shadow-sm">
@@ -322,8 +350,8 @@ export default function NotificationsPage() {
 
                   <div className="flex-1 pt-1 min-w-0">
                     <div className="text-[15px] text-foreground leading-snug">
-                      {n.actor && (
-                        <span className="font-semibold mr-1">{n.actor.username}</span>
+                      {(n as any).actor && (
+                        <span className="font-semibold mr-1">{(n as any).actor.username}</span>
                       )}
                       <span className="text-muted-foreground">{getMessage(n)}</span>
                     </div>
@@ -331,7 +359,7 @@ export default function NotificationsPage() {
                       {formatDistanceToNow(new Date(n.createdAt))} ago
                     </div>
                   </div>
-                </Wrapper>
+                </div>
               );
             })}
           </div>
