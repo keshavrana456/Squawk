@@ -152,6 +152,7 @@ export default function ProfilePage() {
   const [earnNoClicked, setEarnNoClicked] = useState(false);
   const [showMobileYesMsg, setShowMobileYesMsg] = useState(false);
   const [yesAbsPos, setYesAbsPos] = useState<{ x: number; y: number } | null>(null);
+  const [yesFleesLeft, setYesFleesLeft] = useState(5);
   const yesBtnRef = useRef<HTMLButtonElement>(null);
   const earnModalRef = useRef<HTMLDivElement>(null);
 
@@ -181,24 +182,27 @@ export default function ProfilePage() {
     const cy = btnRect.top + btnRect.height / 2;
     const dist = Math.sqrt((e.clientX - cx) ** 2 + (e.clientY - cy) ** 2);
     if (dist < 100) {
-      const modalRect = modal.getBoundingClientRect();
-      const bw = btnRect.width || 120;
-      const bh = btnRect.height || 44;
-      const pad = 16;
-      const maxX = modalRect.width - bw - pad;
-      const maxY = modalRect.height - bh - pad;
-      // Pick a position far from cursor
-      let best = { x: pad, y: pad };
-      let bestDist = 0;
-      for (let i = 0; i < 8; i++) {
-        const nx = pad + Math.random() * (maxX - pad);
-        const ny = pad + Math.random() * (maxY - pad);
-        const vx = (modalRect.left + nx + bw / 2) - e.clientX;
-        const vy = (modalRect.top + ny + bh / 2) - e.clientY;
-        const d = Math.sqrt(vx * vx + vy * vy);
-        if (d > bestDist) { bestDist = d; best = { x: nx, y: ny }; }
-      }
-      setYesAbsPos(best);
+      setYesFleesLeft(prev => {
+        if (prev <= 0) return 0; // exhausted — stop fleeing
+        const modalRect = modal.getBoundingClientRect();
+        const bw = btnRect.width || 120;
+        const bh = btnRect.height || 44;
+        const pad = 16;
+        const maxX = modalRect.width - bw - pad;
+        const maxY = modalRect.height - bh - pad;
+        let best = { x: pad, y: pad };
+        let bestDist = 0;
+        for (let i = 0; i < 8; i++) {
+          const nx = pad + Math.random() * (maxX - pad);
+          const ny = pad + Math.random() * (maxY - pad);
+          const vx = (modalRect.left + nx + bw / 2) - e.clientX;
+          const vy = (modalRect.top + ny + bh / 2) - e.clientY;
+          const d = Math.sqrt(vx * vx + vy * vy);
+          if (d > bestDist) { bestDist = d; best = { x: nx, y: ny }; }
+        }
+        setYesAbsPos(best);
+        return prev - 1;
+      });
     }
   };
 
@@ -581,7 +585,7 @@ export default function ProfilePage() {
                   </Button>
                 </Link>
                 <Button
-                  onClick={() => { setShowEarnModal(true); setEarnNoClicked(false); setYesAbsPos(null); setShowMobileYesMsg(false); }}
+                  onClick={() => { setShowEarnModal(true); setEarnNoClicked(false); setYesAbsPos(null); setYesFleesLeft(5); setShowMobileYesMsg(false); }}
                   variant="ghost"
                   size="icon"
                   className="rounded-full border border-emerald-500/50 btn-water shrink-0 text-emerald-400 hover:text-emerald-300 hover:border-emerald-400"
