@@ -87,6 +87,8 @@ CLERK_PUBLISHABLE_KEY = "pk_test_ZHJpdmVuLXBsYXR5cHVzLTg5LmNsZXJrLmFjY291bnRzLmR
 VITE_CLERK_PUBLISHABLE_KEY = "pk_test_ZHJpdmVuLXBsYXR5cHVzLTg5LmNsZXJrLmFjY291bnRzLmRldiQ"
 VITE_VAPID_PUBLIC_KEY = "BPhZd2immSxZ1ArgrEbdMx0Mv-5tlajE4g1HNs8Wy2YC7SjgNaMbWciOPejO5AesgDc1qBqYRy4uIiiBwfbwwlQ"
 VAPID_PUBLIC_KEY = "BMH22wEN267qKegAUcUyi66UpoawmM33nojpRrl7-MA0XRHblw_rdREihsiBvVv58YeK_w1Wrpfnl8zYU-E4YTM"
+STREAM_API_KEY = "xvnwtxvapduu"
+STREAM_API_SECRET = "wk3j2z5puaqx9rqwt53nd4uuv9h6y8mvtwc6uzxzwzvjdf2mm6tyb6hfwebhekpf"
 
 [nix]
 channel = "stable-25_05"
