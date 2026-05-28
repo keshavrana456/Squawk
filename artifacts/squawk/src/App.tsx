@@ -74,20 +74,24 @@ const clerkAppearance = {
   variables: {
     colorPrimary: "hsl(330, 100%, 71%)",
     colorForeground: "hsl(280, 20%, 97%)",
-    colorBackground: "transparent",
+    colorBackground: "hsl(268, 30%, 8%)",
     colorInputBackground: "rgba(139,92,246,0.15)",
     colorInputText: "hsl(280, 20%, 97%)",
-    colorNeutral: "hsl(268, 30%, 20%)",
+    colorNeutral: "hsl(280, 20%, 97%)",
+    colorText: "hsl(280, 20%, 97%)",
+    colorTextSecondary: "hsl(280, 20%, 75%)",
     fontFamily: "'Outfit', sans-serif",
     borderRadius: "1rem",
   },
   elements: {
     card: {
-      background: "linear-gradient(135deg, rgba(139,92,246,0.18) 0%, rgba(168,85,247,0.12) 50%, rgba(236,72,153,0.10) 100%)",
-      backdropFilter: "blur(20px)",
-      WebkitBackdropFilter: "blur(20px)",
-      border: "1px solid rgba(168,85,247,0.30)",
-      boxShadow: "0 0 40px rgba(168,85,247,0.18), 0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.08)",
+      background: "linear-gradient(135deg, rgba(30,15,60,0.98) 0%, rgba(45,20,80,0.98) 100%)",
+      border: "1px solid rgba(168,85,247,0.35)",
+      boxShadow: "0 0 40px rgba(168,85,247,0.18), 0 8px 32px rgba(0,0,0,0.5)",
+    },
+    rootBox: {
+      width: "100%",
+      maxWidth: "420px",
     },
     spinner: { color: "#ec4899" },
     dividerLine: { background: "rgba(168,85,247,0.25)" },
@@ -419,7 +423,11 @@ function AuthPageShell({ children }: { children: React.ReactNode }) {
 function SignInPage() {
   return (
     <AuthPageShell>
-      <EmailSignInForm />
+      <SignIn
+        appearance={clerkAppearance}
+        signUpUrl={`${basePath}/sign-up`}
+        forceRedirectUrl={`${basePath}/home`}
+      />
     </AuthPageShell>
   );
 }
@@ -427,7 +435,11 @@ function SignInPage() {
 function SignUpPage() {
   return (
     <AuthPageShell>
-      <EmailSignUpForm />
+      <SignUp
+        appearance={clerkAppearance}
+        signInUrl={`${basePath}/sign-in`}
+        forceRedirectUrl={`${basePath}/home`}
+      />
     </AuthPageShell>
   );
 }
