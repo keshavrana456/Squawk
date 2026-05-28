@@ -130,24 +130,34 @@ const OAUTH_PROVIDERS = [
 type OAuthProviderId = typeof OAUTH_PROVIDERS[number]["id"];
 
 function OAuthSection({ mode }: { mode: "sign-in" | "sign-up" }) {
-  const { signIn } = useSignIn();
-  const { signUp } = useSignUp();
+  const { isLoaded: signInLoaded, signIn } = useSignIn();
+  const { isLoaded: signUpLoaded, signUp } = useSignUp();
+  const clerkReady = signInLoaded && signUpLoaded;
   const [loadingProvider, setLoadingProvider] = useState<OAuthProviderId | null>(null);
   const [oauthError, setOAuthError] = useState("");
 
   const handleOAuth = async (providerId: OAuthProviderId) => {
+    if (!clerkReady) return;
     setLoadingProvider(providerId);
     setOAuthError("");
     const redirectUrl = `${window.location.origin}${basePath}/sso-callback`;
     const redirectUrlComplete = `${window.location.origin}${basePath}/home`;
     try {
       if (mode === "sign-in") {
-        await signIn?.authenticateWithRedirect({ strategy: providerId, redirectUrl, redirectUrlComplete });
+        if (!signIn) throw new Error("Sign-in not ready. Please refresh and try again.");
+        await signIn.authenticateWithRedirect({ strategy: providerId, redirectUrl, redirectUrlComplete });
       } else {
-        await signUp?.authenticateWithRedirect({ strategy: providerId, redirectUrl, redirectUrlComplete, unsafeMetadata: {} });
+        if (!signUp) throw new Error("Sign-up not ready. Please refresh and try again.");
+        await signUp.authenticateWithRedirect({ strategy: providerId, redirectUrl, redirectUrlComplete, unsafeMetadata: {} });
       }
     } catch (err: any) {
-      setOAuthError(err?.errors?.[0]?.longMessage ?? err?.errors?.[0]?.message ?? "OAuth sign-in failed. Make sure the provider is enabled in your Clerk dashboard.");
+      console.error("OAuth error:", err);
+      const msg =
+        err?.errors?.[0]?.longMessage ??
+        err?.errors?.[0]?.message ??
+        err?.message ??
+        "OAuth sign-in failed.";
+      setOAuthError(msg);
       setLoadingProvider(null);
     }
   };
@@ -159,7 +169,7 @@ function OAuthSection({ mode }: { mode: "sign-in" | "sign-up" }) {
           <button
             key={p.id}
             onClick={() => handleOAuth(p.id)}
-            disabled={loadingProvider !== null}
+            disabled={!clerkReady || loadingProvider !== null}
             title={`Continue with ${p.label}`}
             className="flex items-center justify-center w-12 h-12 rounded-xl border border-border bg-muted/30 hover:bg-muted/60 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
