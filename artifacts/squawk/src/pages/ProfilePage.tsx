@@ -157,18 +157,20 @@ export default function ProfilePage() {
   const yesBtnRef = useRef<HTMLButtonElement>(null);
   const earnModalRef = useRef<HTMLDivElement>(null);
 
-  // Initialise Yes button position over the ghost spacer when modal opens
+  // Detach Yes button from the flex row into absolute position (same visual spot)
   useEffect(() => {
     if (showEarnModal) {
       const t = setTimeout(() => {
         const modal = earnModalRef.current;
-        if (!modal) return;
-        const mw = modal.offsetWidth;
-        const mh = modal.offsetHeight;
-        const bw = 96; const bh = 44;
-        // Start in the right-half, aligned with the No button row
-        setYesAbsPos({ x: mw / 2 + 16, y: mh - bh - 32 });
-      }, 80);
+        const btn = yesBtnRef.current;
+        if (!modal || !btn) return;
+        const modalRect = modal.getBoundingClientRect();
+        const btnRect = btn.getBoundingClientRect();
+        setYesAbsPos({
+          x: btnRect.left - modalRect.left,
+          y: btnRect.top - modalRect.top,
+        });
+      }, 60);
       return () => clearTimeout(t);
     } else {
       setYesAbsPos(null);
@@ -1236,15 +1238,17 @@ export default function ProfilePage() {
               className="relative bg-card border border-border rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl"
               onClick={e => e.stopPropagation()}
             >
-              {/* Yes button — floats freely inside the modal, flees from cursor */}
+              {/* Yes button — starts inline next to No, detaches to absolute after 60ms and flees */}
               {!earnNoClicked && yesAbsPos && (
                 <button
                   ref={yesBtnRef}
                   onClick={() => setShowMobileYesMsg(true)}
-                  className="absolute z-20 px-8 py-3 rounded-full font-black text-sm text-white select-none pointer-events-auto"
+                  className="absolute z-20 rounded-full font-black text-sm text-white select-none pointer-events-auto"
                   style={{
                     left: yesAbsPos.x,
                     top: yesAbsPos.y,
+                    width: (earnModalRef.current?.querySelector(".yes-ghost") as HTMLElement)?.offsetWidth || undefined,
+                    height: (earnModalRef.current?.querySelector(".yes-ghost") as HTMLElement)?.offsetHeight || undefined,
                     background: "linear-gradient(135deg,#10b981,#059669)",
                     boxShadow: "0 0 16px 4px rgba(16,185,129,0.45)",
                     transition: "left 0.18s cubic-bezier(.22,.68,0,1.2), top 0.18s cubic-bezier(.22,.68,0,1.2)",
@@ -1252,15 +1256,6 @@ export default function ProfilePage() {
                 >
                   Yes
                 </button>
-              )}
-              {/* invisible placeholder so ref is available before position is set */}
-              {!earnNoClicked && !yesAbsPos && (
-                <button
-                  ref={yesBtnRef}
-                  className="absolute opacity-0 pointer-events-none px-8 py-3 rounded-full text-sm"
-                  style={{ right: 24, bottom: 24 }}
-                  aria-hidden
-                >Yes</button>
               )}
               {/* Header */}
               <div className="relative px-6 pt-6 pb-4 border-b border-border">
@@ -1314,8 +1309,19 @@ export default function ProfilePage() {
                       >
                         No
                       </button>
-                      {/* Ghost spacer — keeps No at half-width while Yes floats absolutely */}
-                      <div className="flex-1" aria-hidden />
+                      {/* Before detach: Yes sits inline here. After detach: ghost holds the space. */}
+                      {!yesAbsPos ? (
+                        <button
+                          ref={yesBtnRef}
+                          onClick={() => setShowMobileYesMsg(true)}
+                          className="yes-ghost flex-1 py-3 rounded-full font-black text-sm text-white"
+                          style={{ background: "linear-gradient(135deg,#10b981,#059669)", boxShadow: "0 0 16px 4px rgba(16,185,129,0.45)" }}
+                        >
+                          Yes
+                        </button>
+                      ) : (
+                        <div className="yes-ghost flex-1 py-3" aria-hidden />
+                      )}
                     </div>
                   </div>
                 )}
