@@ -88,6 +88,59 @@ router.post("/users/me/onboard", requireAuth, async (req, res): Promise<void> =>
 const USERNAME_COOLDOWN_DAYS = 14;
 const USERNAME_REGEX = /^[a-zA-Z0-9_]{3,20}$/;
 
+// GET /users/search?q= — search users via DB + Clerk (for add-member flows)
+router.get("/users/search", requireAuth, async (req, res): Promise<void> => {
+  const q = ((req.query.q as string) ?? "").trim().replace(/^@/, "");
+  const limit = Math.min(parseInt((req.query.limit as string) ?? "15", 10), 30);
+  if (!q || q.length < 1) { res.json({ users: [] }); return; }
+
+  const clerkId = (req as any).clerkUserId as string;
+  const currentUser = await resolveUser(clerkId);
+
+  // 1. Search local DB
+  const { ilike, or } = await import("drizzle-orm");
+  const dbUsers = await db.select().from(usersTable).where(
+    or(
+      ilike(usersTable.username, `%${q}%`),
+      ilike(usersTable.displayName, `%${q}%`)
+    )
+  ).limit(limit);
+
+  const dbClerkIds = new Set(dbUsers.map(u => u.clerkId).filter(Boolean));
+
+  // 2. Search Clerk for any additional users not yet in DB
+  let clerkRows: typeof usersTable.$inferSelect[] = [];
+  try {
+    const clerkResults = await clerkClient.users.getUserList({ query: q, limit });
+    const missing = clerkResults.data.filter(cu => !dbClerkIds.has(cu.id));
+    for (const cu of missing) {
+      // Derive a usable username
+      const baseUsername = (cu.username ?? cu.emailAddresses[0]?.emailAddress?.split("@")[0] ?? `user_${cu.id.slice(-6)}`).replace(/[^a-zA-Z0-9_]/g, "_").slice(0, 20);
+      const displayName = `${cu.firstName ?? ""} ${cu.lastName ?? ""}`.trim() || baseUsername;
+      const avatarUrl = cu.imageUrl ?? null;
+      // Upsert into DB so they can be added to groups
+      try {
+        const [synced] = await db.insert(usersTable).values({
+          clerkId: cu.id,
+          username: baseUsername,
+          displayName,
+          bio: null,
+          avatarUrl,
+          isFounder: false,
+        }).onConflictDoNothing().returning();
+        if (synced) clerkRows.push(synced);
+      } catch { /* username conflict — skip */ }
+    }
+  } catch { /* Clerk unavailable — continue with DB results only */ }
+
+  const combined = [...dbUsers, ...clerkRows];
+  const filtered = combined.filter(u => u.id !== currentUser?.id);
+  const seen = new Set<number>();
+  const deduped = filtered.filter(u => { if (seen.has(u.id)) return false; seen.add(u.id); return true; });
+
+  res.json({ users: deduped.map(u => buildUserSummary(u)) });
+});
+
 // PUT /users/me/profile
 router.put("/users/me/profile", requireUser, async (req, res): Promise<void> => {
   const currentUser = (req as any).currentUser as typeof usersTable.$inferSelect;

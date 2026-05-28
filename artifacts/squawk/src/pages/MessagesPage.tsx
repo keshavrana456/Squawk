@@ -679,10 +679,10 @@ function GroupInfoPanel({ conversation, me, onClose, onUpdated }: { conversation
 
   useEffect(() => {
     if (!addDebounced || addDebounced.length < 1) { setSearchResults([]); return; }
-    fetch(`/api/search?q=${encodeURIComponent(addDebounced)}&type=users`, { credentials: "include" })
+    fetch(`/api/users/search?q=${encodeURIComponent(addDebounced)}`, { credentials: "include" })
       .then(r => r.ok ? r.json() : { users: [] })
       .then(d => {
-        const memberIds = new Set(members.map(m => m.id));
+        const memberIds = new Set(members.map((m: any) => m.id));
         setSearchResults((d.users || []).filter((u: any) => u.id !== me?.id && !memberIds.has(u.id)));
       })
       .catch(() => setSearchResults([]));
