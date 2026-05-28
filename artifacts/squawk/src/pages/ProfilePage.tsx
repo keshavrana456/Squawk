@@ -211,7 +211,7 @@ export default function ProfilePage() {
         const d = Math.sqrt(vx * vx + vy * vy);
         if (d > bestDist) { bestDist = d; best = { x: nx, y: ny }; }
       }
-      setYesAbsPos(best);
+      setYesAbsPos(prev => prev ? { ...prev, x: best.x, y: best.y } : prev);
     }
   };
 
