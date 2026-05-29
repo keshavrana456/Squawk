@@ -581,7 +581,13 @@ function Router() {
       <ProtectedRoute path="/notifications" component={NotificationsPage} />
       <ProtectedRoute path="/upload" component={UploadPage} />
       <ProtectedRoute path="/profile/:username" component={ProfilePage} />
-      <ProtectedRoute path="/post/:id" component={PostPage} />
+      <Route path="/post/:id">
+        <AppLayout>
+          <Suspense fallback={<PageLoader />}>
+            <PostPage />
+          </Suspense>
+        </AppLayout>
+      </Route>
       <ProtectedRoute path="/settings" component={SettingsPage} />
       <ProtectedRoute path="/edit-profile" component={EditProfilePage} />
 

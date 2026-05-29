@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { Link, useLocation } from "wouter";
+import RichText from "@/components/RichText";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   Heart, MessageCircle, Send, Bookmark, MoreHorizontal,
@@ -204,29 +205,17 @@ export default function PostCard({ post, onLike, onSave, onComment }: PostCardPr
     navigator.clipboard.writeText(`${window.location.origin}/post/${post.id}`).catch(() => {});
   };
 
-  const renderTextWithMentions = (text: string) => {
-    const parts = text.split(/(@\w+)/g);
-    return parts.map((part, i) => {
-      if (/^@\w+$/.test(part)) {
-        return (
-          <Link key={i} href={`/profile/${part.slice(1)}`} className="text-primary font-semibold hover:underline">
-            {part}
-          </Link>
-        );
-      }
-      return <span key={i}>{part}</span>;
-    });
-  };
-
   const renderCaption = (text: string | null, hashtags: string[]) => {
     if (!text) return null;
+    // Find which hashtags are NOT already inline in the text so we don't show duplicates
+    const extraTags = hashtags.filter((tag) => !text.includes(`#${tag}`));
     return (
       <div className="text-sm mt-2">
         <span className="font-semibold mr-2">{post.author.username}</span>
-        {renderTextWithMentions(text)}
-        {hashtags.length > 0 && (
+        <RichText text={text} />
+        {extraTags.length > 0 && (
           <div className="mt-1 flex flex-wrap gap-1">
-            {hashtags.map((tag) => (
+            {extraTags.map((tag) => (
               <Link key={tag} href={`/explore/hashtags/${tag}`} className="text-primary hover:underline">
                 #{tag}
               </Link>

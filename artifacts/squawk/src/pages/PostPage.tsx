@@ -1,4 +1,5 @@
 import { useRoute, Link, useLocation } from "wouter";
+import RichText from "@/components/RichText";
 import { useState, useCallback, useRef } from "react";
 import {
   useGetPost,
@@ -415,7 +416,7 @@ export default function PostPage() {
                         <div className="flex-1 min-w-0">
                           <div className="text-[14px]">
                             <span className="font-semibold mr-2">{comment.author?.username}</span>
-                            <span className="break-words">{comment.content}</span>
+                            <RichText text={comment.content} className="break-words" />
                           </div>
                           <div className="flex items-center gap-4 text-xs text-muted-foreground mt-1 font-medium">
                             <span>{formatDistanceToNow(new Date(comment.createdAt))}</span>
@@ -477,7 +478,7 @@ export default function PostPage() {
                             <div className="flex-1 min-w-0">
                               <div className="text-xs bg-muted/40 rounded-lg px-2.5 py-2 border border-border/20">
                                 <span className="font-semibold mr-1.5">{reply.author?.username}</span>
-                                <span className="text-foreground/90 break-words">{reply.content}</span>
+                                <RichText text={reply.content} className="text-foreground/90 break-words" />
                               </div>
                               <div className="flex items-center gap-3 text-[10px] text-muted-foreground mt-1">
                                 <span>{formatDistanceToNow(new Date(reply.createdAt))}</span>

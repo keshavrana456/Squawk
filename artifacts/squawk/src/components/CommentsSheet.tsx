@@ -5,6 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useGetPostComments, useGetMe } from "@workspace/api-client-react";
 import { formatDistanceToNow } from "date-fns";
 import { Link } from "wouter";
+import RichText from "@/components/RichText";
 import { useMentions } from "@/hooks/useMentions";
 import MentionSuggestions from "@/components/MentionSuggestions";
 
@@ -18,22 +19,7 @@ interface CommentsSheetProps {
 type LikeState = { isLiked: boolean; count: number };
 
 function renderCommentText(content: string) {
-  // Render image URLs (including GIFs) as inline images
-  const imageUrlPattern = /^https?:\/\/\S+\.(gif|png|jpg|jpeg|webp)(\?.*)?$/i;
-  if (imageUrlPattern.test(content.trim())) {
-    return <img src={content.trim()} alt="image" className="max-w-[180px] max-h-[140px] rounded-xl object-cover mt-1" loading="lazy" />;
-  }
-  const parts = content.split(/(@\w+)/g);
-  return parts.map((part, i) => {
-    if (/^@\w+$/.test(part)) {
-      return (
-        <Link key={i} href={`/profile/${part.slice(1)}`} className="text-primary font-semibold hover:underline">
-          {part}
-        </Link>
-      );
-    }
-    return <span key={i}>{part}</span>;
-  });
+  return <RichText text={content} />;
 }
 
 export default function CommentsSheet({ postId, commentsCount, isOpen, onClose }: CommentsSheetProps) {

@@ -22,10 +22,35 @@ function getDaysUntilCanChange(usernameChangedAt: string | null | undefined): nu
   return Math.ceil(USERNAME_COOLDOWN_DAYS - daysSince);
 }
 
+const LARGE_FILE_THRESHOLD = 15 * 1024 * 1024;
+
 async function uploadFile(file: File): Promise<string> {
+  if (file.size > LARGE_FILE_THRESHOLD) {
+    const signRes = await fetch("/api/storage/sign-upload", {
+      method: "POST",
+      credentials: "include",
+    });
+    if (!signRes.ok) throw new Error("Could not get upload credentials");
+    const { signature, timestamp, apiKey, cloudName, folder } = await signRes.json();
+
+    const resourceType = file.type.startsWith("video/") ? "video" : "image";
+    const uploadUrl = `https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/upload`;
+    const form = new FormData();
+    form.append("file", file);
+    form.append("api_key", apiKey);
+    form.append("timestamp", String(timestamp));
+    form.append("signature", signature);
+    form.append("folder", folder);
+
+    const uploadRes = await fetch(uploadUrl, { method: "POST", body: form });
+    if (!uploadRes.ok) throw new Error("Cloudinary upload failed");
+    const data = await uploadRes.json();
+    return data.secure_url;
+  }
+
   const formData = new FormData();
   formData.append("file", file);
-  const res = await fetch("/api/storage/upload", { method: "POST", body: formData });
+  const res = await fetch("/api/storage/upload", { method: "POST", body: formData, credentials: "include" });
   if (!res.ok) throw new Error("Upload failed");
   const { mediaUrl } = await res.json();
   return mediaUrl;

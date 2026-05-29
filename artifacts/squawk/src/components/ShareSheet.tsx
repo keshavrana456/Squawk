@@ -74,6 +74,7 @@ export function ShareSheet({ open, onOpenChange, postId, caption }: ShareSheetPr
   const { data: conversations } = useGetConversations({ query: { enabled: !!user && open } });
 
   const postUrl = `${window.location.origin}/post/${postId}`;
+  const ogUrl = `${window.location.origin}/api/og/post/${postId}`;
   const shareText = caption ? `Check out this post on Squawk: "${caption}"` : "Check out this post on Squawk!";
 
   const handleCopy = async () => {
@@ -86,7 +87,7 @@ export function ShareSheet({ open, onOpenChange, postId, caption }: ShareSheetPr
 
   const handleNativeShare = async () => {
     if (navigator.share) {
-      try { await navigator.share({ title: caption || "Squawk post", url: postUrl }); } catch {}
+      try { await navigator.share({ title: caption || "Squawk post", url: ogUrl }); } catch {}
     }
   };
 
@@ -181,7 +182,7 @@ export function ShareSheet({ open, onOpenChange, postId, caption }: ShareSheetPr
               <button
                 key={platform.name}
                 onClick={() => {
-                  platform.onClick(postUrl, shareText);
+                  platform.onClick(ogUrl, shareText);
                   if (!["Instagram", "TikTok", "Discord"].includes(platform.name)) {
                     onOpenChange(false);
                   }
