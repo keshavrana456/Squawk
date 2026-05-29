@@ -6,6 +6,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { useMentions } from "@/hooks/useMentions";
 import MentionSuggestions from "@/components/MentionSuggestions";
 
+const LARGE_FILE_THRESHOLD = 15 * 1024 * 1024; // 15 MB — above this, upload directly to Cloudinary
+
 export default function UploadFlow({ onSuccess }: { onSuccess?: () => void }) {
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -22,15 +24,13 @@ export default function UploadFlow({ onSuccess }: { onSuccess?: () => void }) {
   const createPostMutation = useCreatePost();
 
   const ALLOWED_VIDEO_TYPES = ["video/mp4", "video/webm", "video/quicktime", "video/avi", "video/x-msvideo", "video/x-matroska", "video/3gpp", "video/x-flv"];
-
-  const isAllowedFile = (f: File) =>
-    f.type.startsWith("image/") || ALLOWED_VIDEO_TYPES.includes(f.type);
+  const isAllowedFile = (f: File) => f.type.startsWith("image/") || ALLOWED_VIDEO_TYPES.includes(f.type);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const selectedFile = e.target.files[0];
       if (!isAllowedFile(selectedFile)) {
-        setError("Audio files are not allowed. Please upload an image or video (MP4, WebM, MOV).");
+        setError("Only images and videos (MP4, WebM, MOV) are supported.");
         e.target.value = "";
         return;
       }
@@ -45,7 +45,7 @@ export default function UploadFlow({ onSuccess }: { onSuccess?: () => void }) {
     const dropped = e.dataTransfer.files[0];
     if (!dropped) return;
     if (!isAllowedFile(dropped)) {
-      setError("Audio files are not allowed. Please upload an image or video (MP4, WebM, MOV).");
+      setError("Only images and videos (MP4, WebM, MOV) are supported.");
       return;
     }
     setFile(dropped);
@@ -68,6 +68,72 @@ export default function UploadFlow({ onSuccess }: { onSuccess?: () => void }) {
     setHashtags(hashtags.filter((tag) => tag !== tagToRemove));
   };
 
+  // Direct upload to Cloudinary — used for large files to avoid proxy timeouts
+  const uploadDirectToCloudinary = async (f: File): Promise<string> => {
+    // 1. Get signed params from the server
+    const signRes = await fetch("/api/storage/sign-upload", {
+      method: "POST",
+      credentials: "include",
+    });
+    if (!signRes.ok) throw new Error("Could not get upload credentials");
+    const { signature, timestamp, apiKey, cloudName, folder } = await signRes.json();
+
+    // 2. Upload directly to Cloudinary using XMLHttpRequest so we get progress events
+    const resourceType = f.type.startsWith("video/") ? "video" : "image";
+    const url = `https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/upload`;
+
+    return new Promise((resolve, reject) => {
+      const form = new FormData();
+      form.append("file", f);
+      form.append("api_key", apiKey);
+      form.append("timestamp", String(timestamp));
+      form.append("signature", signature);
+      form.append("folder", folder);
+
+      const xhr = new XMLHttpRequest();
+      xhr.open("POST", url);
+
+      xhr.upload.onprogress = (evt) => {
+        if (evt.lengthComputable) {
+          // Map upload progress to 20–85% of the overall bar
+          const pct = 20 + Math.round((evt.loaded / evt.total) * 65);
+          setUploadProgress(pct);
+        }
+      };
+
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          const data = JSON.parse(xhr.responseText);
+          resolve(data.secure_url);
+        } else {
+          reject(new Error("Cloudinary upload failed"));
+        }
+      };
+      xhr.onerror = () => reject(new Error("Network error during upload"));
+      xhr.send(form);
+    });
+  };
+
+  // Server-proxy upload — used for small files (fast, simple)
+  const uploadViaServer = async (f: File): Promise<string> => {
+    const formData = new FormData();
+    formData.append("file", f);
+
+    const uploadRes = await fetch("/api/storage/upload", {
+      method: "POST",
+      body: formData,
+      credentials: "include",
+    });
+
+    if (!uploadRes.ok) {
+      const err = await uploadRes.json().catch(() => ({}));
+      throw new Error((err as any).error || "File upload failed");
+    }
+
+    const { mediaUrl } = await uploadRes.json();
+    return mediaUrl;
+  };
+
   const handleSubmit = async () => {
     if (!file) return;
     setIsUploading(true);
@@ -75,24 +141,19 @@ export default function UploadFlow({ onSuccess }: { onSuccess?: () => void }) {
     setUploadProgress(10);
 
     try {
-      const formData = new FormData();
-      formData.append("file", file);
+      let mediaUrl: string;
 
-      setUploadProgress(30);
-
-      const uploadRes = await fetch("/api/storage/upload", {
-        method: "POST",
-        body: formData,
-        credentials: "include",
-      });
-
-      if (!uploadRes.ok) {
-        const err = await uploadRes.json().catch(() => ({}));
-        throw new Error(err.error || "File upload failed");
+      if (file.size > LARGE_FILE_THRESHOLD) {
+        // Large file — upload straight to Cloudinary to avoid proxy timeouts
+        setUploadProgress(20);
+        mediaUrl = await uploadDirectToCloudinary(file);
+      } else {
+        // Small file — go through the server (simpler, no extra roundtrip)
+        setUploadProgress(30);
+        mediaUrl = await uploadViaServer(file);
       }
 
-      const { mediaUrl } = await uploadRes.json();
-      setUploadProgress(70);
+      setUploadProgress(88);
 
       await createPostMutation.mutateAsync({
         data: {
@@ -161,6 +222,11 @@ export default function UploadFlow({ onSuccess }: { onSuccess?: () => void }) {
             >
               <X className="w-4 h-4" />
             </button>
+            {file.size > LARGE_FILE_THRESHOLD && (
+              <div className="absolute bottom-2 left-2 bg-black/60 text-white text-xs px-2 py-1 rounded-full backdrop-blur-sm">
+                Large file — direct upload
+              </div>
+            )}
           </div>
 
           <div className="relative">
@@ -208,11 +274,16 @@ export default function UploadFlow({ onSuccess }: { onSuccess?: () => void }) {
           </div>
 
           {isUploading && uploadProgress > 0 && (
-            <div className="w-full bg-muted rounded-full h-1.5">
-              <div
-                className="bg-primary h-1.5 rounded-full transition-all duration-300"
-                style={{ width: `${uploadProgress}%` }}
-              />
+            <div className="space-y-1">
+              <div className="w-full bg-muted rounded-full h-1.5">
+                <div
+                  className="bg-primary h-1.5 rounded-full transition-all duration-300"
+                  style={{ width: `${uploadProgress}%` }}
+                />
+              </div>
+              <p className="text-xs text-muted-foreground text-center">
+                {uploadProgress < 85 ? "Uploading…" : "Saving post…"} {uploadProgress}%
+              </p>
             </div>
           )}
 
@@ -222,7 +293,7 @@ export default function UploadFlow({ onSuccess }: { onSuccess?: () => void }) {
             disabled={isUploading}
             data-testid="button-submit-post"
           >
-            {isUploading ? `Uploading... ${uploadProgress}%` : "Share Post"}
+            {isUploading ? `Uploading… ${uploadProgress}%` : "Share Post"}
           </Button>
         </div>
       )}

@@ -1,6 +1,6 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import multer from "multer";
-import { uploadToCloudinary } from "../lib/cloudinary";
+import { uploadToCloudinary, cloudinary } from "../lib/cloudinary";
 
 const router: IRouter = Router();
 
@@ -21,6 +21,7 @@ const upload = multer({
   },
 });
 
+// Small files (< 15 MB) — proxy through the server
 router.post("/storage/upload", upload.single("file"), async (req: Request, res: Response) => {
   if (!req.file) {
     res.status(400).json({ error: "No file provided" });
@@ -42,6 +43,36 @@ router.post("/storage/upload", upload.single("file"), async (req: Request, res: 
   } catch (err) {
     console.error("Cloudinary upload error:", err);
     res.status(500).json({ error: "Failed to upload file to Cloudinary" });
+  }
+});
+
+// Large files — return a signed params object so the client uploads directly to Cloudinary
+router.post("/storage/sign-upload", async (req: Request, res: Response) => {
+  if (!process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET || !process.env.CLOUDINARY_CLOUD_NAME) {
+    res.status(500).json({ error: "Cloudinary not configured" });
+    return;
+  }
+
+  try {
+    const timestamp = Math.round(Date.now() / 1000);
+    const folder = "squawk";
+    const paramsToSign = { folder, timestamp };
+
+    const signature = cloudinary.utils.api_sign_request(
+      paramsToSign,
+      process.env.CLOUDINARY_API_SECRET
+    );
+
+    res.json({
+      signature,
+      timestamp,
+      apiKey: process.env.CLOUDINARY_API_KEY,
+      cloudName: process.env.CLOUDINARY_CLOUD_NAME,
+      folder,
+    });
+  } catch (err) {
+    console.error("Sign upload error:", err);
+    res.status(500).json({ error: "Failed to sign upload" });
   }
 });
 
