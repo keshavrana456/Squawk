@@ -15,6 +15,7 @@ import {
   GetUserFollowingParams,
   GetSuggestedUsersQueryParams,
 } from "@workspace/api-zod";
+import { syncUserToSupabase } from "../lib/supabaseSync";
 
 const FOUNDER_EMAILS = ["globalfreefire33@gmail.com"];
 
@@ -46,6 +47,7 @@ router.get("/users/me", requireAuth, async (req, res): Promise<void> => {
     res.status(404).json({ error: "User not found" });
     return;
   }
+  syncUserToSupabase(user).catch(() => {});
   const profile = await buildUserProfile(user, user.id);
   res.json(profile);
 });
@@ -92,6 +94,7 @@ router.post("/users/me/onboard", requireAuth, async (req, res): Promise<void> =>
     isFounder,
   }).returning();
 
+  syncUserToSupabase(user).catch(() => {});
   const profile = await buildUserProfile(user, user.id);
   res.status(201).json(profile);
 });
@@ -213,6 +216,7 @@ router.put("/users/me/profile", requireUser, async (req, res): Promise<void> => 
   }
 
   const [updated] = await db.update(usersTable).set(updateData).where(eq(usersTable.id, currentUser.id)).returning();
+  syncUserToSupabase(updated).catch(() => {});
   const profile = await buildUserProfile(updated, currentUser.id);
   res.json(profile);
 });
