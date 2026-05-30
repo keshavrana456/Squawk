@@ -1,6 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { useUser, useClerk } from "@clerk/react";
-import { Home, Compass, PlaySquare, PlusSquare, MessageCircle, Bell, User, Settings, LogOut, Sun, Moon, Bird } from "lucide-react";
+import { Home, Compass, PlaySquare, PlusSquare, MessageCircle, Bell, User, Settings, LogOut, Sun, Moon, Bird, LogIn } from "lucide-react";
 import { useGetUnreadNotificationCount, useGetMe } from "@workspace/api-client-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useQuery } from "@tanstack/react-query";
@@ -25,16 +25,22 @@ export default function Sidebar() {
 
   const profileHref = me?.username ? `/profile/${me.username}` : "/profile";
 
-  const navItems = [
+  const guestNavItems = [
     { href: "/home", label: "Home", icon: Home },
     { href: "/explore", label: "Explore", icon: Compass },
     { href: "/flows", label: "Flow", icon: PlaySquare },
     { href: "/chirps", label: "Chirps", icon: Bird },
+  ];
+
+  const authNavItems = [
+    ...guestNavItems,
     { href: "/messages", label: "Messages", icon: MessageCircle, badge: unreadMsgCount },
     { href: "/notifications", label: "Notifications", icon: Bell, badge: unreadCount },
     { href: "/upload", label: "Create", icon: PlusSquare },
     { href: profileHref, label: "Profile", icon: User },
   ];
+
+  const navItems = user ? authNavItems : guestNavItems;
 
   return (
     <aside className="hidden md:flex flex-col border-r border-border bg-card/50 backdrop-blur-xl h-full sticky top-0 w-16 lg:w-64 p-2 lg:p-4 shrink-0 overflow-hidden">
@@ -52,16 +58,16 @@ export default function Sidebar() {
                 <div className={`flex items-center gap-0 lg:gap-4 justify-center lg:justify-start px-2 lg:px-4 py-3 rounded-2xl transition-all duration-200 group cursor-pointer ${isActive ? "bg-primary/10 text-primary font-semibold" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}>
                   <div className="relative shrink-0">
                     <item.icon className={`w-6 h-6 transition-transform ${isActive ? "scale-110" : "group-hover:scale-110"}`} />
-                    {item.badge ? (
+                    {(item as any).badge ? (
                       <span className="lg:hidden absolute -top-1 -right-1 bg-primary text-primary-foreground text-[9px] font-black w-4 h-4 flex items-center justify-center rounded-full">
-                        {item.badge > 9 ? "9+" : item.badge}
+                        {(item as any).badge > 9 ? "9+" : (item as any).badge}
                       </span>
                     ) : null}
                   </div>
                   <span className="hidden lg:block text-lg">{item.label}</span>
-                  {item.badge ? (
+                  {(item as any).badge ? (
                     <span className="hidden lg:block ml-auto bg-primary text-primary-foreground text-xs font-black px-2 py-0.5 rounded-full min-w-[22px] text-center">
-                      {item.badge > 99 ? "99+" : item.badge}
+                      {(item as any).badge > 99 ? "99+" : (item as any).badge}
                     </span>
                   ) : null}
                 </div>
@@ -85,20 +91,31 @@ export default function Sidebar() {
           <span className="hidden lg:block text-lg">{theme === "dark" ? "Light Mode" : "Dark Mode"}</span>
         </button>
 
-        <Link href="/settings" className="block" data-testid="link-settings">
-          <div className="flex items-center justify-center lg:justify-start gap-0 lg:gap-4 px-2 lg:px-4 py-3 rounded-2xl text-muted-foreground hover:bg-muted hover:text-foreground transition-all cursor-pointer">
-            <Settings className="w-6 h-6 shrink-0" />
-            <span className="hidden lg:block text-lg">Settings</span>
-          </div>
-        </Link>
-        <button
-          onClick={() => signOut({ redirectUrl: "/" })}
-          className="w-full flex items-center justify-center lg:justify-start gap-0 lg:gap-4 px-2 lg:px-4 py-3 rounded-2xl text-destructive hover:bg-destructive/10 transition-all cursor-pointer"
-          data-testid="button-logout"
-        >
-          <LogOut className="w-6 h-6 shrink-0" />
-          <span className="hidden lg:block text-lg">Log out</span>
-        </button>
+        {user ? (
+          <>
+            <Link href="/settings" className="block" data-testid="link-settings">
+              <div className="flex items-center justify-center lg:justify-start gap-0 lg:gap-4 px-2 lg:px-4 py-3 rounded-2xl text-muted-foreground hover:bg-muted hover:text-foreground transition-all cursor-pointer">
+                <Settings className="w-6 h-6 shrink-0" />
+                <span className="hidden lg:block text-lg">Settings</span>
+              </div>
+            </Link>
+            <button
+              onClick={() => signOut({ redirectUrl: "/" })}
+              className="w-full flex items-center justify-center lg:justify-start gap-0 lg:gap-4 px-2 lg:px-4 py-3 rounded-2xl text-destructive hover:bg-destructive/10 transition-all cursor-pointer"
+              data-testid="button-logout"
+            >
+              <LogOut className="w-6 h-6 shrink-0" />
+              <span className="hidden lg:block text-lg">Log out</span>
+            </button>
+          </>
+        ) : (
+          <Link href="/sign-in" className="block">
+            <div className="flex items-center justify-center lg:justify-start gap-0 lg:gap-4 px-2 lg:px-4 py-3 rounded-2xl bg-primary/10 text-primary hover:bg-primary/20 transition-all cursor-pointer font-semibold">
+              <LogIn className="w-6 h-6 shrink-0" />
+              <span className="hidden lg:block text-lg">Sign In</span>
+            </div>
+          </Link>
+        )}
       </div>
     </aside>
   );

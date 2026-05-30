@@ -533,15 +533,29 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 }
 
 function HomeRedirect() {
+  return <Redirect to="/home" />;
+}
+
+function GuestRoute({ component: Component, ...rest }: any) {
   return (
-    <>
+    <Route {...rest}>
       <Show when="signed-in">
-        <Redirect to="/home" />
+        <AuthGuard>
+          <AppLayout>
+            <Suspense fallback={<PageLoader />}>
+              <Component />
+            </Suspense>
+          </AppLayout>
+        </AuthGuard>
       </Show>
       <Show when="signed-out">
-        <LandingPage />
+        <AppLayout>
+          <Suspense fallback={<PageLoader />}>
+            <Component />
+          </Suspense>
+        </AppLayout>
       </Show>
-    </>
+    </Route>
   );
 }
 
@@ -572,16 +586,16 @@ function Router() {
       <Route path="/sign-up/*?" component={SignUpPage} />
       <Route path="/sso-callback" component={SsoCallbackPage} />
       
-      <ProtectedRoute path="/home" component={HomePage} />
-      <ProtectedRoute path="/explore" component={ExplorePage} />
-      <ProtectedRoute path="/explore/hashtags/:tag" component={ExplorePage} />
-      <ProtectedRoute path="/flows" component={FlowsPage} />
-      <ProtectedRoute path="/chirps" component={ChirpsPage} />
-      <ProtectedRoute path="/chirps/:id" component={ChirpsPage} />
+      <GuestRoute path="/home" component={HomePage} />
+      <GuestRoute path="/explore" component={ExplorePage} />
+      <GuestRoute path="/explore/hashtags/:tag" component={ExplorePage} />
+      <GuestRoute path="/flows" component={FlowsPage} />
+      <GuestRoute path="/chirps" component={ChirpsPage} />
+      <GuestRoute path="/chirps/:id" component={ChirpsPage} />
       <ProtectedRoute path="/messages" component={MessagesPage} />
       <ProtectedRoute path="/notifications" component={NotificationsPage} />
       <ProtectedRoute path="/upload" component={UploadPage} />
-      <ProtectedRoute path="/profile/:username" component={ProfilePage} />
+      <GuestRoute path="/profile/:username" component={ProfilePage} />
       <Route path="/post/:id">
         <AppLayout>
           <Suspense fallback={<PageLoader />}>

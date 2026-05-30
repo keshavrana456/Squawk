@@ -1,6 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { useUser } from "@clerk/react";
-import { Home, Compass, Bird, PlaySquare, User } from "lucide-react";
+import { Home, Compass, Bird, PlaySquare, User, LogIn } from "lucide-react";
 import { useGetMe } from "@workspace/api-client-react";
 import { useState, useEffect, useRef } from "react";
 
@@ -13,13 +13,23 @@ export default function BottomNav() {
 
   const profileHref = me?.username ? `/profile/${me.username}` : "/profile";
 
-  const navItems = [
+  const guestNavItems = [
+    { href: "/home", icon: Home, label: "Home" },
+    { href: "/explore", icon: Compass, label: "Explore" },
+    { href: "/chirps", icon: Bird, label: "Chirps" },
+    { href: "/flows", icon: PlaySquare, label: "Flow" },
+    { href: "/sign-in", icon: LogIn, label: "Sign In" },
+  ];
+
+  const authNavItems = [
     { href: "/home", icon: Home, label: "Home" },
     { href: "/explore", icon: Compass, label: "Explore" },
     { href: "/chirps", icon: Bird, label: "Chirps" },
     { href: "/flows", icon: PlaySquare, label: "Flow" },
     { href: profileHref, icon: User, label: "Profile" },
   ];
+
+  const navItems = user ? authNavItems : guestNavItems;
 
   const resetTimer = () => {
     setVisible(true);

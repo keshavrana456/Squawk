@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, Send, Heart, MessageCircle, CornerDownRight, Trash2 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useGetPostComments, useGetMe } from "@workspace/api-client-react";
+import { useRequireAuth } from "@/hooks/useRequireAuth";
 import { formatDistanceToNow } from "date-fns";
 import { Link } from "wouter";
 import RichText from "@/components/RichText";
@@ -106,7 +107,10 @@ export default function CommentsSheet({ postId, commentsCount, isOpen, onClose }
   };
 
 
+  const requireAuth = useRequireAuth();
+
   const handleSubmit = async () => {
+    if (!requireAuth()) return;
     if (!text.trim() || postId <= 0 || isSubmitting) return;
     setIsSubmitting(true);
 

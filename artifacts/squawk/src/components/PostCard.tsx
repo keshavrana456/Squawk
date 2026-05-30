@@ -11,6 +11,7 @@ import { ShareSheet } from "@/components/ShareSheet";
 import CommentsSheet from "@/components/CommentsSheet";
 import { formatDistanceToNow } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
+import { useRequireAuth } from "@/hooks/useRequireAuth";
 import {
   useLikePost,
   useSavePost,
@@ -94,7 +95,10 @@ export default function PostCard({ post, onLike, onSave, onComment }: PostCardPr
 
   const isOwner = me && (me as any).id === post.author.id;
 
+  const requireAuth = useRequireAuth();
+
   const handleFollow = () => {
+    if (!requireAuth()) return;
     if (isFollowing || isOwner) return;
     setIsFollowing(true);
     followMutation.mutate({ username: post.author.username }, {
@@ -155,6 +159,7 @@ export default function PostCard({ post, onLike, onSave, onComment }: PostCardPr
   };
 
   const handleLike = () => {
+    if (!requireAuth()) return;
     if (likeMutation.isPending) return;
     const newLiked = !isLiked;
     const newCount = likesCount + (newLiked ? 1 : -1);
@@ -182,6 +187,7 @@ export default function PostCard({ post, onLike, onSave, onComment }: PostCardPr
   };
 
   const handleSave = () => {
+    if (!requireAuth()) return;
     const newSaved = !isSaved;
     setIsSaved(newSaved);
     saveMutation.mutate({ id: post.id }, {
@@ -403,6 +409,7 @@ export default function PostCard({ post, onLike, onSave, onComment }: PostCardPr
               </button>
               <button
                 onClick={() => {
+                  if (!requireAuth()) return;
                   if (onComment) onComment();
                   else setShowComments(true);
                 }}
@@ -435,7 +442,7 @@ export default function PostCard({ post, onLike, onSave, onComment }: PostCardPr
 
           {post.commentsCount > 0 && (
             <button
-              onClick={() => setShowComments(true)}
+              onClick={() => { if (!requireAuth()) return; setShowComments(true); }}
               className="text-sm text-muted-foreground mt-2 inline-block hover:underline"
               data-testid="link-comments"
             >

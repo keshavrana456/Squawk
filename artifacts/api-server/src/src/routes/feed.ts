@@ -1,18 +1,46 @@
 import { Router, type IRouter } from "express";
 import { eq, and, desc, sql, inArray, notInArray } from "drizzle-orm";
 import { db, usersTable, postsTable, likesTable, followsTable } from "@workspace/db";
-import { requireUser } from "../lib/auth";
+import { requireUser, optionalUser } from "../lib/auth";
 import { buildPostsWithMeta } from "../lib/userHelpers";
 import { GetFeedQueryParams } from "@workspace/api-zod";
 
 const router: IRouter = Router();
 
-// GET /feed
-router.get("/feed", requireUser, async (req, res): Promise<void> => {
-  const currentUser = (req as any).currentUser as typeof usersTable.$inferSelect;
+// GET /feed — public (guests see trending/recent posts)
+router.get("/feed", optionalUser, async (req, res): Promise<void> => {
+  const currentUser = (req as any).currentUser as typeof usersTable.$inferSelect | undefined;
   const qp = GetFeedQueryParams.safeParse(req.query);
   const limit = qp.success ? (qp.data.limit ?? 20) : 20;
   const cursor = qp.success ? qp.data.cursor : null;
+
+  if (!currentUser) {
+    // Guest: show recent posts from all users
+    let q = db.select({ post: postsTable, author: usersTable })
+      .from(postsTable)
+      .innerJoin(usersTable, eq(postsTable.authorId, usersTable.id))
+      .orderBy(desc(postsTable.createdAt))
+      .limit(limit + 1) as any;
+    if (cursor) {
+      q = db.select({ post: postsTable, author: usersTable })
+        .from(postsTable)
+        .innerJoin(usersTable, eq(postsTable.authorId, usersTable.id))
+        .where(sql`${postsTable.id} < ${cursor}`)
+        .orderBy(desc(postsTable.createdAt))
+        .limit(limit + 1) as any;
+    }
+    const rows = await q;
+    const hasMore = rows.length > limit;
+    const data = hasMore ? rows.slice(0, limit) : rows;
+    // Build posts without per-user meta (no likes/saves for guests)
+    const postsWithMeta = await buildPostsWithMeta(data);
+    res.json({
+      posts: postsWithMeta,
+      hasMore,
+      nextCursor: hasMore ? (rows[limit - 1]?.post.id ?? null) : null,
+    });
+    return;
+  }
 
   // Get followed users
   const following = await db.select({ followingId: followsTable.followingId })
