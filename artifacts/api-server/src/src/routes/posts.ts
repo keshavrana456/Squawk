@@ -3,6 +3,7 @@ import { eq, and, desc, sql, inArray, notInArray } from "drizzle-orm";
 import { db, usersTable, postsTable, likesTable, savesTable, commentsTable, commentLikesTable, followsTable, notificationsTable, blocksTable } from "@workspace/db";
 import { requireUser, resolveUser } from "../lib/auth";
 import { emitToUser } from "../lib/socket";
+import { syncPostToSupabase } from "../lib/supabaseSync";
 import { sendPushToUser } from "../lib/push";
 import { getAuth } from "@clerk/express";
 import { buildPostWithMeta, buildPostsWithMeta, buildUserSummary } from "../lib/userHelpers";
@@ -83,6 +84,7 @@ router.post("/posts", requireUser, async (req, res): Promise<void> => {
     thumbnailUrl: parsed.data.thumbnailUrl ?? null,
     hashtags: parsed.data.hashtags ?? [],
   }).returning();
+  syncPostToSupabase(post).catch(() => {});
 
   // Mention notifications (fire-and-forget)
   ;(async () => {

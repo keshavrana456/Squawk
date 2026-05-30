@@ -9,6 +9,7 @@ import { requireUser, optionalUser } from "../lib/auth";
 import { emitToUser } from "../lib/socket";
 import { sendPushToUser } from "../lib/push";
 import { buildUserSummary } from "../lib/userHelpers";
+import { syncChirpToSupabase } from "../lib/supabaseSync";
 
 const router: IRouter = Router();
 
@@ -172,6 +173,7 @@ router.post("/chirps", requireUser, async (req, res): Promise<void> => {
     parentId: parentId ? parseInt(String(parentId), 10) : null,
     quoteOfId: quoteOfId ? parseInt(String(quoteOfId), 10) : null,
   }).returning();
+  syncChirpToSupabase(chirp).catch(() => {});
 
   if (parentId) {
     const pid = parseInt(String(parentId), 10);
