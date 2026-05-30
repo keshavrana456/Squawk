@@ -1,0 +1,1 @@
+- [Push notification deep links](push-deep-links.md) — all push + socket notifications must carry a specific URL (not /notifications) so clicks navigate to the exact chirp/post/comment

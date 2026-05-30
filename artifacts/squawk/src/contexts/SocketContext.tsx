@@ -7,11 +7,12 @@ const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 const API_BASE = BASE || "";
 
 export interface PushNotification {
-  type: "like" | "comment" | "follow" | "repost";
+  type: "like" | "comment" | "follow" | "repost" | "mention";
   actorUsername: string;
   actorDisplayName: string;
   actorAvatarUrl: string | null;
   message: string | null;
+  url?: string;
   createdAt: string;
 }
 
@@ -34,9 +35,10 @@ const NOTIF_LABELS: Record<string, string> = {
   comment: "replied to your post",
   follow: "started following you",
   repost: "reposted your post",
+  mention: "mentioned you",
 };
 
-async function fireBrowserNotif(title: string, body?: string, icon = "/logo.png") {
+async function fireBrowserNotif(title: string, body?: string, icon = "/logo.png", url?: string) {
   if (typeof Notification === "undefined") return;
   if (Notification.permission !== "granted") return;
   if (document.visibilityState === "visible") return;
@@ -44,12 +46,22 @@ async function fireBrowserNotif(title: string, body?: string, icon = "/logo.png"
     if ("serviceWorker" in navigator) {
       const reg = await navigator.serviceWorker.getRegistration();
       if (reg) {
-        reg.showNotification(title, { body: body || "", icon, badge: "/logo.png", vibrate: [100, 50, 100] } as NotificationOptions);
+        reg.showNotification(title, {
+          body: body || "",
+          icon,
+          badge: "/logo.png",
+          vibrate: [100, 50, 100],
+          data: { url: url || "/notifications" },
+        } as NotificationOptions);
         return;
       }
     }
     const n = new Notification(title, { body, icon, badge: "/logo.png" } as NotificationOptions);
-    n.onclick = () => { window.focus(); n.close(); };
+    n.onclick = () => {
+      window.focus();
+      if (url) window.location.href = url;
+      n.close();
+    };
   } catch {}
 }
 
@@ -141,7 +153,9 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
 
       fireBrowserNotif(
         `Squawk — ${name} ${label}`,
-        notif.message ? notif.message.slice(0, 100) : undefined
+        notif.message ? notif.message.slice(0, 100) : undefined,
+        "/logo.png",
+        notif.url ?? "/notifications"
       );
     });
 

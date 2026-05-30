@@ -7,6 +7,7 @@ import {
 } from "@workspace/db";
 import { requireUser, optionalUser } from "../lib/auth";
 import { emitToUser } from "../lib/socket";
+import { sendPushToUser } from "../lib/push";
 import { buildUserSummary } from "../lib/userHelpers";
 
 const router: IRouter = Router();
@@ -188,6 +189,21 @@ router.post("/chirps", requireUser, async (req, res): Promise<void> => {
         type: "comment",
         message: content.trim().slice(0, 100),
       }).onConflictDoNothing();
+      emitToUser(parentChirp.authorId, "notification", {
+        type: "comment",
+        actorUsername: currentUser.username,
+        actorDisplayName: currentUser.displayName,
+        actorAvatarUrl: currentUser.avatarUrl,
+        message: content.trim().slice(0, 100),
+        url: `/chirps/${parentChirp.id}?comment=${chirp.id}`,
+        createdAt: new Date().toISOString(),
+      });
+      sendPushToUser(
+        parentChirp.authorId,
+        `${currentUser.displayName} replied to your chirp`,
+        content.trim().slice(0, 100),
+        `/chirps/${parentChirp.id}?comment=${chirp.id}`
+      );
     }
   }
 
@@ -213,8 +229,10 @@ router.post("/chirps", requireUser, async (req, res): Promise<void> => {
         actorDisplayName: currentUser.displayName,
         actorAvatarUrl: currentUser.avatarUrl,
         message: `${currentUser.displayName} mentioned you in a chirp`,
+        url: `/chirps/${chirp.id}`,
         createdAt: new Date().toISOString(),
       });
+      sendPushToUser(mentioned.id, `${currentUser.displayName} mentioned you in a chirp`, content.trim().slice(0, 80), `/chirps/${chirp.id}`);
     }
   })().catch(() => {});
 
@@ -292,8 +310,10 @@ router.post("/chirps/:id/like", requireUser, async (req, res): Promise<void> => 
         actorDisplayName: currentUser.displayName,
         actorAvatarUrl: currentUser.avatarUrl,
         message: chirp.content?.slice(0, 100) ?? null,
+        url: `/chirps/${chirpId}`,
         createdAt: new Date().toISOString(),
       });
+      sendPushToUser(chirp.authorId, `${currentUser.displayName} liked your chirp`, chirp.content?.slice(0, 80) ?? "", `/chirps/${chirpId}`);
     }
   }
 
@@ -358,8 +378,10 @@ router.post("/chirps/:id/rechirp", requireUser, async (req, res): Promise<void> 
       actorDisplayName: currentUser.displayName,
       actorAvatarUrl: currentUser.avatarUrl,
       message: originalChirp.content?.slice(0, 100) ?? null,
+      url: `/chirps/${chirpId}`,
       createdAt: new Date().toISOString(),
     });
+    sendPushToUser(originalChirp.authorId, `${currentUser.displayName} rechirped your chirp`, originalChirp.content?.slice(0, 80) ?? "", `/chirps/${chirpId}`);
   }
 
   res.json({ rechirped: true });

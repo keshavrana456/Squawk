@@ -107,7 +107,7 @@ router.post("/posts", requireUser, async (req, res): Promise<void> => {
         message: `${currentUser.displayName} mentioned you in a post`,
         createdAt: new Date().toISOString(),
       });
-      sendPushToUser(mentioned.id, `${currentUser.displayName} mentioned you`, caption.slice(0, 80), "/notifications");
+      sendPushToUser(mentioned.id, `${currentUser.displayName} mentioned you in a post`, caption.slice(0, 80), `/post/${post.id}`);
     }
   })().catch(() => {});
 
@@ -204,7 +204,7 @@ router.post("/posts/:id/like", requireUser, async (req, res): Promise<void> => {
         message: null,
         createdAt: new Date().toISOString(),
       });
-      sendPushToUser(post.authorId, `${currentUser.displayName} liked your post`, "", "/notifications");
+      sendPushToUser(post.authorId, `${currentUser.displayName} liked your post`, "", `/post/${params.data.id}`);
     }
   }
 
@@ -332,7 +332,7 @@ router.post("/posts/:id/comments", requireUser, async (req, res): Promise<void> 
       message: body.data.content.slice(0, 100),
       createdAt: new Date().toISOString(),
     });
-    sendPushToUser(post.authorId, `${currentUser.displayName} commented on your post`, body.data.content.slice(0, 80), "/notifications");
+    sendPushToUser(post.authorId, `${currentUser.displayName} commented on your post`, body.data.content.slice(0, 80), `/post/${params.data.id}?comment=${comment.id}`);
   }
 
   // Mention notifications in comment (fire-and-forget)
@@ -359,7 +359,7 @@ router.post("/posts/:id/comments", requireUser, async (req, res): Promise<void> 
         message: `${currentUser.displayName} mentioned you in a comment`,
         createdAt: new Date().toISOString(),
       });
-      sendPushToUser(mentioned.id, `${currentUser.displayName} mentioned you`, commentText.slice(0, 80), "/notifications");
+      sendPushToUser(mentioned.id, `${currentUser.displayName} mentioned you in a comment`, commentText.slice(0, 80), `/post/${params.data.id}`);
     }
   })().catch(() => {});
 
