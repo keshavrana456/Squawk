@@ -283,6 +283,13 @@ export default function CommentsSheet({ postId, commentsCount, isOpen, onClose }
                               Reply
                             </button>
                             <button
+                              className="text-xs text-muted-foreground hover:text-foreground font-semibold transition-colors"
+                              onClick={() => navigator.clipboard.writeText(`${window.location.origin}/post/${postId}?comment=${c.id}`).catch(() => {})}
+                              title="Copy link to comment"
+                            >
+                              Copy link
+                            </button>
+                            <button
                               className="flex items-center gap-1 text-xs transition-colors group"
                               onClick={() => handleLike(c.id, likeState)}
                             >

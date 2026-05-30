@@ -1,6 +1,6 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Link, useSearch, useParams } from "wouter";
+import { Link, useSearch, useParams, useLocation } from "wouter";
 import { useMentions } from "@/hooks/useMentions";
 import MentionSuggestions from "@/components/MentionSuggestions";
 import { motion, AnimatePresence } from "framer-motion";
@@ -243,7 +243,9 @@ function ChirpCard({
 
   const handleShare = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    const url = `${window.location.origin}/chirps/${chirp.id}`;
+    const url = chirp.parentId
+      ? `${window.location.origin}/chirps/${chirp.parentId}?comment=${chirp.id}`
+      : `${window.location.origin}/chirps/${chirp.id}`;
     if (navigator.share) {
       try {
         await navigator.share({ title: `@${chirp.author.username} on Squawk`, text: chirp.content, url });
@@ -257,7 +259,10 @@ function ChirpCard({
 
   const handleCopyLink = (e: React.MouseEvent) => {
     e.stopPropagation();
-    navigator.clipboard.writeText(`${window.location.origin}/chirps/${chirp.id}`).catch(() => {});
+    const url = chirp.parentId
+      ? `${window.location.origin}/chirps/${chirp.parentId}?comment=${chirp.id}`
+      : `${window.location.origin}/chirps/${chirp.id}`;
+    navigator.clipboard.writeText(url).catch(() => {});
   };
 
   const handleDeleteConfirmed = () => {
@@ -931,12 +936,22 @@ function CommentDetailSheet({ parentChirp, comment, me, onClose, onPosted }: {
   );
 }
 
-function ChirpDetailSheet({ chirp, me, onClose, onPosted }: {
+function ChirpDetailSheet({ chirp, me, onClose, onPosted, onCommentOpen, onCommentClose, initialCommentId }: {
   chirp: ChirpData; me: any; onClose: () => void; onPosted: () => void;
+  onCommentOpen?: (commentId: number) => void;
+  onCommentClose?: () => void;
+  initialCommentId?: number;
 }) {
   const qc = useQueryClient();
   const { data: detail, isLoading } = useChirpDetail(chirp.id);
   const [selectedComment, setSelectedComment] = useState<ChirpData | null>(null);
+
+  useEffect(() => {
+    if (!initialCommentId || !detail?.replies?.length) return;
+    const found = detail.replies.find((r: ChirpData) => r.id === initialCommentId);
+    if (found && !selectedComment) setSelectedComment(found);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialCommentId, detail?.replies]);
 
   const handlePosted = () => {
     qc.invalidateQueries({ queryKey: ["chirp-detail", chirp.id] });
@@ -981,8 +996,8 @@ function ChirpDetailSheet({ chirp, me, onClose, onPosted }: {
                   key={reply.id}
                   chirp={reply}
                   isNested
-                  onCommentClick={c => setSelectedComment(c)}
-                  onReply={c => setSelectedComment(c)}
+                  onCommentClick={c => { setSelectedComment(c); onCommentOpen?.(c.id); }}
+                  onReply={c => { setSelectedComment(c); onCommentOpen?.(c.id); }}
                 />
               ))}
             </div>
@@ -1000,7 +1015,7 @@ function ChirpDetailSheet({ chirp, me, onClose, onPosted }: {
             parentChirp={chirp}
             comment={selectedComment}
             me={me}
-            onClose={() => setSelectedComment(null)}
+            onClose={() => { setSelectedComment(null); onCommentClose?.(); }}
             onPosted={handlePosted}
           />
         )}
@@ -1015,11 +1030,20 @@ export default function ChirpsPage() {
   const { data: feedData, isLoading, refetch } = useChirpsFeed();
   const { data: trendingData } = useTrending();
   const [openChirp, setOpenChirp] = useState<ChirpData | null>(null);
+  const [, setLocation] = useLocation();
   const routeSearch = useSearch();
   const routeParams = useParams<{ id?: string }>();
 
   const items = feedData?.items ?? [];
   const trending = trendingData?.trending ?? [];
+
+  const initialCommentId = useMemo(() => {
+    const p = new URLSearchParams(routeSearch);
+    const s = p.get("comment");
+    if (!s) return undefined;
+    const id = parseInt(s, 10);
+    return isNaN(id) ? undefined : id;
+  }, [routeSearch]);
 
   useEffect(() => {
     const params = new URLSearchParams(routeSearch);
@@ -1032,7 +1056,28 @@ export default function ChirpsPage() {
     apiFetch(`/api/chirps/${id}`)
       .then((data: any) => { if (data?.id) setOpenChirp(data); })
       .catch(() => {});
-  }, [routeSearch, routeParams.id, items.length]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [routeParams.id, items.length]);
+
+  const handleOpenChirp = (chirp: ChirpData) => {
+    setOpenChirp(chirp);
+    setLocation(`/chirps/${chirp.id}`, { replace: false });
+  };
+
+  const handleCloseChirp = () => {
+    setOpenChirp(null);
+    setLocation("/chirps", { replace: true });
+  };
+
+  const handleCommentOpen = (commentId: number) => {
+    if (!openChirp) return;
+    setLocation(`/chirps/${openChirp.id}?comment=${commentId}`, { replace: true });
+  };
+
+  const handleCommentClose = () => {
+    if (!openChirp) return;
+    setLocation(`/chirps/${openChirp.id}`, { replace: true });
+  };
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-6xl mx-auto flex gap-0 min-h-screen">
@@ -1076,8 +1121,8 @@ export default function ChirpsPage() {
               <ChirpCard
                 key={chirp.id}
                 chirp={chirp}
-                onReply={c => setOpenChirp(c)}
-                onOpen={c => setOpenChirp(c)}
+                onReply={c => handleOpenChirp(c)}
+                onOpen={c => handleOpenChirp(c)}
               />
             ))}
           </AnimatePresence>
@@ -1093,8 +1138,11 @@ export default function ChirpsPage() {
           <ChirpDetailSheet
             chirp={openChirp}
             me={me}
-            onClose={() => setOpenChirp(null)}
+            onClose={handleCloseChirp}
             onPosted={() => refetch()}
+            onCommentOpen={handleCommentOpen}
+            onCommentClose={handleCommentClose}
+            initialCommentId={initialCommentId}
           />
         )}
       </AnimatePresence>

@@ -1,6 +1,6 @@
-import { useRoute, Link, useLocation } from "wouter";
+import { useRoute, Link, useLocation, useSearch } from "wouter";
 import RichText from "@/components/RichText";
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import {
   useGetPost,
   useGetPostComments,
@@ -38,11 +38,26 @@ export default function PostPage() {
   const [match, params] = useRoute("/post/:id");
   const [, navigate] = useLocation();
   const postId = match ? parseInt(params?.id || "0", 10) : 0;
+  const search = useSearch();
   const queryClient = useQueryClient();
+
+  const highlightedCommentId = useMemo(() => {
+    const p = new URLSearchParams(search);
+    const s = p.get("comment");
+    return s ? parseInt(s, 10) : null;
+  }, [search]);
+
+  const commentRefs = useRef<Record<number, HTMLElement | null>>({});
 
   const { data: post, isLoading: isLoadingPost } = useGetPost(postId, { query: { enabled: !!postId, staleTime: 30_000 } });
   const { data: commentsData, isLoading: isLoadingComments, refetch: refetchComments } = useGetPostComments(postId, { query: { enabled: !!postId } });
   const { data: me } = useGetMe();
+
+  useEffect(() => {
+    if (!highlightedCommentId || isLoadingComments) return;
+    const el = commentRefs.current[highlightedCommentId];
+    if (el) setTimeout(() => el.scrollIntoView({ behavior: "smooth", block: "center" }), 350);
+  }, [highlightedCommentId, isLoadingComments]);
   const comments: any[] = Array.isArray(commentsData) ? commentsData : [];
 
   const likeMutation = useLikePost();
@@ -399,7 +414,8 @@ export default function PostPage() {
                     <div key={comment.id} className="space-y-1">
                       {/* Top-level comment */}
                       <div
-                        className={`flex gap-3 items-start py-2 rounded-lg transition-colors ${longPressedComment === comment.id ? "bg-destructive/10" : ""}`}
+                        ref={el => { commentRefs.current[comment.id] = el; }}
+                        className={`flex gap-3 items-start py-2 rounded-lg transition-all ${longPressedComment === comment.id ? "bg-destructive/10" : ""} ${highlightedCommentId === comment.id ? "ring-2 ring-primary/40 bg-primary/5 px-2" : ""}`}
                         onMouseDown={() => startLongPress(comment.id)}
                         onMouseUp={cancelLongPress}
                         onMouseLeave={cancelLongPress}
@@ -428,6 +444,12 @@ export default function PostPage() {
                               }}
                             >
                               Reply
+                            </button>
+                            <button
+                              className="font-semibold hover:text-foreground transition-colors"
+                              onClick={() => navigator.clipboard.writeText(`${window.location.origin}/post/${postId}?comment=${comment.id}`).catch(() => {})}
+                            >
+                              Copy link
                             </button>
                             {cls.count > 0 && (
                               <span className={cls.isLiked ? "text-pink-500" : ""}>{cls.count}</span>
