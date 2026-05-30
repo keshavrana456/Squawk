@@ -79,24 +79,86 @@ export default function StoryUploadModal({ open, onClose, onSuccess }: StoryUplo
 
   const handleFile = (f: File) => {
     setError(null);
-    // Reset transform when new file is loaded so image appears at natural size
     setTx(0); setTy(0); setScale(1); setRotation(0);
     if (f.type.startsWith("video/")) {
       const url = URL.createObjectURL(f);
       const vid = document.createElement("video");
       vid.preload = "metadata";
       vid.onloadedmetadata = () => {
+        setFile(f);
+        setPreview(url);
         if (vid.duration > 15) {
-          setError("Videos must be 15 seconds or shorter.");
-          URL.revokeObjectURL(url);
-        } else {
-          setFile(f); setPreview(url);
+          setError(`Video is ${Math.ceil(vid.duration)}s — it will be split into ${Math.ceil(vid.duration / 15)} parts of 15s each on upload.`);
         }
       };
       vid.src = url;
     } else {
       setFile(f); setPreview(URL.createObjectURL(f));
     }
+  };
+
+  const splitVideoToChunks = async (
+    videoFile: File,
+    chunkDurationSec: number,
+    onProgress: (current: number, total: number) => void,
+  ): Promise<Blob[]> => {
+    const url = URL.createObjectURL(videoFile);
+
+    const { duration, width, height } = await new Promise<{ duration: number; width: number; height: number }>((resolve, reject) => {
+      const v = document.createElement("video");
+      v.preload = "metadata";
+      v.onloadedmetadata = () => resolve({ duration: v.duration, width: v.videoWidth || 640, height: v.videoHeight || 360 });
+      v.onerror = reject;
+      v.src = url;
+    });
+
+    const numChunks = Math.ceil(duration / chunkDurationSec);
+    const chunks: Blob[] = [];
+
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext("2d")!;
+
+    const video = document.createElement("video");
+    video.src = url;
+    video.muted = true;
+    await new Promise<void>(r => { video.oncanplay = () => r(); video.load(); });
+
+    for (let i = 0; i < numChunks; i++) {
+      const startTime = i * chunkDurationSec;
+      const endTime = Math.min((i + 1) * chunkDurationSec, duration);
+      onProgress(i + 1, numChunks);
+
+      await new Promise<void>(r => { video.onseeked = () => r(); video.currentTime = startTime; });
+
+      const stream = canvas.captureStream(24);
+      const supportedType = ["video/webm;codecs=vp8", "video/webm", "video/mp4"].find(t => {
+        try { return MediaRecorder.isTypeSupported(t); } catch { return false; }
+      }) || "video/webm";
+
+      const recorder = new MediaRecorder(stream, { mimeType: supportedType });
+      const blobParts: Blob[] = [];
+      recorder.ondataavailable = e => { if (e.data.size > 0) blobParts.push(e.data); };
+      recorder.start(100);
+
+      await video.play().catch(() => {});
+      const frameInterval = setInterval(() => { try { ctx.drawImage(video, 0, 0, width, height); } catch {} }, 1000 / 24);
+
+      await new Promise<void>(resolve => {
+        setTimeout(() => {
+          clearInterval(frameInterval);
+          video.pause();
+          recorder.stop();
+          recorder.onstop = () => resolve();
+        }, (endTime - startTime) * 1000 + 100);
+      });
+
+      chunks.push(new Blob(blobParts, { type: supportedType }));
+    }
+
+    URL.revokeObjectURL(url);
+    return chunks;
   };
 
   // ── Wheel zoom ──────────────────────────────────────────────────────────────
@@ -234,47 +296,73 @@ export default function StoryUploadModal({ open, onClose, onSuccess }: StoryUplo
   };
 
   // ── Upload ─────────────────────────────────────────────────────────────────
+  const [uploadProgress, setUploadProgress] = useState<string | null>(null);
+
+  const postOneStory = async (blob: Blob | File, label?: string) => {
+    const form = new FormData();
+    form.append("file", blob, blob instanceof File ? blob.name : "story.webm");
+    const uploadRes = await fetch("/api/storage/upload", {
+      method: "POST",
+      body: form,
+      credentials: "include",
+    });
+    if (!uploadRes.ok) throw new Error(await uploadRes.text().catch(() => "Upload failed"));
+    const { mediaUrl } = await uploadRes.json();
+
+    const allLayers: any[] = [
+      { [TRANSFORM_KEY]: true, x: tx, y: ty, scale, rotation },
+      ...textLayers,
+    ];
+    const captionLayer = textLayers.find(t => t.text.trim() && !/^\p{Emoji}/u.test(t.text.trim()));
+    const caption = captionLayer?.text.trim() || null;
+
+    const storyRes = await fetch("/api/stories", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({
+        mediaUrl,
+        mediaType: blob instanceof File && blob.type.startsWith("image/") ? "image" : "video",
+        caption: label ? (caption ? `${caption} (${label})` : label) : caption,
+        objectFit: "contain",
+        textLayers: JSON.stringify(allLayers),
+      }),
+    });
+    if (!storyRes.ok) throw new Error(await storyRes.text().catch(() => "Failed to post story"));
+  };
+
   const handlePost = async () => {
     if (!file || uploading) return;
     setUploading(true);
     setError(null);
+    setUploadProgress(null);
     try {
-      const form = new FormData();
-      form.append("file", file);
-      const uploadRes = await fetch("/api/storage/upload", {
-        method: "POST",
-        body: form,
-        credentials: "include",
-      });
-      if (!uploadRes.ok) {
-        const txt = await uploadRes.text().catch(() => "Upload failed");
-        throw new Error(txt);
-      }
-      const { mediaUrl } = await uploadRes.json();
+      const isVideo = file.type.startsWith("video/");
 
-      const allLayers: any[] = [
-        { [TRANSFORM_KEY]: true, x: tx, y: ty, scale, rotation },
-        ...textLayers,
-      ];
+      if (isVideo) {
+        const vid = document.createElement("video");
+        vid.preload = "metadata";
+        const metaUrl = URL.createObjectURL(file);
+        const duration = await new Promise<number>(r => {
+          vid.onloadedmetadata = () => { URL.revokeObjectURL(metaUrl); r(vid.duration); };
+          vid.src = metaUrl;
+        });
 
-      const captionLayer = textLayers.find(t => t.text.trim() && !/^\p{Emoji}/u.test(t.text.trim()));
-      const caption = captionLayer?.text.trim() || null;
-
-      const storyRes = await fetch("/api/stories", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
-          mediaUrl,
-          mediaType: file.type.startsWith("video/") ? "video" : "image",
-          caption,
-          objectFit: "contain",
-          textLayers: JSON.stringify(allLayers),
-        }),
-      });
-      if (!storyRes.ok) {
-        const txt = await storyRes.text().catch(() => "Failed to post story");
-        throw new Error(txt);
+        if (duration > 15) {
+          const numParts = Math.ceil(duration / 15);
+          setUploadProgress(`Processing part 1/${numParts}…`);
+          const chunks = await splitVideoToChunks(file, 15, (cur, total) => {
+            setUploadProgress(`Uploading part ${cur}/${total}…`);
+          });
+          for (let i = 0; i < chunks.length; i++) {
+            setUploadProgress(`Uploading part ${i + 1}/${chunks.length}…`);
+            await postOneStory(chunks[i], chunks.length > 1 ? `Part ${i + 1}/${chunks.length}` : undefined);
+          }
+        } else {
+          await postOneStory(file);
+        }
+      } else {
+        await postOneStory(file);
       }
 
       await queryClient.invalidateQueries({ queryKey: ["getStories"] });
@@ -286,6 +374,7 @@ export default function StoryUploadModal({ open, onClose, onSuccess }: StoryUplo
       setError(e?.message || "Something went wrong. Please try again.");
     } finally {
       setUploading(false);
+      setUploadProgress(null);
     }
   };
 
@@ -355,7 +444,7 @@ export default function StoryUploadModal({ open, onClose, onSuccess }: StoryUplo
                     ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                     : <Send className="w-3.5 h-3.5" />
                   }
-                  {uploading ? "Posting…" : "Share"}
+                  {uploading ? (uploadProgress ?? "Posting…") : "Share"}
                 </button>
               )}
             </div>

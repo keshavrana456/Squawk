@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { eq, and, desc, sql, inArray } from "drizzle-orm";
+import { eq, and, desc, sql, inArray, notInArray } from "drizzle-orm";
 import { db, usersTable, postsTable, likesTable, followsTable } from "@workspace/db";
 import { requireUser } from "../lib/auth";
 import { buildPostsWithMeta } from "../lib/userHelpers";
@@ -20,39 +20,53 @@ router.get("/feed", requireUser, async (req, res): Promise<void> => {
   const followingIds = following.map(f => f.followingId);
   const feedUserIds = [currentUser.id, ...followingIds];
 
-  let rows: any[];
+  // Fetch followed/own posts
+  let followedRows: any[] = [];
   if (feedUserIds.length > 0) {
     let q = db.select({ post: postsTable, author: usersTable })
       .from(postsTable)
       .innerJoin(usersTable, eq(postsTable.authorId, usersTable.id))
-      .where(inArray(postsTable.authorId, feedUserIds))
+      .where(
+        cursor
+          ? and(inArray(postsTable.authorId, feedUserIds), sql`${postsTable.id} < ${cursor}`)
+          : inArray(postsTable.authorId, feedUserIds),
+      )
       .orderBy(desc(postsTable.createdAt))
       .limit(limit + 1) as any;
-
-    if (cursor) {
-      q = q.where(and(
-        inArray(postsTable.authorId, feedUserIds),
-        sql`${postsTable.id} < ${cursor}`
-      ));
-    }
-    rows = await q;
-  } else {
-    // No follows — show trending posts
-    rows = await db.select({ post: postsTable, author: usersTable })
-      .from(postsTable)
-      .innerJoin(usersTable, eq(postsTable.authorId, usersTable.id))
-      .orderBy(desc(postsTable.createdAt))
-      .limit(limit + 1);
+    followedRows = await q;
   }
 
-  const hasMore = rows.length > limit;
-  const data = hasMore ? rows.slice(0, limit) : rows;
+  // Always mix in up to 5 discovery posts from non-followed users
+  const discoveryRows = await db.select({ post: postsTable, author: usersTable })
+    .from(postsTable)
+    .innerJoin(usersTable, eq(postsTable.authorId, usersTable.id))
+    .where(
+      notInArray(postsTable.authorId, feedUserIds),
+    )
+    .orderBy(desc(postsTable.createdAt))
+    .limit(5);
+
+  // Merge: followed posts first, then discovery posts (deduplicated by post id)
+  const seenIds = new Set<number>();
+  const merged: any[] = [];
+  for (const r of followedRows) {
+    if (!seenIds.has(r.post.id)) { seenIds.add(r.post.id); merged.push(r); }
+  }
+  for (const r of discoveryRows) {
+    if (!seenIds.has(r.post.id)) { seenIds.add(r.post.id); merged.push(r); }
+  }
+
+  // Sort merged by createdAt desc
+  merged.sort((a, b) => new Date(b.post.createdAt).getTime() - new Date(a.post.createdAt).getTime());
+
+  const hasMore = followedRows.length > limit;
+  const data = hasMore ? merged.slice(0, limit) : merged;
   const postsWithMeta = await buildPostsWithMeta(data, currentUser.id);
 
   res.json({
     posts: postsWithMeta,
     hasMore,
-    nextCursor: hasMore ? data[data.length - 1].post.id : null,
+    nextCursor: hasMore ? (followedRows[limit - 1]?.post.id ?? null) : null,
   });
 });
 

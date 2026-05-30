@@ -577,6 +577,7 @@ function Router() {
       <ProtectedRoute path="/explore/hashtags/:tag" component={ExplorePage} />
       <ProtectedRoute path="/flows" component={FlowsPage} />
       <ProtectedRoute path="/chirps" component={ChirpsPage} />
+      <ProtectedRoute path="/chirps/:id" component={ChirpsPage} />
       <ProtectedRoute path="/messages" component={MessagesPage} />
       <ProtectedRoute path="/notifications" component={NotificationsPage} />
       <ProtectedRoute path="/upload" component={UploadPage} />

@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Link, useSearch } from "wouter";
+import { Link, useSearch, useParams } from "wouter";
 import { useMentions } from "@/hooks/useMentions";
 import MentionSuggestions from "@/components/MentionSuggestions";
 import { motion, AnimatePresence } from "framer-motion";
@@ -762,38 +762,35 @@ function ChirpDetailSheet({ chirp, me, onClose, onPosted }: {
           <div className="w-8" />
         </div>
 
-        {/* Scrollable content */}
-        <div className="flex-1 overflow-y-auto">
-          {/* Original chirp (dimmed) */}
-          <div className="border-b border-border">
-            <ChirpCard chirp={chirp} isNested />
-          </div>
-
-          {/* Composer */}
-          {me && (
-            <div className="border-b border-border">
-              <ChirpComposer me={me} replyTo={chirp} onClose={() => {}} onPosted={handlePosted} />
-            </div>
-          )}
-
-          {/* Replies */}
-          <div className="divide-y divide-border">
-            {isLoading ? (
-              <div className="flex justify-center py-8">
-                <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-              </div>
-            ) : (detail?.replies ?? []).length === 0 ? (
-              <div className="flex flex-col items-center py-10 text-muted-foreground text-sm gap-2">
-                <MessageCircle className="w-8 h-8 opacity-30" />
-                <p>No replies yet. Be the first!</p>
-              </div>
-            ) : (
-              (detail?.replies ?? []).map(reply => (
-                <ChirpCard key={reply.id} chirp={reply} isNested onReply={c => setReplyTo(c)} />
-              ))
-            )}
-          </div>
+        {/* Original chirp */}
+        <div className="border-b border-border shrink-0">
+          <ChirpCard chirp={chirp} isNested />
         </div>
+
+        {/* Replies — scrollable */}
+        <div className="flex-1 overflow-y-auto divide-y divide-border">
+          {isLoading ? (
+            <div className="flex justify-center py-8">
+              <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : (detail?.replies ?? []).length === 0 ? (
+            <div className="flex flex-col items-center py-10 text-muted-foreground text-sm gap-2">
+              <MessageCircle className="w-8 h-8 opacity-30" />
+              <p>No replies yet. Be the first!</p>
+            </div>
+          ) : (
+            (detail?.replies ?? []).map(reply => (
+              <ChirpCard key={reply.id} chirp={reply} isNested onReply={c => setReplyTo(c)} />
+            ))
+          )}
+        </div>
+
+        {/* Composer — fixed at bottom */}
+        {me && (
+          <div className="border-t border-border shrink-0">
+            <ChirpComposer me={me} replyTo={replyTo ?? chirp} onClose={() => setReplyTo(null)} onPosted={handlePosted} />
+          </div>
+        )}
       </motion.div>
     </motion.div>
   );
@@ -806,25 +803,24 @@ export default function ChirpsPage() {
   const { data: trendingData } = useTrending();
   const [openChirp, setOpenChirp] = useState<ChirpData | null>(null);
   const routeSearch = useSearch();
+  const routeParams = useParams<{ id?: string }>();
 
   const items = feedData?.items ?? [];
   const trending = trendingData?.trending ?? [];
 
-  // Handle ?id=X from profile page — open that chirp's detail sheet
+  // Handle ?id=X query param OR /chirps/:id route param — open that chirp's detail sheet
   useEffect(() => {
     const params = new URLSearchParams(routeSearch);
-    const idStr = params.get("id");
+    const idStr = params.get("id") ?? routeParams.id ?? null;
     if (!idStr) return;
     const id = parseInt(idStr, 10);
     if (isNaN(id)) return;
-    // Try to find in feed first, otherwise fetch
     const found = items.find(c => c.id === id);
     if (found) { setOpenChirp(found); return; }
-    if (items.length === 0) return; // wait for feed to load
     apiFetch(`/api/chirps/${id}`)
       .then((data: any) => { if (data?.id) setOpenChirp(data); })
       .catch(() => {});
-  }, [routeSearch, items.length]);
+  }, [routeSearch, routeParams.id, items.length]);
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-6xl mx-auto flex gap-0 min-h-screen">

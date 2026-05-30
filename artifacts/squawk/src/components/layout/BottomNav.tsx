@@ -2,11 +2,14 @@ import { Link, useLocation } from "wouter";
 import { useUser } from "@clerk/react";
 import { Home, Compass, Bird, PlaySquare, User } from "lucide-react";
 import { useGetMe } from "@workspace/api-client-react";
+import { useState, useEffect, useRef } from "react";
 
 export default function BottomNav() {
   const [location] = useLocation();
   const { user } = useUser();
   const { data: me } = useGetMe({ query: { enabled: !!user } });
+  const [visible, setVisible] = useState(true);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const profileHref = me?.username ? `/profile/${me.username}` : "/profile";
 
@@ -18,9 +21,29 @@ export default function BottomNav() {
     { href: profileHref, icon: User, label: "Profile" },
   ];
 
+  const resetTimer = () => {
+    setVisible(true);
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => setVisible(false), 5000);
+  };
+
+  useEffect(() => {
+    resetTimer();
+    const events = ["scroll", "click", "touchstart", "keydown", "mousemove"];
+    events.forEach(e => window.addEventListener(e, resetTimer, { passive: true }));
+    return () => {
+      events.forEach(e => window.removeEventListener(e, resetTimer));
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, []);
+
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 border-t border-border bg-card/80 backdrop-blur-xl z-50"
-      style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
+    <nav
+      className="md:hidden fixed bottom-0 left-0 right-0 border-t border-border bg-card/80 backdrop-blur-xl z-50 transition-transform duration-300"
+      style={{
+        paddingBottom: "env(safe-area-inset-bottom, 0px)",
+        transform: visible ? "translateY(0)" : "translateY(100%)",
+      }}
     >
       <div className="flex items-center justify-around px-1 py-2">
         {navItems.map((item) => {

@@ -5,7 +5,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import {
   Heart, MessageCircle, Send, Bookmark, MoreHorizontal,
   BadgeCheck, Volume2, VolumeX, PlaySquare, Trash2,
-  Link2, Flag, EyeOff, Copy,
+  Link2, Flag, EyeOff, Copy, UserPlus, UserCheck,
 } from "lucide-react";
 import { ShareSheet } from "@/components/ShareSheet";
 import CommentsSheet from "@/components/CommentsSheet";
@@ -16,6 +16,7 @@ import {
   useSavePost,
   useDeletePost,
   useGetMe,
+  useFollowUser,
   getGetFeedQueryKey,
   getGetUserPostsQueryKey,
   getListPostsQueryKey,
@@ -47,7 +48,9 @@ export default function PostCard({ post, onLike, onSave, onComment }: PostCardPr
   const likeMutation = useLikePost();
   const saveMutation = useSavePost();
   const deleteMutation = useDeletePost();
+  const followMutation = useFollowUser();
   const { data: me } = useGetMe();
+  const [isFollowing, setIsFollowing] = useState(!!(post.author as any).isFollowing);
 
   const [showHeart, setShowHeart] = useState(false);
   const [isLiked, setIsLiked] = useState(!!post.isLiked);
@@ -90,6 +93,17 @@ export default function PostCard({ post, onLike, onSave, onComment }: PostCardPr
   }, [post.isLiked, post.likesCount, post.isSaved, likeMutation.isPending]);
 
   const isOwner = me && (me as any).id === post.author.id;
+
+  const handleFollow = () => {
+    if (isFollowing || isOwner) return;
+    setIsFollowing(true);
+    followMutation.mutate({ username: post.author.username }, {
+      onError: () => setIsFollowing(false),
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: getGetFeedQueryKey() });
+      },
+    });
+  };
   const isFounderAdmin = me && ((me as any).isFounder || (me as any).id === 1);
 
   const handleAdminDelete = () => {
@@ -248,6 +262,22 @@ export default function PostCard({ post, onLike, onSave, onComment }: PostCardPr
             </div>
           </Link>
 
+          {/* Follow button — shown for non-owners not yet following */}
+          {!isOwner && me && (
+            <button
+              onClick={handleFollow}
+              disabled={isFollowing || followMutation.isPending}
+              className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full border transition-all mr-1 ${
+                isFollowing
+                  ? "border-border text-muted-foreground cursor-default"
+                  : "border-primary text-primary hover:bg-primary/10"
+              }`}
+            >
+              {isFollowing ? <UserCheck className="w-3.5 h-3.5" /> : <UserPlus className="w-3.5 h-3.5" />}
+              {isFollowing ? "Following" : "Follow"}
+            </button>
+          )}
+
           {/* Three-dot menu */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -341,6 +371,7 @@ export default function PostCard({ post, onLike, onSave, onComment }: PostCardPr
               className="w-full object-cover cursor-pointer"
               style={{ maxHeight: "600px", objectFit: "cover", display: "block" }}
               loading="lazy"
+              onClick={() => window.open(post.mediaUrl, "_blank")}
             />
           )}
 

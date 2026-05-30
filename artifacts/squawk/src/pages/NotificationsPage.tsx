@@ -158,9 +158,9 @@ function getNotificationHref(n: Notification & { actor?: any }): string | undefi
     case "follow":
       return n.actor?.username ? `/profile/${n.actor.username}` : undefined;
     case "like":
-      return n.postId ? `/post/${n.postId}` : undefined;
+      return n.postId ? `/post/${n.postId}` : `/chirps`;
     case "comment":
-      return n.postId ? `/post/${n.postId}` : undefined;
+      return n.postId ? `/post/${n.postId}` : `/chirps`;
     case "mention":
       if (n.postId) return `/post/${n.postId}`;
       // Chirp or story mention — no postId on record
@@ -226,10 +226,14 @@ export default function NotificationsPage() {
     }
   };
 
-  const getMessage = (n: Notification) => {
+  const getMessage = (n: Notification & { actor?: any }) => {
     switch (n.type) {
-      case "like":    return "liked your post.";
-      case "comment": return n.message ? `replied: "${n.message}"` : "commented on your post.";
+      case "like":
+        if (!n.postId) return n.message ? `liked your chirp: "${n.message.slice(0, 60)}${n.message.length > 60 ? "…" : ""}"` : "liked your chirp.";
+        return "liked your post.";
+      case "comment":
+        if (!n.postId) return n.message ? `replied to your chirp: "${n.message.slice(0, 60)}${n.message.length > 60 ? "…" : ""}"` : "commented on your chirp.";
+        return n.message ? `replied: "${n.message}"` : "commented on your post.";
       case "follow":  return "started following you.";
       case "mention": return "mentioned you.";
       case "repost":  return n.message ? `reposted your chirp: "${n.message}"` : "reposted your chirp.";
