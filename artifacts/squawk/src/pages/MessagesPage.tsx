@@ -21,6 +21,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useSocket } from "@/contexts/SocketContext";
 import { useCall } from "@/contexts/CallContext";
 import { useActiveChat } from "@/contexts/ActiveChatContext";
+import RichText from "@/components/RichText";
 
 const GIPHY_KEY = (import.meta as any).env?.VITE_GIPHY_API_KEY || "dc6zaTOxFJmzC";
 
@@ -1281,7 +1282,7 @@ function ChatView({ conversationId, onBack, me, conversation, onConversationLeft
                           loading="lazy"
                         />
                       ) : (
-                        <span>{msg.content}</span>
+                        <RichText text={msg.content || ""} className="break-words" />
                       )}
 
                       {/* Reply button on hover */}
