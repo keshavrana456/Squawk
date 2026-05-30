@@ -536,6 +536,13 @@ function HomeRedirect() {
   return <Redirect to="/home" />;
 }
 
+function LandingRoute() {
+  const { isSignedIn, isLoaded } = useUser();
+  if (!isLoaded) return null;
+  if (isSignedIn) return <Redirect to="/home" />;
+  return <LandingPage />;
+}
+
 function GuestRoute({ component: Component, ...rest }: any) {
   return (
     <Route {...rest}>
@@ -581,7 +588,7 @@ function ProtectedRoute({ component: Component, ...rest }: any) {
 function Router() {
   return (
     <Switch>
-      <Route path="/" component={HomeRedirect} />
+      <Route path="/" component={LandingRoute} />
       <Route path="/sign-in/*?" component={SignInPage} />
       <Route path="/sign-up/*?" component={SignUpPage} />
       <Route path="/sso-callback" component={SsoCallbackPage} />

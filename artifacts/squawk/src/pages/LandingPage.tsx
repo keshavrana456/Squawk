@@ -1152,16 +1152,23 @@ export default function LandingPage() {
             Squawk is the social home of the 10K Squad — where creators and the Monad community collide.
           </p>
 
-          <Link href="/sign-up">
-            <button
-              className="group relative inline-flex h-14 items-center justify-center overflow-hidden rounded-full px-8 font-bold text-white text-lg transition-all duration-300 hover:scale-105 shadow-2xl shadow-pink-900/50"
-              style={{ background: "linear-gradient(135deg, #ec4899, #9333ea)" }}
-              data-testid="button-get-started"
-            >
-              Enter the Grid
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="ml-2 transition-transform group-hover:translate-x-1"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-            </button>
-          </Link>
+          <div className="flex flex-col sm:flex-row items-center gap-4">
+            <Link href="/home">
+              <button
+                className="group relative inline-flex h-14 items-center justify-center overflow-hidden rounded-full px-8 font-bold text-white text-lg transition-all duration-300 hover:scale-105 shadow-2xl shadow-pink-900/50"
+                style={{ background: "linear-gradient(135deg, #ec4899, #9333ea)" }}
+                data-testid="button-get-started"
+              >
+                Enter the Grid
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="ml-2 transition-transform group-hover:translate-x-1"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+              </button>
+            </Link>
+            <Link href="/sign-up">
+              <button className="h-14 px-8 rounded-full font-semibold text-white/70 border border-white/20 hover:border-white/40 hover:text-white transition-all text-lg">
+                Join Now
+              </button>
+            </Link>
+          </div>
         </motion.div>
 
         {/* Stats pinned to bottom — always visible */}

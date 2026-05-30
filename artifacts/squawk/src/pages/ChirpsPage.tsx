@@ -19,11 +19,12 @@ import {
 import {
   Heart, MessageCircle, Repeat2, Bookmark, Share2, MoreHorizontal,
   Hash, TrendingUp, BadgeCheck, Image as ImageIcon, Smile, X, Send,
-  Trash2, Copy,
+  Trash2, Copy, ArrowLeft,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { useUser } from "@clerk/react";
 import { useGetMe } from "@workspace/api-client-react";
+import { useRequireAuth } from "@/hooks/useRequireAuth";
 
 type OriginalChirp = {
   id: number;
@@ -160,7 +161,15 @@ function renderContent(content: string) {
   });
 }
 
-function ChirpCard({ chirp, onReply, isNested = false, onOpen }: { chirp: ChirpData; onReply?: (chirp: ChirpData) => void; isNested?: boolean; onOpen?: (chirp: ChirpData) => void }) {
+function ChirpCard({
+  chirp, onReply, isNested = false, onOpen, onCommentClick,
+}: {
+  chirp: ChirpData;
+  onReply?: (chirp: ChirpData) => void;
+  isNested?: boolean;
+  onOpen?: (chirp: ChirpData) => void;
+  onCommentClick?: (chirp: ChirpData) => void;
+}) {
   const [localLiked, setLocalLiked] = useState(chirp.isLiked);
   const [localLikes, setLocalLikes] = useState(chirp.likesCount);
   const [localSaved, setLocalSaved] = useState(chirp.isSaved);
@@ -171,17 +180,14 @@ function ChirpCard({ chirp, onReply, isNested = false, onOpen }: { chirp: ChirpD
   const rechirpMut = useRechirp();
   const deleteMut = useDeleteChirp();
   const { data: me } = useGetMe();
+  const requireAuth = useRequireAuth();
   const isOwner = me && (me as any).id === chirp.authorId;
   const isFounderOrAdmin = me && ((me as any).isFounder || (me as any).id === 1);
   const canDelete = isOwner || isFounderOrAdmin;
 
-  // Track last server-confirmed state so we don't revert optimistic updates
   const serverLikeRef = useRef({ liked: chirp.isLiked, count: chirp.likesCount });
 
   useEffect(() => {
-    // Only sync from server data if it changed from what we last confirmed from the server.
-    // Do NOT include likeMut.isPending in deps — that transition was the cause of spurious reverts
-    // because the query cache still held the old isLiked:false at the moment isPending flipped.
     if (
       chirp.isLiked !== serverLikeRef.current.liked ||
       chirp.likesCount !== serverLikeRef.current.count
@@ -195,34 +201,48 @@ function ChirpCard({ chirp, onReply, isNested = false, onOpen }: { chirp: ChirpD
 
   const handleLike = (e: React.MouseEvent) => {
     e.stopPropagation();
-    const newLiked = !localLiked;
-    setLocalLiked(newLiked);
-    setLocalLikes(l => l + (newLiked ? 1 : -1));
-    likeMut.mutate(chirp.id, {
-      onSuccess: (d: any) => {
-        serverLikeRef.current = { liked: d.isLiked, count: d.likesCount };
-        setLocalLiked(d.isLiked);
-        setLocalLikes(d.likesCount);
-      },
-      onError: () => { setLocalLiked(!newLiked); setLocalLikes(l => l + (!newLiked ? 1 : -1)); },
+    requireAuth(() => {
+      const newLiked = !localLiked;
+      setLocalLiked(newLiked);
+      setLocalLikes(l => l + (newLiked ? 1 : -1));
+      likeMut.mutate(chirp.id, {
+        onSuccess: (d: any) => {
+          serverLikeRef.current = { liked: d.isLiked, count: d.likesCount };
+          setLocalLiked(d.isLiked);
+          setLocalLikes(d.likesCount);
+        },
+        onError: () => { setLocalLiked(!newLiked); setLocalLikes(l => l + (!newLiked ? 1 : -1)); },
+      });
     });
   };
 
-  const handleSave = () => {
-    setLocalSaved(s => !s);
-    saveMut.mutate(chirp.id, { onError: () => setLocalSaved(s => !s) });
-  };
-
-  const handleRechirp = () => {
-    const newVal = !localRechirped;
-    setLocalRechirped(newVal);
-    rechirpMut.mutate(chirp.id, {
-      onSuccess: (d: any) => setLocalRechirped(d.rechirped ?? newVal),
-      onError: () => setLocalRechirped(!newVal),
+  const handleSave = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    requireAuth(() => {
+      setLocalSaved(s => !s);
+      saveMut.mutate(chirp.id, { onError: () => setLocalSaved(s => !s) });
     });
   };
 
-  const handleShare = async () => {
+  const handleRechirp = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    requireAuth(() => {
+      const newVal = !localRechirped;
+      setLocalRechirped(newVal);
+      rechirpMut.mutate(chirp.id, {
+        onSuccess: (d: any) => setLocalRechirped(d.rechirped ?? newVal),
+        onError: () => setLocalRechirped(!newVal),
+      });
+    });
+  };
+
+  const handleReply = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    requireAuth(() => onReply?.(chirp));
+  };
+
+  const handleShare = async (e: React.MouseEvent) => {
+    e.stopPropagation();
     const url = `${window.location.origin}/chirps/${chirp.id}`;
     if (navigator.share) {
       try {
@@ -243,6 +263,11 @@ function ChirpCard({ chirp, onReply, isNested = false, onOpen }: { chirp: ChirpD
   const handleDeleteConfirmed = () => {
     deleteMut.mutate({ id: chirp.id, isAdmin: !isOwner && !!isFounderOrAdmin });
     setShowDeleteConfirm(false);
+  };
+
+  const handleCardClick = () => {
+    if (onOpen) onOpen(chirp);
+    else if (onCommentClick) onCommentClick(chirp);
   };
 
   const ChirpMenu = () => (
@@ -284,9 +309,9 @@ function ChirpCard({ chirp, onReply, isNested = false, onOpen }: { chirp: ChirpD
     <motion.article
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      className={`border-b border-border transition-colors ${isNested ? "bg-muted/20 hover:bg-muted/30" : "hover:bg-muted/30"}`}
+      onClick={handleCardClick}
+      className={`border-b border-border transition-colors ${(onOpen || onCommentClick) ? "cursor-pointer" : ""} ${isNested ? "bg-muted/20 hover:bg-muted/30" : "hover:bg-muted/30"}`}
     >
-      {/* Repost label — shows reposter's name */}
       {(chirp.rechirpOfId !== null || localRechirped) && (
         <div className="flex items-center gap-2 px-4 pt-3 text-xs font-semibold text-green-500">
           <Repeat2 className="w-3.5 h-3.5" />
@@ -294,7 +319,6 @@ function ChirpCard({ chirp, onReply, isNested = false, onOpen }: { chirp: ChirpD
         </div>
       )}
       <div className="flex gap-3 px-4 py-4">
-        {/* For reposts, show the original author's avatar; for regular chirps, the chirp author */}
         {chirp.originalChirp ? (
           <Link href={`/profile/${chirp.originalChirp.author.username}`} onClick={e => e.stopPropagation()}>
             <Avatar className="w-11 h-11 border border-border hover:border-primary transition-colors shrink-0">
@@ -317,7 +341,6 @@ function ChirpCard({ chirp, onReply, isNested = false, onOpen }: { chirp: ChirpD
 
         <div className="flex-1 min-w-0">
           {chirp.originalChirp ? (
-            /* ── Repost: show original author header + content + media ── */
             <>
               <div className="flex items-center gap-2 flex-wrap">
                 <Link href={`/profile/${chirp.originalChirp.author.username}`} onClick={e => e.stopPropagation()}>
@@ -342,7 +365,6 @@ function ChirpCard({ chirp, onReply, isNested = false, onOpen }: { chirp: ChirpD
               )}
             </>
           ) : (
-            /* ── Normal chirp ── */
             <>
               <div className="flex items-center gap-2 flex-wrap">
                 <Link href={`/profile/${chirp.author.username}`} onClick={e => e.stopPropagation()}>
@@ -359,7 +381,7 @@ function ChirpCard({ chirp, onReply, isNested = false, onOpen }: { chirp: ChirpD
                 <p className="mt-1 text-[15px] leading-relaxed break-words">{renderContent(chirp.content)}</p>
               )}
               {chirp.mediaUrl && (
-                <div className="mt-3 rounded-2xl overflow-hidden border border-border">
+                <div className="mt-3 rounded-2xl overflow-hidden border border-border" onClick={e => e.stopPropagation()}>
                   {chirp.mediaType === "video" ? (
                     <video src={chirp.mediaUrl} controls className="w-full max-h-80 object-cover" playsInline />
                   ) : (
@@ -372,7 +394,7 @@ function ChirpCard({ chirp, onReply, isNested = false, onOpen }: { chirp: ChirpD
 
           <div className="flex items-center gap-1 mt-3 -ml-2">
             <button
-              onClick={e => { e.stopPropagation(); onReply?.(chirp); }}
+              onClick={handleReply}
               className="flex items-center gap-1.5 px-2 py-1.5 rounded-full text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors group text-sm"
             >
               <MessageCircle className="w-4 h-4" />
@@ -380,7 +402,7 @@ function ChirpCard({ chirp, onReply, isNested = false, onOpen }: { chirp: ChirpD
             </button>
 
             <button
-              onClick={e => { e.stopPropagation(); handleRechirp(); }}
+              onClick={handleRechirp}
               className={`flex items-center gap-1.5 px-2 py-1.5 rounded-full transition-colors text-sm ${localRechirped ? "text-green-400" : "text-muted-foreground hover:text-green-400 hover:bg-green-400/10"}`}
             >
               <Repeat2 className="w-4 h-4" />
@@ -396,14 +418,14 @@ function ChirpCard({ chirp, onReply, isNested = false, onOpen }: { chirp: ChirpD
             </button>
 
             <button
-              onClick={e => { e.stopPropagation(); handleSave(); }}
+              onClick={handleSave}
               className={`flex items-center gap-1.5 px-2 py-1.5 rounded-full transition-colors text-sm ${localSaved ? "text-primary" : "text-muted-foreground hover:text-primary hover:bg-primary/10"}`}
             >
               <Bookmark className={`w-4 h-4 ${localSaved ? "fill-primary" : ""}`} />
             </button>
 
             <button
-              onClick={e => { e.stopPropagation(); handleShare(); }}
+              onClick={handleShare}
               className="flex items-center gap-1.5 px-2 py-1.5 rounded-full text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors text-sm"
             >
               <Share2 className="w-4 h-4" />
@@ -490,7 +512,6 @@ function ChirpComposer({ me, replyTo, onClose, onPosted }: {
       return;
     }
 
-    // Show local preview immediately
     const preview = URL.createObjectURL(file);
     setMediaPreview(preview);
     setMediaType(file.type.startsWith("video/") ? "video" : "image");
@@ -511,7 +532,6 @@ function ChirpComposer({ me, replyTo, onClose, onPosted }: {
       setUploading(false);
     }
 
-    // Reset file input so same file can be reselected
     e.target.value = "";
   };
 
@@ -581,7 +601,6 @@ function ChirpComposer({ me, replyTo, onClose, onPosted }: {
           />
         </div>
 
-        {/* Media preview */}
         {mediaPreview && (
           <div className="relative mt-2 rounded-2xl overflow-hidden border border-border w-full max-h-72">
             {mediaType === "video" ? (
@@ -610,7 +629,6 @@ function ChirpComposer({ me, replyTo, onClose, onPosted }: {
 
         <div className="flex items-center justify-between mt-2 pt-3 border-t border-border">
           <div className="flex items-center gap-1">
-            {/* Hidden file input */}
             <input
               ref={fileInputRef}
               type="file"
@@ -689,6 +707,131 @@ function ChirpComposer({ me, replyTo, onClose, onPosted }: {
   );
 }
 
+function ThinChirpComposer({ me, replyTo, onPosted }: { me: any; replyTo: ChirpData; onPosted: () => void }) {
+  const [content, setContent] = useState("");
+  const [mediaUrl, setMediaUrl] = useState<string | null>(null);
+  const [mediaType, setMediaType] = useState<string | null>(null);
+  const [mediaPreview, setMediaPreview] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const createMut = useCreateChirp();
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const preview = URL.createObjectURL(file);
+    setMediaPreview(preview);
+    setMediaType(file.type.startsWith("video/") ? "video" : "image");
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch("/api/storage/upload", { method: "POST", body: formData, credentials: "include" });
+      if (!res.ok) throw new Error("Upload failed");
+      const { mediaUrl: url } = await res.json();
+      setMediaUrl(url);
+    } catch {
+      alert("Upload failed. Please try again.");
+      setMediaPreview(null);
+      setMediaType(null);
+    } finally {
+      setUploading(false);
+    }
+    e.target.value = "";
+  };
+
+  const handlePost = () => {
+    if ((!content.trim() && !mediaUrl) || uploading) return;
+    const hashtags = [...content.matchAll(/#(\w+)/g)].map(m => m[1]);
+    const mentions = [...content.matchAll(/@(\w+)/g)].map(m => m[1]);
+    createMut.mutate({
+      content: content.trim(),
+      hashtags,
+      mentions,
+      parentId: replyTo.id,
+      mediaUrl: mediaUrl ?? undefined,
+      mediaType: mediaType ?? undefined,
+    } as any, {
+      onSuccess: () => {
+        setContent("");
+        setMediaUrl(null);
+        setMediaType(null);
+        setMediaPreview(null);
+        onPosted();
+      },
+    });
+  };
+
+  return (
+    <div className="border-t border-border bg-background shrink-0">
+      {mediaPreview && (
+        <div className="relative mx-3 mt-2 rounded-xl overflow-hidden border border-border max-h-40">
+          {mediaType === "video" ? (
+            <video src={mediaPreview} className="w-full max-h-40 object-cover" controls playsInline />
+          ) : (
+            <img src={mediaPreview} alt="attachment" className="w-full max-h-40 object-cover" />
+          )}
+          {uploading && (
+            <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            </div>
+          )}
+          {!uploading && (
+            <button
+              onClick={() => { setMediaUrl(null); setMediaType(null); setMediaPreview(null); }}
+              className="absolute top-1.5 right-1.5 w-6 h-6 bg-black/70 rounded-full flex items-center justify-center text-white hover:bg-black/90"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+      )}
+      <div className="flex items-center gap-2 px-3 py-2.5">
+        <Avatar className="w-8 h-8 border border-border shrink-0">
+          <AvatarImage src={me?.avatarUrl || ""} />
+          <AvatarFallback className="bg-primary/20 text-primary font-bold text-xs">
+            {getInitials(me?.displayName || "?")}
+          </AvatarFallback>
+        </Avatar>
+        <input
+          className="flex-1 bg-muted/40 rounded-full px-4 py-2 text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 focus:ring-primary/50 min-w-0"
+          placeholder={`Reply to @${replyTo.author.username}…`}
+          value={content}
+          onChange={e => setContent(e.target.value)}
+          onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handlePost(); } }}
+        />
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/jpeg,image/png,image/gif,image/webp,video/mp4,video/quicktime,video/webm"
+          className="hidden"
+          onChange={handleFileSelect}
+        />
+        <button
+          onClick={() => fileInputRef.current?.click()}
+          disabled={!!mediaPreview}
+          className="p-2 text-muted-foreground hover:text-primary transition-colors shrink-0 disabled:opacity-40"
+          title="Attach media"
+        >
+          <ImageIcon className="w-4 h-4" />
+        </button>
+        <button
+          onClick={handlePost}
+          disabled={(!content.trim() && !mediaUrl) || uploading || createMut.isPending}
+          className="p-2 text-primary hover:text-primary/80 disabled:opacity-40 transition-colors shrink-0"
+          title="Send reply"
+        >
+          {createMut.isPending || uploading ? (
+            <div className="w-4 h-4 border-2 border-primary/40 border-t-primary rounded-full animate-spin" />
+          ) : (
+            <Send className="w-4 h-4" />
+          )}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function TrendingSidebar({ trending }: { trending: { hashtag: string; count: number }[] }) {
   return (
     <div className="bg-card border border-border rounded-2xl overflow-hidden">
@@ -724,12 +867,76 @@ function useChirpDetail(id: number | null) {
   });
 }
 
+function CommentDetailSheet({ parentChirp, comment, me, onClose, onPosted }: {
+  parentChirp: ChirpData;
+  comment: ChirpData;
+  me: any;
+  onClose: () => void;
+  onPosted: () => void;
+}) {
+  const qc = useQueryClient();
+  const { data: detail, isLoading } = useChirpDetail(comment.id);
+
+  const handlePosted = () => {
+    qc.invalidateQueries({ queryKey: ["chirp-detail", comment.id] });
+    qc.invalidateQueries({ queryKey: ["chirp-detail", parentChirp.id] });
+    qc.invalidateQueries({ queryKey: ["chirps"] });
+    onPosted();
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: "100%" }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: "100%" }}
+      transition={{ type: "spring", damping: 30, stiffness: 300 }}
+      className="fixed inset-0 z-[60] bg-background dark flex flex-col"
+    >
+      <div className="flex items-center px-4 py-3 border-b border-border shrink-0">
+        <button onClick={onClose} className="p-1.5 rounded-full hover:bg-muted transition-colors mr-3">
+          <ArrowLeft className="w-5 h-5" />
+        </button>
+        <span className="font-bold text-lg">Comment</span>
+      </div>
+
+      <div className="flex-1 overflow-y-auto">
+        <div className="border-b border-border opacity-70">
+          <ChirpCard chirp={parentChirp} isNested />
+        </div>
+
+        <div className="border-b-2 border-primary/30">
+          <ChirpCard chirp={comment} isNested />
+        </div>
+
+        {isLoading ? (
+          <div className="flex justify-center py-8">
+            <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+          </div>
+        ) : (detail?.replies ?? []).length === 0 ? (
+          <div className="flex flex-col items-center py-10 text-muted-foreground text-sm gap-2">
+            <MessageCircle className="w-8 h-8 opacity-30" />
+            <p>No replies yet. Be the first!</p>
+          </div>
+        ) : (
+          (detail?.replies ?? []).map(reply => (
+            <ChirpCard key={reply.id} chirp={reply} isNested />
+          ))
+        )}
+      </div>
+
+      {me && (
+        <ThinChirpComposer me={me} replyTo={comment} onPosted={handlePosted} />
+      )}
+    </motion.div>
+  );
+}
+
 function ChirpDetailSheet({ chirp, me, onClose, onPosted }: {
   chirp: ChirpData; me: any; onClose: () => void; onPosted: () => void;
 }) {
   const qc = useQueryClient();
   const { data: detail, isLoading } = useChirpDetail(chirp.id);
-  const [replyTo, setReplyTo] = useState<ChirpData | null>(null);
+  const [selectedComment, setSelectedComment] = useState<ChirpData | null>(null);
 
   const handlePosted = () => {
     qc.invalidateQueries({ queryKey: ["chirp-detail", chirp.id] });
@@ -738,37 +945,26 @@ function ChirpDetailSheet({ chirp, me, onClose, onPosted }: {
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center"
-      onClick={onClose}
-    >
+    <>
       <motion.div
-        initial={{ y: "100%", opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        exit={{ y: "100%", opacity: 0 }}
+        initial={{ opacity: 0, x: "100%" }}
+        animate={{ opacity: 1, x: 0 }}
+        exit={{ opacity: 0, x: "100%" }}
         transition={{ type: "spring", damping: 30, stiffness: 300 }}
-        className="bg-card border border-border rounded-t-3xl sm:rounded-2xl w-full sm:max-w-lg max-h-[90dvh] flex flex-col overflow-hidden shadow-2xl"
-        onClick={e => e.stopPropagation()}
+        className="fixed inset-0 z-50 bg-background dark flex flex-col"
       >
-        {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0">
-          <button onClick={onClose} className="p-1.5 rounded-full hover:bg-muted transition-colors">
-            <X className="w-5 h-5" />
+        <div className="flex items-center px-4 py-3 border-b border-border shrink-0">
+          <button onClick={onClose} className="p-1.5 rounded-full hover:bg-muted transition-colors mr-3">
+            <ArrowLeft className="w-5 h-5" />
           </button>
-          <span className="font-bold text-base">Chirp</span>
-          <div className="w-8" />
+          <span className="font-bold text-lg">Chirp</span>
         </div>
 
-        {/* Original chirp */}
-        <div className="border-b border-border shrink-0">
-          <ChirpCard chirp={chirp} isNested />
-        </div>
+        <div className="flex-1 overflow-y-auto">
+          <div className="border-b-2 border-primary/30">
+            <ChirpCard chirp={chirp} isNested />
+          </div>
 
-        {/* Replies — scrollable */}
-        <div className="flex-1 overflow-y-auto divide-y divide-border">
           {isLoading ? (
             <div className="flex justify-center py-8">
               <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
@@ -779,20 +975,37 @@ function ChirpDetailSheet({ chirp, me, onClose, onPosted }: {
               <p>No replies yet. Be the first!</p>
             </div>
           ) : (
-            (detail?.replies ?? []).map(reply => (
-              <ChirpCard key={reply.id} chirp={reply} isNested onReply={c => setReplyTo(c)} />
-            ))
+            <div className="divide-y divide-border">
+              {(detail?.replies ?? []).map(reply => (
+                <ChirpCard
+                  key={reply.id}
+                  chirp={reply}
+                  isNested
+                  onCommentClick={c => setSelectedComment(c)}
+                  onReply={c => setSelectedComment(c)}
+                />
+              ))}
+            </div>
           )}
         </div>
 
-        {/* Composer — fixed at bottom */}
         {me && (
-          <div className="border-t border-border shrink-0">
-            <ChirpComposer me={me} replyTo={replyTo ?? chirp} onClose={() => setReplyTo(null)} onPosted={handlePosted} />
-          </div>
+          <ThinChirpComposer me={me} replyTo={chirp} onPosted={handlePosted} />
         )}
       </motion.div>
-    </motion.div>
+
+      <AnimatePresence>
+        {selectedComment && (
+          <CommentDetailSheet
+            parentChirp={chirp}
+            comment={selectedComment}
+            me={me}
+            onClose={() => setSelectedComment(null)}
+            onPosted={handlePosted}
+          />
+        )}
+      </AnimatePresence>
+    </>
   );
 }
 
@@ -808,7 +1021,6 @@ export default function ChirpsPage() {
   const items = feedData?.items ?? [];
   const trending = trendingData?.trending ?? [];
 
-  // Handle ?id=X query param OR /chirps/:id route param — open that chirp's detail sheet
   useEffect(() => {
     const params = new URLSearchParams(routeSearch);
     const idStr = params.get("id") ?? routeParams.id ?? null;
@@ -825,22 +1037,18 @@ export default function ChirpsPage() {
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-6xl mx-auto flex gap-0 min-h-screen">
 
-      {/* Main Feed Column */}
       <div className="flex-1 min-w-0 border-x border-border">
 
-        {/* Header */}
         <div className="sticky top-0 z-20 bg-background/80 backdrop-blur-xl border-b border-border px-4 py-3">
           <h1 className="font-bold text-xl">Chirps</h1>
         </div>
 
-        {/* Composer */}
         {me && (
           <div className="border-b border-border">
             <ChirpComposer me={me} onPosted={() => refetch()} />
           </div>
         )}
 
-        {/* Feed */}
         {isLoading ? (
           <div className="space-y-0">
             {Array.from({ length: 5 }).map((_, i) => (
@@ -865,18 +1073,21 @@ export default function ChirpsPage() {
         ) : (
           <AnimatePresence initial={false}>
             {items.map(chirp => (
-              <ChirpCard key={chirp.id} chirp={chirp} onReply={c => setOpenChirp(c)} onOpen={c => setOpenChirp(c)} />
+              <ChirpCard
+                key={chirp.id}
+                chirp={chirp}
+                onReply={c => setOpenChirp(c)}
+                onOpen={c => setOpenChirp(c)}
+              />
             ))}
           </AnimatePresence>
         )}
       </div>
 
-      {/* Right Sidebar — desktop only */}
       <div className="hidden xl:block w-80 p-4 space-y-4 shrink-0">
         <TrendingSidebar trending={trending} />
       </div>
 
-      {/* Chirp Detail Sheet (with nested replies) */}
       <AnimatePresence>
         {openChirp && (
           <ChirpDetailSheet
