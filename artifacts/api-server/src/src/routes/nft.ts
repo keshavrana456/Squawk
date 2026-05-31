@@ -80,7 +80,7 @@ async function scanHolders(): Promise<void> {
         functionName: "ownerOf" as const,
         args: [BigInt(id)] as [bigint],
       }));
-      const results = await viemClient.multicall({ contracts, allowFailure: true });
+      const results = (await viemClient.multicall({ contracts, allowFailure: true })) as any[];
       for (const r of results) {
         if (r.status === "success" && r.result) {
           const addr = (r.result as string).toLowerCase();
@@ -346,6 +346,77 @@ router.get("/nft/stats", async (_req, res): Promise<void> => {
 
   cache = { data: result, timestamp: Date.now() };
   res.json(result);
+});
+
+// GET /nft/verify-wallet?address=0x...
+router.get("/nft/verify-wallet", async (req, res): Promise<void> => {
+  const address = String(req.query.address ?? "").trim().toLowerCase();
+  if (!address || !/^0x[0-9a-f]{40}$/.test(address)) {
+    res.status(400).json({ error: "Invalid EVM address" });
+    return;
+  }
+
+  // Try OpenSea API first (fastest + returns images)
+  const apiKey = process.env.OPENSEA_API_KEY;
+  if (apiKey) {
+    for (const slug of OPENSEA_SLUGS) {
+      try {
+        const url = `https://api.opensea.io/api/v2/chain/${OPENSEA_CHAIN}/account/${address}/nfts?collection=${slug}&limit=200`;
+        const osRes = await fetch(url, {
+          headers: { Accept: "application/json", "X-API-KEY": apiKey },
+          signal: AbortSignal.timeout(10_000),
+        });
+        if (!osRes.ok) {
+          if (osRes.status === 429) break; // rate-limited, fall through to on-chain
+          continue;
+        }
+        const json: any = await osRes.json();
+        const nfts: any[] = json.nfts ?? json.assets ?? [];
+        const mapped = nfts.map((n: any) => ({
+          tokenId: Number(n.identifier ?? n.token_id ?? 0),
+          name: n.name ?? `#${n.identifier ?? n.token_id}`,
+          imageUrl: n.image_url ?? n.display_image_url ?? n.image_original_url ?? null,
+        }));
+        res.json({ isHolder: mapped.length > 0, count: mapped.length, nfts: mapped });
+        return;
+      } catch {
+        // try next slug
+      }
+    }
+  }
+
+  // Fallback: on-chain multicall scan (checks all 3333 tokens)
+  try {
+    const BATCH = 250;
+    const heldTokenIds: number[] = [];
+    for (let start = 1; start <= TOTAL_SUPPLY; start += BATCH) {
+      const ids: number[] = [];
+      for (let i = start; i < Math.min(start + BATCH, TOTAL_SUPPLY + 1); i++) ids.push(i);
+      const results = await viemClient.multicall({
+        contracts: ids.map((id) => ({
+          address: CONTRACT,
+          abi: ownerOfAbi,
+          functionName: "ownerOf" as const,
+          args: [BigInt(id)] as const,
+        })),
+        allowFailure: true,
+      });
+      (results as any[]).forEach((r, idx) => {
+        if (r.status === "success" && String(r.result).toLowerCase() === address) {
+          heldTokenIds.push(ids[idx]);
+        }
+      });
+    }
+    const nfts = heldTokenIds.map((tokenId) => ({
+      tokenId,
+      name: `10K Squad #${tokenId}`,
+      imageUrl: null,
+    }));
+    res.json({ isHolder: nfts.length > 0, count: nfts.length, nfts });
+  } catch (err) {
+    console.error("[verify-wallet] on-chain scan failed:", err);
+    res.status(503).json({ error: "Verification temporarily unavailable" });
+  }
 });
 
 export default router;

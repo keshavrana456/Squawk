@@ -43,7 +43,7 @@ export default function Sidebar() {
   const navItems = user ? authNavItems : guestNavItems;
 
   return (
-    <aside className="hidden md:flex flex-col border-r border-border bg-card/50 backdrop-blur-xl h-full sticky top-0 w-16 lg:w-64 p-2 lg:p-4 shrink-0 overflow-hidden">
+    <aside className="hidden md:flex flex-col border-r border-white/10 bg-card/70 backdrop-blur-2xl h-full sticky top-0 w-16 lg:w-64 p-2 lg:p-4 shrink-0 overflow-hidden shadow-[4px_0_30px_rgba(0,0,0,0.3)]">
       <Link href="/home" className="flex items-center justify-center lg:justify-start gap-3 px-2 lg:px-4 py-4 mb-4 lg:mb-6 shrink-0" data-testid="link-logo">
         <img src={import.meta.env.BASE_URL.replace(/\/$/, "") + "/logo.png"} alt="Squawk Logo" className="h-8 w-auto" />
       </Link>

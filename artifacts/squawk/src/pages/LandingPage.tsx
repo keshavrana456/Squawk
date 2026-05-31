@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useState, useCallback, useRef } from "react";
 import { Palette, Link2, Gamepad2, Camera, Zap, Heart, Trophy, Globe, Gift, Users, TrendingUp, Star, ArrowRight, ExternalLink, Crown, RefreshCw, Info } from "lucide-react";
 import { useAboutModal } from "@/components/AboutModal";
+import NftVerifyModal from "@/components/NftVerifyModal";
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 const CONTEST_END = new Date("2026-05-31T12:00:00Z");
@@ -781,7 +782,7 @@ function OngoingContest() {
             </div>
           ) : (
             <div className="divide-y divide-white/5">
-              {tweets.map((tweet) => (
+              {tweets.slice(0, 2).map((tweet) => (
                 <a
                   key={tweet.tweetId}
                   href={tweet.tweetUrl}
@@ -945,13 +946,13 @@ function SectionNav({ onAbout }: { onAbout: () => void }) {
   }, []);
 
   const items = [
+    { label: "About Squawk", href: null, emoji: "ℹ️", onClick: onAbout },
     { label: "Recent Sales", href: "#recent-sales", emoji: "💰" },
     { label: "Top Holders", href: "#top-holders", emoji: "👑" },
     { label: "Live Squad Contests", href: "#contests", emoji: "🏆" },
     { label: "About the 10K Squad NFTs", href: "#about-10k", emoji: "🎨" },
     { label: "Holder Rewards Hub", href: "#holder-rewards", emoji: "💎" },
     { label: "Built for Culture", href: "#built-for-culture", emoji: "⚡" },
-    { label: "About Squawk", href: null, emoji: "ℹ️", onClick: onAbout },
     { label: "Must Try", href: "#must-try", emoji: "⭐" },
   ];
 
@@ -1006,7 +1007,7 @@ function SectionNav({ onAbout }: { onAbout: () => void }) {
                 <button
                   key={item.label}
                   onClick={() => handleClick(item.href, item.onClick)}
-                  className={`cosmic-btn group relative flex items-center gap-2 px-5 py-2.5 rounded-full border border-white/20 overflow-hidden text-white/75 hover:text-white transition-colors duration-200 text-sm font-medium whitespace-nowrap shrink-0 ${glows[i % glows.length]}`}
+                  className={`cosmic-btn group relative flex items-center gap-2 px-6 py-3 rounded-full border border-white/20 overflow-hidden text-white/75 hover:text-white transition-colors duration-200 text-base font-semibold whitespace-nowrap shrink-0 ${glows[i % glows.length]}`}
                   style={{ background: "linear-gradient(135deg, rgba(14,7,35,0.85) 0%, rgba(30,10,55,0.75) 100%)" }}
                 >
                   {/* Nebula glow background */}
@@ -1042,6 +1043,7 @@ function SectionNav({ onAbout }: { onAbout: () => void }) {
 
 export default function LandingPage() {
   const about = useAboutModal();
+  const [showVerify, setShowVerify] = useState(false);
   const [stats, setStats] = useState<NftStats | null>(null);
   const [updating, setUpdating] = useState(false);
   const [hasLiveData, setHasLiveData] = useState(false);
@@ -1106,11 +1108,10 @@ export default function LandingPage() {
             Sign In
           </Link>
           <Link
-            href="/sign-up"
-            className="px-5 py-1.5 rounded-full text-sm font-bold text-white transition-all hover:scale-105 hover:shadow-[0_0_20px_4px_rgba(219,39,119,0.4)]"
-            style={{ background: "linear-gradient(135deg, #ec4899, #9333ea)" }}
+            href="/home"
+            className="px-5 py-1.5 rounded-full text-sm font-semibold text-white/70 border border-white/20 hover:border-white/40 hover:text-white transition-all"
           >
-            Join Now
+            Visit as Guest
           </Link>
         </div>
       </nav>
@@ -1153,21 +1154,21 @@ export default function LandingPage() {
           </p>
 
           <div className="flex flex-col sm:flex-row items-center gap-4">
-            <Link href="/home">
-              <button
-                className="group relative inline-flex h-14 items-center justify-center overflow-hidden rounded-full px-8 font-bold text-white text-lg transition-all duration-300 hover:scale-105 shadow-2xl shadow-pink-900/50"
-                style={{ background: "linear-gradient(135deg, #ec4899, #9333ea)" }}
-                data-testid="button-get-started"
-              >
-                Enter the Grid
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="ml-2 transition-transform group-hover:translate-x-1"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-              </button>
-            </Link>
-            <Link href="/sign-up">
-              <button className="h-14 px-8 rounded-full font-semibold text-white/70 border border-white/20 hover:border-white/40 hover:text-white transition-all text-lg">
-                Join Now
-              </button>
-            </Link>
+            <button
+              onClick={() => setShowVerify(true)}
+              className="group relative inline-flex h-14 items-center justify-center overflow-hidden rounded-full px-8 font-bold text-white text-lg transition-all duration-300 hover:scale-105 shadow-2xl shadow-pink-900/50"
+              style={{ background: "linear-gradient(135deg, #ec4899, #9333ea)" }}
+              data-testid="button-get-started"
+            >
+              Enter the Grid
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="ml-2 transition-transform group-hover:translate-x-1"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+            </button>
+            <button
+              onClick={() => setShowVerify(true)}
+              className="h-14 px-8 rounded-full font-semibold text-white/70 border border-white/20 hover:border-white/40 hover:text-white transition-all text-lg"
+            >
+              Join Now
+            </button>
           </div>
         </motion.div>
 
@@ -1584,20 +1585,20 @@ export default function LandingPage() {
       >
         <h2 className="text-4xl md:text-6xl font-black text-white mb-6">Ready to join the grid?</h2>
         <p className="text-muted-foreground text-lg mb-10 max-w-xl mx-auto">Sign up in seconds and step into the Monad community.</p>
-        <Link href="/sign-up">
-          <button
-            className="inline-flex h-14 items-center gap-2 rounded-full px-10 font-bold text-white text-lg transition-all hover:scale-105 shadow-2xl shadow-pink-900/50"
-            style={{ background: "linear-gradient(135deg, #ec4899, #9333ea)" }}
-          >
-            Create your Squawk
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-          </button>
-        </Link>
+        <button
+          onClick={() => setShowVerify(true)}
+          className="inline-flex h-14 items-center gap-2 rounded-full px-10 font-bold text-white text-lg transition-all hover:scale-105 shadow-2xl shadow-pink-900/50"
+          style={{ background: "linear-gradient(135deg, #ec4899, #9333ea)" }}
+        >
+          Create your Squawk
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+        </button>
       </motion.section>
 
       <div className="h-8" />
 
       {about.modal}
+      {showVerify && <NftVerifyModal onClose={() => setShowVerify(false)} />}
     </div>
   );
 }

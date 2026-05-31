@@ -3,7 +3,7 @@ import { Link, useLocation } from "wouter";
 import RichText from "@/components/RichText";
 import { useQueryClient } from "@tanstack/react-query";
 import {
-  Heart, MessageCircle, Send, Bookmark, MoreHorizontal,
+  Heart, MessageCircle, Send, MoreHorizontal,
   BadgeCheck, Volume2, VolumeX, PlaySquare, Trash2,
   Link2, Flag, EyeOff, Copy, UserPlus, UserCheck,
 } from "lucide-react";
@@ -14,7 +14,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
 import {
   useLikePost,
-  useSavePost,
   useDeletePost,
   useGetMe,
   useFollowUser,
@@ -47,7 +46,6 @@ export default function PostCard({ post, onLike, onSave, onComment }: PostCardPr
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
   const likeMutation = useLikePost();
-  const saveMutation = useSavePost();
   const deleteMutation = useDeletePost();
   const followMutation = useFollowUser();
   const { data: me } = useGetMe();
@@ -56,7 +54,6 @@ export default function PostCard({ post, onLike, onSave, onComment }: PostCardPr
   const [showHeart, setShowHeart] = useState(false);
   const [isLiked, setIsLiked] = useState(!!post.isLiked);
   const [likesCount, setLikesCount] = useState(post.likesCount ?? 0);
-  const [isSaved, setIsSaved] = useState(!!post.isSaved);
   const [isMuted, setIsMuted] = useState(true);
   const [shareOpen, setShareOpen] = useState(false);
   const [showComments, setShowComments] = useState(false);
@@ -90,8 +87,7 @@ export default function PostCard({ post, onLike, onSave, onComment }: PostCardPr
     if (likeMutation.isPending) return;
     setIsLiked(!!post.isLiked);
     setLikesCount(post.likesCount ?? 0);
-    setIsSaved(!!post.isSaved);
-  }, [post.isLiked, post.likesCount, post.isSaved, likeMutation.isPending]);
+  }, [post.isLiked, post.likesCount, likeMutation.isPending]);
 
   const isOwner = me && (me as any).id === post.author.id;
 
@@ -186,16 +182,6 @@ export default function PostCard({ post, onLike, onSave, onComment }: PostCardPr
     if (onLike) onLike();
   };
 
-  const handleSave = () => {
-    if (!requireAuth()) return;
-    const newSaved = !isSaved;
-    setIsSaved(newSaved);
-    saveMutation.mutate({ id: post.id }, {
-      onError: () => setIsSaved(!newSaved),
-    });
-    if (onSave) onSave();
-  };
-
   const handleDelete = () => {
     deleteMutation.mutate({ id: post.id }, {
       onSuccess: () => {
@@ -250,8 +236,8 @@ export default function PostCard({ post, onLike, onSave, onComment }: PostCardPr
     <>
       <div className="bg-card border-b border-border md:border md:rounded-2xl md:mb-6 overflow-hidden w-full" data-testid={`post-card-${post.id}`}>
         {/* Header */}
-        <div className="flex items-center justify-between p-4">
-          <Link href={`/profile/${post.author.username}`} className="flex items-center gap-3 group" data-testid={`link-author-${post.author.username}`}>
+        <div className="flex items-center p-4 gap-2">
+          <Link href={`/profile/${post.author.username}`} className="flex items-center gap-3 group flex-1 min-w-0" data-testid={`link-author-${post.author.username}`}>
             <Avatar className="w-10 h-10 border border-border group-hover:border-primary transition-colors">
               <AvatarImage src={post.author.avatarUrl || ""} />
               <AvatarFallback style={{ backgroundColor: avatarColor, color: "white" }}>
@@ -268,20 +254,21 @@ export default function PostCard({ post, onLike, onSave, onComment }: PostCardPr
             </div>
           </Link>
 
-          {/* Follow button — shown for non-owners not yet following */}
-          {!isOwner && me && (
+          {/* Follow button — shown for non-owners not yet following, placed right of author */}
+          {!isOwner && me && !isFollowing && (
             <button
               onClick={handleFollow}
-              disabled={isFollowing || followMutation.isPending}
-              className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full border transition-all mr-1 ${
-                isFollowing
-                  ? "border-border text-muted-foreground cursor-default"
-                  : "border-primary text-primary hover:bg-primary/10"
-              }`}
+              disabled={followMutation.isPending}
+              className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full border border-primary text-primary hover:bg-primary/10 transition-all shrink-0"
             >
-              {isFollowing ? <UserCheck className="w-3.5 h-3.5" /> : <UserPlus className="w-3.5 h-3.5" />}
-              {isFollowing ? "Following" : "Follow"}
+              <UserPlus className="w-3.5 h-3.5" />
+              Follow
             </button>
+          )}
+          {!isOwner && me && isFollowing && (
+            <span className="flex items-center gap-1 text-xs text-muted-foreground px-2 py-1.5 shrink-0">
+              <UserCheck className="w-3.5 h-3.5" />
+            </span>
           )}
 
           {/* Three-dot menu */}
@@ -426,13 +413,6 @@ export default function PostCard({ post, onLike, onSave, onComment }: PostCardPr
                 <Send className="w-7 h-7" />
               </button>
             </div>
-            <button
-              onClick={handleSave}
-              className={`transition-colors hover:opacity-70 ${isSaved ? "text-primary" : "text-foreground"}`}
-              data-testid="button-save"
-            >
-              <Bookmark className={`w-7 h-7 ${isSaved ? "fill-primary" : ""}`} />
-            </button>
           </div>
 
           <div className="font-semibold text-sm mb-1">{likesCount.toLocaleString()} likes</div>

@@ -214,8 +214,12 @@ export default function ProfilePage() {
   const [, navigate] = useLocation();
   const isMe = me?.username === username;
   const [activeTab, setActiveTab] = useState<
-    "posts" | "flow" | "chirps" | "saved"
+    "posts" | "flow" | "chirps" | "my-nfts"
   >("posts");
+  const [nftWallet, setNftWallet] = useState(() => localStorage.getItem("squawk_nft_wallet") ?? "");
+  const [nftVerifyResult, setNftVerifyResult] = useState<{ isHolder: boolean; count: number; nfts: { tokenId: number; name: string; imageUrl: string | null }[] } | null>(null);
+  const [nftVerifyLoading, setNftVerifyLoading] = useState(false);
+  const [nftVerifyError, setNftVerifyError] = useState("");
 
   const [isFollowing, setIsFollowing] = useState(false);
   useEffect(() => {
@@ -460,7 +464,7 @@ export default function ProfilePage() {
   };
 
   useEffect(() => {
-    if (isMe && activeTab === "saved") {
+    if (isMe && activeTab === "my-nfts") {
       setIsLoadingSaved(true);
       fetch("/api/users/me/saved", { credentials: "include" })
         .then((r) => (r.ok ? r.json() : []))
@@ -469,6 +473,31 @@ export default function ProfilePage() {
         .finally(() => setIsLoadingSaved(false));
     }
   }, [isMe, activeTab]);
+
+  const handleNftVerify = async () => {
+    const addr = nftWallet.trim();
+    if (!/^0x[0-9a-fA-F]{40}$/.test(addr)) {
+      setNftVerifyError("Please enter a valid EVM wallet address (0x...)");
+      return;
+    }
+    setNftVerifyError("");
+    setNftVerifyLoading(true);
+    setNftVerifyResult(null);
+    try {
+      const res = await fetch(`/api/nft/verify-wallet?address=${encodeURIComponent(addr)}`);
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        throw new Error(d.error ?? "Verification failed");
+      }
+      const data = await res.json();
+      setNftVerifyResult(data);
+      localStorage.setItem("squawk_nft_wallet", addr);
+    } catch (err: any) {
+      setNftVerifyError(err.message ?? "Failed to verify");
+    } finally {
+      setNftVerifyLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (activeTab === "chirps" && username) {
@@ -830,7 +859,7 @@ export default function ProfilePage() {
                   <DollarSign className="w-4 h-4" />
                 </Button>
               </div>
-            ) : (
+            ) : me ? (
               <>
                 <Button
                   onClick={handleFollow}
@@ -860,6 +889,14 @@ export default function ProfilePage() {
                   Message
                 </Button>
               </>
+            ) : (
+              <Button
+                disabled
+                className="flex-1 md:w-32 font-bold rounded-full text-white/50 border-0 cursor-not-allowed opacity-60"
+                style={pinkGlowStyle}
+              >
+                Follow
+              </Button>
             )}
             {isFounder && !isMe && (
               <Button
@@ -1030,15 +1067,12 @@ export default function ProfilePage() {
             <MessageSquare className="w-4 h-4" />
             Chirps
           </button>
-          {isMe && (
-            <button
-              onClick={() => setActiveTab("saved")}
-              className={`flex-1 min-w-[60px] py-4 flex items-center justify-center gap-2 border-b-2 font-semibold uppercase tracking-wider text-sm transition-colors ${activeTab === "saved" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}
-            >
-              <Bookmark className="w-4 h-4" />
-              Saved
-            </button>
-          )}
+          <button
+            onClick={() => setActiveTab("my-nfts")}
+            className={`flex-1 min-w-[60px] py-4 flex items-center justify-center gap-2 border-b-2 font-semibold uppercase tracking-wider text-sm transition-colors ${activeTab === "my-nfts" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+          >
+            🦜 My NFTs
+          </button>
         </div>
 
         {activeTab === "posts" && <PostGrid posts={posts as Post[]} />}
@@ -1177,20 +1211,84 @@ export default function ProfilePage() {
             </div>
           ))}
 
-        {activeTab === "saved" &&
-          isMe &&
-          (isLoadingSaved ? (
-            <div className="flex justify-center py-20">
-              <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+        {activeTab === "my-nfts" && (
+          <div className="space-y-5">
+            <div className="rounded-2xl border border-border p-5 space-y-4 bg-card/60">
+              <p className="text-sm text-muted-foreground">
+                Enter your EVM wallet address to view your 10K Squad NFTs.
+              </p>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={nftWallet}
+                  onChange={(e) => { setNftWallet(e.target.value); setNftVerifyError(""); }}
+                  onKeyDown={(e) => { if (e.key === "Enter") handleNftVerify(); }}
+                  placeholder="0x... (your wallet address)"
+                  className="flex-1 rounded-xl border border-border bg-background px-4 py-2.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary/50"
+                />
+                <button
+                  onClick={handleNftVerify}
+                  disabled={nftVerifyLoading}
+                  className="px-4 py-2.5 rounded-xl font-semibold text-sm text-white transition-all hover:opacity-90 disabled:opacity-50"
+                  style={{ background: "linear-gradient(135deg, #ec4899, #9333ea)" }}
+                >
+                  {nftVerifyLoading ? (
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : "Verify"}
+                </button>
+              </div>
+              {nftVerifyError && (
+                <p className="text-xs text-destructive">{nftVerifyError}</p>
+              )}
             </div>
-          ) : savedPosts.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-20 text-muted-foreground gap-3">
-              <Bookmark className="w-10 h-10 opacity-30" />
-              <p className="text-sm font-medium">No saved posts yet</p>
-            </div>
-          ) : (
-            <PostGrid posts={savedPosts} />
-          ))}
+
+            {nftVerifyResult && (
+              nftVerifyResult.isHolder ? (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                    <span className="text-green-400">✓</span>
+                    {nftVerifyResult.count} 10K Squad NFT{nftVerifyResult.count !== 1 ? "s" : ""} found
+                  </div>
+                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+                    {nftVerifyResult.nfts.map((nft) => (
+                      <a
+                        key={nft.tokenId}
+                        href={`https://opensea.io/collection/the-10k-squad-350905768/${nft.tokenId}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="rounded-xl overflow-hidden border border-border hover:border-primary transition-colors group"
+                      >
+                        <div className="aspect-square bg-muted relative">
+                          {nft.imageUrl ? (
+                            <img src={nft.imageUrl} alt={nft.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-3xl">🦜</div>
+                          )}
+                        </div>
+                        <div className="p-2 text-center">
+                          <div className="text-[10px] font-semibold text-muted-foreground truncate">{nft.name}</div>
+                        </div>
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-12 gap-3 text-muted-foreground">
+                  <span className="text-4xl">🦜</span>
+                  <p className="text-sm font-medium">No 10K Squad NFTs found in this wallet</p>
+                  <a
+                    href="https://opensea.io/collection/the-10k-squad-350905768"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-primary underline underline-offset-2 hover:text-primary/80 transition-colors"
+                  >
+                    Get one on OpenSea →
+                  </a>
+                </div>
+              )
+            )}
+          </div>
+        )}
       </div>
 
       {/* Modals */}

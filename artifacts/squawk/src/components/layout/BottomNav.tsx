@@ -49,7 +49,7 @@ export default function BottomNav() {
 
   return (
     <nav
-      className="md:hidden fixed bottom-0 left-0 right-0 border-t border-border bg-card/80 backdrop-blur-xl z-50 transition-transform duration-300"
+      className="md:hidden fixed bottom-0 left-0 right-0 border-t border-white/10 bg-card/70 backdrop-blur-2xl z-50 transition-transform duration-300 shadow-[0_-4px_30px_rgba(0,0,0,0.4)]"
       style={{
         paddingBottom: "env(safe-area-inset-bottom, 0px)",
         transform: visible ? "translateY(0)" : "translateY(100%)",

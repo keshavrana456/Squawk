@@ -25,7 +25,7 @@ export default function MobileHeader() {
   if (hiddenPaths.some((p) => location.startsWith(p))) return null;
 
   return (
-    <header className="md:hidden fixed top-0 left-0 right-0 z-40 flex items-center justify-between px-2 py-2 bg-background/90 backdrop-blur-xl border-b border-border">
+    <header className="md:hidden fixed top-0 left-0 right-0 z-40 flex items-center justify-between px-2 py-2 bg-background/75 backdrop-blur-2xl border-b border-white/10 shadow-[0_4px_30px_rgba(0,0,0,0.3)]">
       {/* Left: create post (signed-in only) */}
       {user ? (
         <Link href="/upload">

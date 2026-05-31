@@ -35,7 +35,7 @@ router.get("/stories", requireUser, async (req, res): Promise<void> => {
       gt(storiesTable.expiresAt, now),
       inArray(storiesTable.authorId, allUserIds)
     ))
-    .orderBy(desc(storiesTable.createdAt));
+    .orderBy(storiesTable.createdAt);
 
   // Get viewed story IDs
   const viewedRows = await db.select({ storyId: storyViewsTable.storyId })
