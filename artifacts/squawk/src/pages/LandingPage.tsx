@@ -1111,7 +1111,7 @@ export default function LandingPage() {
             href="/home"
             className="px-5 py-1.5 rounded-full text-sm font-semibold text-white/70 border border-white/20 hover:border-white/40 hover:text-white transition-all"
           >
-            Visit as Guest
+            Join Now
           </Link>
         </div>
       </nav>
@@ -1163,12 +1163,12 @@ export default function LandingPage() {
               Enter the Grid
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="ml-2 transition-transform group-hover:translate-x-1"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
             </button>
-            <button
-              onClick={() => setShowVerify(true)}
-              className="h-14 px-8 rounded-full font-semibold text-white/70 border border-white/20 hover:border-white/40 hover:text-white transition-all text-lg"
+            <Link
+              href="/home"
+              className="h-14 px-8 rounded-full font-semibold text-white/70 border border-white/20 hover:border-white/40 hover:text-white transition-all text-lg inline-flex items-center justify-center"
             >
-              Join Now
-            </button>
+              Visit as Guest
+            </Link>
           </div>
         </motion.div>
 
